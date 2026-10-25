@@ -3,13 +3,14 @@
 A clean, welcoming Android home launcher for the owner's AYN Odin 2 Portal: controller first,
 full Android underneath (every app, settings, notifications), far fewer features than Nova.
 Kotlin + Jetpack Compose, built from the command line on a Windows ARM laptop. Private.
-Why and where it is going: `docs/architecture.md`, *Goals*.
+Why and where it is going: `docs/architecture.md`, *Goals*. The work is the owner's feature
+board: `docs/TASKS.md`.
 
 ## Read before working
 | Task | Read |
 |---|---|
 | Any | `docs/HANDOFF.md` (state, next, waiting on the owner) |
-| Pick or plan work | `docs/TASKS.md`: the first unchecked task under *Open*, or the owner's explicit ask |
+| Pick or plan work | `docs/TASKS.md`: the first open card or task under *Working on*, or the owner's explicit ask |
 | Reviewing the owner's concepts | `concepts/README.md`, then the files in `concepts/` |
 | The look, layout, controller feel | `docs/architecture.md` *Goals*, *Look* |
 | Build, SDK, adb, the device | `docs/architecture.md` *Toolchain*, *The device*; `docs/gotchas.md` |
@@ -27,7 +28,7 @@ works → `architecture.md` · why → `docs/decisions/` · traps → `gotchas.m
 2. **`concepts/` is the owner's.** Read it, never edit, rename or delete files in it; review notes
    go in `docs/decisions/`.
 3. **Clean beats complete.** A feature earns its place by making the home screen calmer or more
-   welcoming; when in doubt, leave it out and add a line to *Later*.
+   welcoming; when in doubt, leave it out and add a line to the board's *Feature list*.
 4. **Crisp at 1920×1080.** Vector or full-resolution assets only, real typography, no blurry
    scaled bitmaps: the reason this project exists is that other launchers look off.
 5. **Commit wording**: "commit" = local only; "commit to github" = commit + push.
@@ -51,7 +52,8 @@ works → `architecture.md` · why → `docs/decisions/` · traps → `gotchas.m
 - Notes audit: `py -I C:\Users\Jim\.claude\skills\notes-architecture\scripts\notes_audit.py .`
 
 ## End of session
-1. Tick the task in `docs/TASKS.md` (date, one clause); its detail goes to a decision entry.
+1. Tick the card or task in `docs/TASKS.md` (date, one clause); its detail goes to a decision
+   entry (a card's: `decisions/F<n>-<slug>.md`, or `decisions/<version>.md` for small ones).
 2. New knowledge to its one home (table above); a finished feature is described in
    `architecture.md` in present tense, no task IDs.
 3. Rewrite `docs/HANDOFF.md` from scratch: state ≤ 10 lines, next, waiting on the owner,

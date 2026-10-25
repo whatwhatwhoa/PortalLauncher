@@ -1,123 +1,108 @@
 # Tasks
+<!-- feature-board 1 -->
 
-Rules: one task per session unless the owner bundles several; work on the first unchecked task
-under *Open*, or the owner's explicit ask; tick with the date and one clause, then its detail
-goes to `decisions/` and the line stays one line. Owner bug/tweak batches are B1, B2, …
-After M6 and M7 the list moves to the feature board (`notes-architecture` skill, format 1).
-IDs are stable, so a milestone slotted in later keeps its number wherever it sits (M7 before M6).
+The feature board (owner, 2026-10-25). Features move **Feature list → Planned → Working on →
+Released**. Each release has a **theme** and holds the cards planned for it. The milestones
+M0–M8 built the foundation; their history is under *Released* (full lines:
+`archive/tasks-M1-M7.md`).
 
-## Open (in order)
+Rules:
+- **Work** on the first open card or task under *Working on*, or the owner's explicit ask; one
+  per session unless the owner bundles several.
+- **IDs never change when a card moves.** A new card is **F<n>**, numbered on from the last
+  milestone M8 (F9 first; next free F18), so its tasks are T<n>.1, T<n>.2 … and its decision
+  entries D<n>.1 …, clashing with no milestone's. A card that came out of a milestone keeps its
+  task IDs. Owner bug and tweak batches stay **B<n>** (B6 next). A follow-up gets an F number
+  when it is planned.
+- **A card is a line or two**: what, why, a pointer to its spec. A long spec is a decision entry
+  marked "planned" (`decisions/F<n>-<slug>.md` for a big feature, `decisions/<version>.md` for
+  a release's small ones), not a paragraph here.
+- **Planning is the owner's**: a theme and cards from the feature list into *Planned*; when its
+  work starts, the release moves to *Working on*. A big feature may land over several releases.
+- **Done**: tick it with the date and one clause once it builds, lints and runs on the Portal;
+  the detail goes to its decision entry. It stays ticked under *Working on* until the release
+  ships, then folds into that release's line under *Released* (the full lines to
+  `archive/tasks-<version>.md`).
+- **Format**: feature-board format 1 (the notes-architecture skill's
+  `references/board-format.md`); the owner's board app moves cards in this file, and the notes
+  audit checks it.
 
-### M1 — Design direction (owner, 2026-10-25)
-Goal: from the owner's concepts, settle what "clean and welcoming" looks like on the Portal.
-- [x] T1.1 (2026-10-25) Concepts reviewed: `decisions/M1-design.md`; direction drafted in
-  `architecture.md` *Look*.
-- [x] T1.2 (2026-10-25) Answers in: square tiles, A bottom, procedural accents; font and accent
-  go to an on-device trial (`decisions/M2-skeleton.md`).
+## Working on
 
-### M2 — Skeleton that runs (owner, 2026-10-25)
-Goal: a Gradle project that builds on this laptop and installs on the Portal as a Home app.
-- [x] T2.1 (2026-10-25) Gradle 9.8.2 + AGP 9.4.1 + Kotlin 2.4.21 on a native ARM64 JDK 21;
-  `assembleDebug` and lint pass.
-- [x] T2.2 (2026-10-25) Home app built with the owner's bundle: favorites carousel, All apps
-  drawer, utility dock, key table, Home-role request; not yet run on the device.
-- [ ] T2.3 Device session: install, run `docs/VERIFY.md` *V-skeleton*, fix what breaks; the
-  owner sets it as Home and goes back to Launcher3 once, to prove the way back.
+### 0.1.0 — First public release (owner, 2026-10-25)
+Also in it, done since the start: M1–M7, B1–B4 (history under *Released*).
+- **M8 Public page and release** (owner, 2026-10-25): a GitHub page users can install from: what it is, the APK, setup, screenshots.
+  - [x] T8.1 (2026-10-25) User-facing README with screenshots, MIT license, SteamGridDB key entry
+    in Launcher Settings (release APKs carry no key), release signing (`decisions/M8-release.md`).
+  - [ ] T8.2 Run the release APK on a device once (R8-minified, never run), then the owner makes
+    the repo public and publishes v0.1.0 with the APK as `PortalLauncher-0.1.0.apk`.
+- **VERIFY rounds** (owner, 2026-10-25): the milestones' hand checks on the Portal (`VERIFY.md`).
+  - [ ] T2.3 Device session: install, run `docs/VERIFY.md` *V-skeleton*, fix what breaks; the
+    owner sets it as Home and goes back to Launcher3 once, to prove the way back.
+  - [ ] T5.3 VERIFY round: ghost opacity, type size (`VERIFY.md` *V-categories*).
+  - [ ] T7.3 VERIFY round on the device (`VERIFY.md` *V-quick*).
+  - [ ] T6.5 VERIFY round on the device (`VERIFY.md` *V-transit*, *V-accent*).
+- **F9 Hero reflection** (owner, 2026-10-25): below the hero band, the hero mirrored, blurred
+  and darkened, a soft rippling "windy moonlight" reflection; the band's gradient stays.
+  `decisions/0.1.0.md` D9.1.
+  - [ ] T9.1 Build it on Home's hero band.
+- **F10 Starting categories** (owner, 2026-10-25): a bundled table puts popular apps in their
+  usual category on the launcher's first run; apps installed after that go to All apps only, not
+  Home, until placed. `decisions/0.1.0.md` D10.1.
+  - [ ] T10.1 Table, first-run cutoff, an All-apps-only place on Category….
+- **B5** (owner, 2026-10-25): `decisions/0.1.0.md`.
+  - [ ] B5.1 The dock's Launcher Settings button: the launcher's own icon with a small gear badge, not a third plain gear.
 
-### M3 — Home screen v1 (owner, 2026-10-25)
-Goal: the first version the owner would keep as the daily Home.
-- [x] T3.1 (2026-10-25) Status: clock, Wi-Fi wedge, battery with % inside, tighter to the
-  corner (`decisions/M3-home.md`); not yet clicked by the owner.
-- [x] T3.2 (2026-10-25) Options sheet on + and long press, move mode, hidden apps, owner's
-  dock, L1/R1 letter jump; Selawik joins the font trial (`decisions/M3-home.md`).
-- [x] T3.3 (2026-10-25) Canvas scaling and font scale clamp at the root, animation-off watched
-  live, clip-reveal launch from the tile; Selawik 1.3× (`decisions/M3-home.md`).
-- [x] T3.4 (2026-10-25) Trial ends: Selawik at 1.15×, accent White (owner), trial keys gone
-  (`decisions/M3-home.md`, `decisions/M4-art.md` *Scenes kept*).
+## Planned
 
-### M4 — Art and the hero (owner, 2026-10-25)
-Goal: real art where an app's icon is too small, and the Home layout built around it.
-- [x] T4.1 (2026-10-25) SteamGridDB covers and heroes for favorites on a close label match,
-  + → Art… to pick or search; blocked on the device's network setting (`decisions/M4-art.md`).
-- [x] T4.2 (2026-10-25) Square covers in the Home tiles where art exists; NTE's shows
-  (`decisions/M4-art.md`).
-- [x] T4.3 (2026-10-25) Home layout v2: hero band with vignette, Metro-style display name, reflections,
-  focused tile 1.2× by layout, dock beside the hints (`decisions/M4-art.md`).
-- [x] T4.4 (2026-10-25) Backdrop trial ended on Black, the key removed; choices wait for T6.2
-  (`decisions/M4-art.md` *Scenes kept*).
-- [x] T4.5 (2026-10-25) Scenes kept: fetched from Steam on a match, the shot picked by a score
-  tuned to the owner's two picks; dock centered, smaller hints (`decisions/M4-art.md` *Scenes kept*).
-- [x] T4.6 (2026-10-25) SteamGridDB choice: Art… opens the game's covers or heroes as a grid,
-  A picks; kept per slot (`decisions/M4-art.md` *Art choices*).
-- [x] T4.7 (2026-10-25) Art sources: a Steam screenshot grid for the scene; cover or scene from
-  the gallery, auto-cropped, any app (`decisions/M4-art.md` *Art choices*).
+### Candidates
+Nothing planned yet: the owner picks a version, a theme and the cards from the feature list.
 
-### B1 — Owner tweaks (2026-10-25)
-- [x] B1.1 (2026-10-25) Focus pulse at half speed, 1.8 s each way; a speed setting waits for T6.2.
+## Feature list
 
-### B2 — Owner tweaks (2026-10-25)
-- [x] B2.1 (2026-10-25) American English in the UI, code and notes; the stored favorites key keeps its old spelling.
-- [x] B2.2 (2026-10-25) Menu-button hints drawn as their printed shapes (square −, right triangle +) knocked out of the disc, big and rounded.
-- [x] B2.3 (2026-10-25) A Home name too long for the screen scrolls while the row has focus.
-- [x] B2.4 (2026-10-25) The panel is *Launcher Settings* (+ → Launcher settings…).
-- [x] B2.5 (2026-10-25) Re-picking a game after *Use the app's icon* fetches its scene again (`decisions/M4-art.md`).
-- [x] B2.6 (2026-10-25) Hints at 80%, each on the side its button is on (− bottom-left).
+### Big
+- **F11 Recently played** (2026-10-25): recently played ordering (perhaps as a category).
+- **F12 Renaming or adding categories** (2026-10-25): the fixed five first (`decisions/M5-categories.md`).
+- **F13 Notification shade button** (2026-10-25): a dock button that opens the notification shade directly (needs an accessibility service or a hidden API; the swipe works meanwhile).
+- **F14 Monochrome icons** (2026-10-25): a monochrome icon style from Android 13's themed-icon layer (often vector).
 
-### B3 — Owner's answers (2026-10-25)
-- [x] B3.1 (2026-10-25) Effects settled as built, all three on (`decisions/M6-settings.md` *Owner's answers*).
-- [x] B3.2 (2026-10-25) A gear at the dock's end opens Launcher Settings (`decisions/M6-settings.md`).
-- [x] B3.3 (2026-10-25) Quick panel buttons and sliders as Material Symbols icons (`decisions/M7-quick-settings.md` *Icons*).
-- [x] B3.4 (2026-10-25) The first D-pad press after a touch counts: the window leaves touch mode as a touch ends (`gotchas.md`).
-- [x] B3.5 (2026-10-25) Covers stay on Home only; the dock is for utilities (`decisions/M4-art.md` T4.2).
+### Small
+- **F15 Tile reflections** (2026-10-25): tile reflections back on the carousel (dropped 2026-10-25, never committed; how it was built: `decisions/M4-art.md`).
+- **F16 Search on Y** (2026-10-25): search on Y.
+- **F17 Work-profile badges** (2026-10-25): work-profile badges on tiles.
 
-### B4 — Owner tweaks (2026-10-25)
-- [x] B4.1 (2026-10-25) Eight accents (Lime, Rose added) and a hue/intensity picker on A (`decisions/M6-settings.md` *Accents*).
+### Waiting for data
+- **Odin 3 Portal**: confirm panel size and density when it exists; `Dimens` should cover it.
 
-### M5 — Categories (owner, 2026-10-25)
-Goal: the carousel shows one category at a time, and a big-type categories layer (XMB / Metro)
-moves between them. Proposal and open questions: `decisions/M5-categories.md`.
-- [x] T5.1 (2026-10-25) Categories seeded from the app's manifest, moved with + → Category…,
-  label above the row (`decisions/M5-categories.md` *Built*).
-- [x] T5.2 (2026-10-25) B opens the layer: names stacked, the row ghosted at 18% and zoomed out,
-  previewing as focus moves (`decisions/M5-categories.md` *Built*).
-- [ ] T5.3 VERIFY round: ghost opacity, type size (`VERIFY.md` *V-categories*).
+## Released
 
-### M7 — Quick settings (owner, 2026-10-25)
-Goal: the pull-down's everyday controls (brightness, volume and the like) from the controller,
-on Home. Proposal, what Android allows and open questions: `decisions/M7-quick-settings.md`.
-- [x] T7.1 (2026-10-25) Owner: the square (−) opens it, "brightness, volume etc."; grants on first use as proposed.
-- [x] T7.2 (2026-10-25) Quick panel: brightness and volume sliders, three toggles, five shortcuts
-  (`decisions/M7-quick-settings.md` *Built*).
-- [ ] T7.3 VERIFY round on the device (`VERIFY.md` *V-quick*).
+One line each, and the milestones before the board. The full task lines:
+`archive/tasks-M1-M7.md`; the why: `decisions/`.
 
-### M6 — Depth (owner, 2026-10-25)
-Goal: the overlay effects and gradients the owner asked for, keeping everything vector-crisp,
-and the settings screen that holds the choices. Settings proposal: `decisions/M6-settings.md`.
-- [x] T6.1 (2026-10-25) Effects: accent-tinted background gradient, focus glow breathing with
-  the ring, tile depth (top highlight dark, shadow light); each a switch (`decisions/M6-settings.md` *Built*).
-- [x] T6.2 (2026-10-25) Settings *Look* panel from + → Settings… and Android's gear: theme,
-  six accents, backdrop, scenes, covers, the three effects, pulse (`decisions/M6-settings.md` *Built*).
-- [x] T6.3 (2026-10-25) Motion pass: one timing for every layer, All apps rises as Home steps back, eased pulse (`decisions/M6-settings.md` *Motion pass*).
-- [ ] T6.5 VERIFY round on the device (`VERIFY.md` *V-transit*, *V-accent*).
-- [x] T6.4 (2026-10-25) *Home*, *Art*, *Apps*, *System* groups, action rows with a confirming
-  second A, credits (`decisions/M6-settings.md` *Built (T6.4)*).
+### Milestones (the foundation, 2026-10-25 … 2026-10-25)
+- **M0 Notes** (2026-10-25) — notes in the iceberg convention, `concepts/` drop folder, `git init`.
+- **M1 Design direction** — T1.1–T1.2: concepts reviewed, the direction drafted. `decisions/M1-design.md`.
+- **M2 Skeleton that runs** — T2.1–T2.2: the toolchain and the Home app (T2.3 rides in 0.1.0). `decisions/M2-skeleton.md`.
+- **M3 Home screen v1** — T3.1–T3.4: status, options sheet, scaling, trials ended. `decisions/M3-home.md`.
+- **M4 Art and the hero** — T4.1–T4.7: SteamGridDB art, Home v2, scenes, art choices. `decisions/M4-art.md`.
+- **M5 Categories** — T5.1–T5.2: seeding, the layer on B (T5.3 rides in 0.1.0). `decisions/M5-categories.md`.
+- **M6 Depth** — T6.1–T6.4: effects, Launcher Settings, motion pass (T6.5 rides in 0.1.0). `decisions/M6-settings.md`.
+- **M7 Quick settings** — T7.1–T7.2: the quick panel (T7.3 rides in 0.1.0). `decisions/M7-quick-settings.md`.
 
-### M8 — Public page and release (owner, 2026-10-25)
-Goal: a GitHub page users can install from: what it is, the APK, setup, screenshots.
-- [x] T8.1 (2026-10-25) User-facing README with screenshots, MIT license, SteamGridDB key entry
-  in Launcher Settings (release APKs carry no key), release signing (`decisions/M8-release.md`).
-- [ ] T8.2 Run the release APK on a device once (R8-minified, never run), then the owner makes
-  the repo public and publishes v0.1.0 with the APK as `PortalLauncher-0.1.0.apk`.
-
-### Later
-- Tile reflections back on the carousel (dropped 2026-10-25, never committed; how it was built: `decisions/M4-art.md`).
-- Recently played ordering (perhaps as a category), search on Y.
-- Renaming or adding categories (the fixed five first, `decisions/M5-categories.md`).
-- A dock button that opens the notification shade directly (needs an accessibility service or
-  a hidden API; the swipe works meanwhile).
-- A monochrome icon style from Android 13's themed-icon layer (often vector).
-- Odin 3 Portal: confirm panel size and density when it exists; `Dimens` should cover it.
-- Work-profile badges on tiles.
-
-## Done (one line each)
-- M0 (2026-10-25): notes in the iceberg convention, `concepts/` drop folder, `git init`.
+### Owner batches
+- [x] **B1** (2026-10-25): B1.1 (2026-10-25) Focus pulse at half speed, 1.8 s each way; a speed setting waits for T6.2.
+- [x] **B2** (2026-10-25): owner tweaks.
+  - [x] B2.1 (2026-10-25) American English in the UI, code and notes; the stored favorites key keeps its old spelling.
+  - [x] B2.2 (2026-10-25) Menu-button hints drawn as their printed shapes (square −, right triangle +) knocked out of the disc, big and rounded.
+  - [x] B2.3 (2026-10-25) A Home name too long for the screen scrolls while the row has focus.
+  - [x] B2.4 (2026-10-25) The panel is *Launcher Settings* (+ → Launcher settings…).
+  - [x] B2.5 (2026-10-25) Re-picking a game after *Use the app's icon* fetches its scene again (`decisions/M4-art.md`).
+  - [x] B2.6 (2026-10-25) Hints at 80%, each on the side its button is on (− bottom-left).
+- [x] **B3** (2026-10-25): owner's answers.
+  - [x] B3.1 (2026-10-25) Effects settled as built, all three on (`decisions/M6-settings.md` *Owner's answers*).
+  - [x] B3.2 (2026-10-25) A gear at the dock's end opens Launcher Settings (`decisions/M6-settings.md`).
+  - [x] B3.3 (2026-10-25) Quick panel buttons and sliders as Material Symbols icons (`decisions/M7-quick-settings.md` *Icons*).
+  - [x] B3.4 (2026-10-25) The first D-pad press after a touch counts: the window leaves touch mode as a touch ends (`gotchas.md`).
+  - [x] B3.5 (2026-10-25) Covers stay on Home only; the dock is for utilities (`decisions/M4-art.md` T4.2).
+- [x] **B4** (2026-10-25): owner tweaks.
+  - [x] B4.1 (2026-10-25) Eight accents (Lime, Rose added) and a hue/intensity picker on A (`decisions/M6-settings.md` *Accents*).

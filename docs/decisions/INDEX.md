@@ -1,7 +1,9 @@
 # Decisions — index
 
 One line per entry, newest at the bottom. The entry holds the why; `architecture.md` holds the
-what.
+what. IDs: D<n>.k is milestone n up to M8, card F<n> from F9 on (`TASKS.md`, the feature board,
+since 2026-10-25); a big card's file is `F<n>-<slug>.md`, a release's small ones go in
+`<version>.md`. Owner batches are B<n>, B6 next.
 
 - `M1-design.md` (2026-10-25) — concept review: Switch 2 mock-up anatomy, flat Switch theme for
   v1, square vector-crisp tiles, hero backdrop later; why Console Launcher looks soft.

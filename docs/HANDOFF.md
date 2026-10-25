@@ -17,8 +17,8 @@ Black, effects on, Covers on tiles On (seen 11:34). No VERIFY walked.
    *V-b2*; tune on their asks.
 2. T8.2 before going public: run the release APK once (it can't go over the debug install; see
    `decisions/M8-release.md` *Left*), then the owner flips the repo public and publishes v0.1.0.
-3. The other open tasks are VERIFY rounds (T2.3, T5.3, T6.5, T7.3). After them the list moves
-   to the feature board (`TASKS.md` header).
+3. `TASKS.md` is the feature board since 2026-10-25: 0.1.0 under *Working on* holds T8.2, the
+   VERIFY rounds (T2.3, T5.3, T6.5, T7.3), F9, F10 and B5.
 
 ## Waiting on the owner
 - Back up the release keystore `C:\Users\Jim\.android\portallauncher-release.jks` together with
@@ -40,6 +40,8 @@ Black, effects on, Covers on tiles On (seen 11:34). No VERIFY walked.
   outside the repo; the release APK builds but has never run on a device.
 
 ## Watch out (this week only)
+- IDs since the board: new cards F18 on (tasks T<n>.k, decisions D<n>.k), owner batches B6 next;
+  D<n>.k up to M8 means the milestone.
 - Don't script key presses while the owner is holding the Portal: input mixes (it happened once).
   `adb shell dumpsys input` *RecentQueue* shows recent input; one of its queues is stale (its
   ages don't move between two reads), so compare two reads. After any tap, check before A.
