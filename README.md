@@ -102,8 +102,12 @@ and depth effects, the clock format, button hints, and what the Home button does
 - **Made for the Odin 2 Portal** (7" 1920×1080, landscape). Other landscape Android handhelds
   should work, since the layout scales to fit, but only the Portal is tested. Phones and
   portrait aren't supported.
-- **Privacy:** Portal uses the internet only for art: SteamGridDB (with your key) and Steam's
-  public store pages. Nothing else leaves your device, and there are no analytics.
+- **Updates:** Launcher Settings → System → Updates says when a newer version is out; A
+  downloads and installs it, keeping your setup. The first time, Android asks you to allow
+  Portal to install apps.
+- **Privacy:** Portal uses the internet only for art, SteamGridDB (with your key) and Steam's
+  public store pages, and to ask GitHub for a newer version when you open Launcher Settings.
+  Nothing else leaves your device, and there are no analytics.
 - **Early days:** this is version 0.1. If something looks off, please
   [open an issue](https://github.com/whatwhatwhoa/PortalLauncher/issues) with a photo or
   screenshot.

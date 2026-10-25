@@ -4,21 +4,34 @@ Current state only. **Rewrite this file at the end of every session**: carry for
 open, delete what is resolved, never append history (git and `docs/decisions/` hold it).
 
 **State (2026-10-25):** The launcher **runs on the Portal and is its Home app** (Launcher3 still
-installed). `TASKS.md` is the owner's **feature board**; the owner moves cards in the
-FeatureBoard app and a session works the first open card or task under *Working on*.
-**0.1.0 — First public release is closed** and sits under *Released*: the R8 release APK ran on
-the Portal through a side-by-side `releaseCheck` build with nothing broken (T8.2,
-`decisions/M8-release.md`), and `app/build/outputs/apk/release/PortalLauncher-0.1.0.apk` is
-built. The repo is still private and has no GitHub release yet: both are the owner's step.
-**0.2.0 — Functional and refinement** is planned (F20, F19, F12, F18, and the VERIFY rounds
-carried from 0.1.0); *Working on* is empty until the owner starts it.
+installed). `TASKS.md` is the owner's **feature board**; a session works the first open card or
+task under *Working on*. **0.1.0** is released locally (repo still private, no GitHub release:
+the owner's step). **0.2.0 — Functional and refinement**: F20, F19, F12 and **F18** are ticked;
+the VERIFY rounds are left. F18 (Launcher Settings → System → Updates) builds, lints and ran
+end to end on the Portal in a side-by-side test copy against a laptop stand-in; it is
+installed on the owner's Portal (with F22). F19's fix and F12's checklist and ring are
+installed, not yet tried by the owner. **F22 sounds built + installed 2026-10-25, not yet
+heard on the Portal (VERIFY V-sounds)**; the Soft family, picked by the owner from
+`tools/sounds/make_sounds.py` → `build/sounds/audition.html`.
 
 ## Next
-1. When the owner moves 0.2.0 to *Working on*: its first open card (F20 Reflection changes as
-   the board stands: more space between the band and the reflection; the owner's concept).
-2. The owner tries *V-reflection* and *V-starting* first, then the older VERIFY sections.
+1. The owner tries *V-categories-edit*, the F19 fix (*V-standby*) and looks at *V-gap*.
+2. 0.2.0's VERIFY rounds (T2.3, T5.3, T7.3, T6.5), *V-reflection* and *V-starting* first; then
+   the owner closes 0.2.0 (versionCode 2, the release APK, `decisions/M8-release.md`).
+3. *V-updates* only once the repo is public and a release is up.
 
 ## Waiting on the owner
+- F18: GitHub has nothing to offer until the repo is public and a release has its APK (now:
+  "None published"). The daily build is debug-signed, so it will say "Signed differently" for
+  every release: move to the release build (an uninstall, so favorites, dock and art need
+  moving first; an agent can script that) or keep updating by adb. A quiet daily check with a
+  dot on the gear, or is asking when Launcher Settings opens enough?
+- F22: touch taps are silent except launch: want sounds on touch too?
+- The agent's test category **Test** may still be on the Portal: delete it in edit mode (+ in the
+  layer, A on Test, Delete, A twice).
+- F19: is a hold of Android's long-press time (0.4 s here) right, or should it be longer?
+  Does the service's accessibility warning need softer wording in the README when it ships?
+  Should the stick buttons (L3/R3) count toward waking? They do now.
 - Going public: make the repo public (first decide on purging the deleted `concepts/` files
   from the git history), then the GitHub release v0.1.0 with `PortalLauncher-0.1.0.apk`.
   An agent can tag and upload the release on request.
@@ -31,16 +44,23 @@ carried from 0.1.0); *Working on* is empty until the owner starts it.
   (agents can't); until then the build command sets it inline.
 
 ## Uncommitted
-- The `releaseCheck` build type, T8.2's notes, the 0.1.0 fold into *Released* with
-  `archive/tasks-0.1.0.md`, and the owner's 0.2.0 planning from FeatureBoard (F20 numbered).
+- F20, F19 (and its trigger and same-button fix), F12, F18 (code, `src/debug/` network config,
+  `decisions/0.2.0.md`, architecture, gotchas, VERIFY, INDEX, README), 0.2.0 moved to *Working
+  on*, F21 and F24 numbered. F22 (`tools/sounds/`, `assets/sounds/`, `Sounds.kt`, edits in
+  LauncherState/Settings/AppCatalog/MainActivity, `decisions/F22-sounds.md`). Everything before
+  is pushed (`be74a98`).
 
 ## Watch out (this week only)
-- IDs: next free card F21 (tasks T<n>.k, decisions D<n>.k), owner batches B6 next. Cards the
+- LineageOS's Home hold action on the Portal is 0 (nothing) since F19's session; it was unset
+  (Circle to Search). Only `content insert` changes it (`gotchas.md` *The Home key never reaches an app*).
+- IDs: next free card F25 (tasks T<n>.k, decisions D<n>.k), owner batches B6 next. Cards the
   owner adds in FeatureBoard come without an ID: give one the next F number when it is planned.
 - Don't script key presses while the owner is holding the Portal (`gotchas.md` *Scripted keys
-  mix with the owner's input*); screenshot before every A.
+  mix with the owner's input*); screenshot before every A. Check `dumpsys power`
+  *lastUserActivityTime* and `dumpsys input` *RecentQueue* first: it caught the owner again
+  mid-test (2026-10-25).
 - Clear all art and Reset the dock (Launcher Settings) wipe the owner's picks and dock: don't
-  press A twice on them while testing.
+  press A twice on them while testing; the same for Delete in the categories' edit mode.
 - Crunchyroll sits at its first-run consent screen and GameNative was left open after a test
   (2026-10-25); nothing was accepted in either.
 - The Portal's animator duration scale is 0.5 (the owner's setting); put it back to that after

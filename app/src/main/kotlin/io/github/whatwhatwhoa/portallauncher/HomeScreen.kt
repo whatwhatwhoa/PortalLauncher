@@ -234,10 +234,10 @@ private fun Hero(art: Art?, app: AppEntry?, scenes: Boolean) {
 }
 
 /**
- * The hero mirrored below the band like moonlight on water (owner's idea): flipped about a line
- * in the band's fading lower part, so the two melt into each other instead of meeting at an
- * edge; darkened and a little cooled, blurred more down than across so it streaks like a
- * reflection, rippling slowly sideways, and gone before the dock. It sits behind the carousel
+ * The hero mirrored below the band like moonlight on water (owner's idea): flipped and set a
+ * short gap under the band, so hero and reflection read as two blocks (the owner's sketch; the
+ * first build overlapped them); darkened and a little cooled, blurred more down than across so
+ * it streaks like a reflection, rippling slowly sideways, and gone before the dock. It sits behind the carousel
  * and fills the space around it with the game's colors. The ripple needs Android 13's runtime
  * shaders; before that, or with animations off, the reflection is still.
  */
@@ -265,7 +265,7 @@ private fun Reflection(image: ImageBitmap) {
     Image(
         image,
         null,
-        Modifier.offset(y = Dimens.band * REFLECT_AXIS).fillMaxWidth().height(Dimens.band)
+        Modifier.offset(y = Dimens.band + REFLECT_GAP).fillMaxWidth().height(Dimens.band)
             .reflectionFade()
             .graphicsLayer {
                 scaleY = -1f
@@ -293,12 +293,15 @@ private fun Reflection(image: ImageBitmap) {
     )
 }
 
-/** Strongest at the mirror line, gone by two thirds of the way down; the band's side fades too. */
+/**
+ * Faded in over its first few dp, so the top is soft rather than a hard line across the gap;
+ * strongest just under it, gone by two thirds of the way down; the band's side fades too.
+ */
 private fun Modifier.reflectionFade() = graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }.drawWithContent {
     drawContent()
     val keep = Color.Black
     drawRect(
-        Brush.verticalGradient(0f to keep.copy(alpha = REFLECT_ALPHA), 0.3f to keep.copy(alpha = REFLECT_ALPHA * 0.5f), 0.68f to keep.copy(alpha = 0f)),
+        Brush.verticalGradient(0f to keep.copy(alpha = 0f), REFLECT_SOFT_TOP to keep.copy(alpha = REFLECT_ALPHA), 0.3f to keep.copy(alpha = REFLECT_ALPHA * 0.5f), 0.68f to keep.copy(alpha = 0f)),
         blendMode = BlendMode.DstIn,
     )
     drawRect(
@@ -325,7 +328,9 @@ half4 main(float2 p) {
 private const val TWO_PI = 6.2831855f
 private const val RIPPLE_PERIOD = 9000
 private val RIPPLE_AMP = 6.dp
-private const val REFLECT_AXIS = 0.8f
+// The gap between the band's foot and the reflection's top (F20, the owner's sketch).
+private val REFLECT_GAP = Space.xxl
+private const val REFLECT_SOFT_TOP = 0.08f
 private const val REFLECT_ALPHA = 0.55f
 private const val REFLECT_SATURATION = 0.75f
 private val REFLECT_BLUR_X = 3.dp

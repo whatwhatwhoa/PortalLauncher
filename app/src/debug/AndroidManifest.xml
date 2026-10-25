@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Debug only: plain http to localhost, for an update.url stand-in on the laptop. -->
+    <application android:networkSecurityConfig="@xml/debug_network" />
+</manifest>

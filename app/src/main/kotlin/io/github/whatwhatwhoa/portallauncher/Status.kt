@@ -151,7 +151,7 @@ data class Battery(val percent: Int, val charging: Boolean)
 
 /** The battery from the sticky ACTION_BATTERY_CHANGED broadcast; null until it first arrives. */
 @Composable
-private fun rememberBattery(): Battery? {
+fun rememberBattery(): Battery? {
     val context = LocalContext.current
     var battery by remember { mutableStateOf<Battery?>(null) }
     DisposableEffect(context) {

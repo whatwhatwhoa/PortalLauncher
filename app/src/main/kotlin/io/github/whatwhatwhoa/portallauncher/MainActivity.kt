@@ -3,6 +3,7 @@ package io.github.whatwhatwhoa.portallauncher
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.app.ActivityOptions
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.ClipboardManager
@@ -16,6 +17,8 @@ import android.os.Looper
 import android.provider.Settings
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.WindowManager
+import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -64,6 +67,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var prefs: Prefs
     private lateinit var catalog: AppCatalog
     private lateinit var state: LauncherState
+    private lateinit var sounds: Sounds
     private val roleRequest = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
     private var imageReply: ((Uri?) -> Unit)? = null
     private val imageRequest = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -88,12 +92,16 @@ class MainActivity : ComponentActivity() {
         catalog = AppCatalog(this, lifecycleScope)
         // The owner's key from Launcher Settings; a debug build may carry one from local.properties.
         val art = Art(this, lifecycleScope, prefs.artKey ?: BuildConfig.STEAMGRIDDB_KEY)
+        sounds = Sounds(this)
         state = LauncherState(
             catalog, prefs, art, lifecycleScope, ::launch, ::pickImage, File(filesDir, "backdrops"),
             openSystem = ::openSystem,
             holdsHome = { getSystemService(RoleManager::class.java).isRoleHeld(RoleManager.ROLE_HOME) },
+            holdsHomeKey = ::homeHoldOn,
             controls = DeviceControls(this),
             readClipboard = ::clipboardText,
+            updates = Updates(this),
+            sounds = sounds,
         )
         catalog.start()
         // New favorites and newly installed games get their art looked up as they appear, and
@@ -108,8 +116,20 @@ class MainActivity : ComponentActivity() {
             false,
             motionWatcher,
         )
+        // Standby keeps the screen on, so the Portal rests without locking. Brightness stays the
+        // owner's: dimmed to 5% it was too dark to read (owner, 2026-10-25).
+        lifecycleScope.launch {
+            snapshotFlow { state.standby }.collect { on ->
+                if (on) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+        }
         setContent { LauncherRoot(state, motion) }
-        if (intent?.action == Intent.ACTION_APPLICATION_PREFERENCES) state.openSettings() else askForHomeOnce()
+        when (intent?.action) {
+            Intent.ACTION_APPLICATION_PREFERENCES -> state.openSettings()
+            ACTION_STANDBY -> state.openStandby()
+            else -> askForHomeOnce()
+        }
     }
 
     // Android's photo picker needs no storage permission and hands back only the one image.
@@ -137,9 +157,16 @@ class MainActivity : ComponentActivity() {
         state.refreshSettings()
     }
 
+    // The screen turned off or an app came over it: standby has done its job.
+    override fun onStop() {
+        state.endStandby()
+        super.onStop()
+    }
+
     override fun onDestroy() {
         contentResolver.unregisterContentObserver(motionWatcher)
         catalog.stop()
+        sounds.release()
         super.onDestroy()
     }
 
@@ -157,13 +184,36 @@ class MainActivity : ComponentActivity() {
         if (intent.hasCategory(Intent.CATEGORY_HOME)) state.onHomePressed(alreadyHome = hasWindowFocus() && !broughtToFront)
         // The gear beside Portal in Android's Default apps → Home app.
         if (intent.action == Intent.ACTION_APPLICATION_PREFERENCES) state.openSettings()
+        if (intent.action == ACTION_STANDBY) state.openStandby()
     }
+
+    private fun homeHoldOn(): Boolean =
+        getSystemService(AccessibilityManager::class.java)
+            .getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+            .any { it.resolveInfo.serviceInfo.let { s -> s.packageName == packageName && s.name == HomeHoldService::class.java.name } }
 
     // Keys are turned into actions here, once, before any view sees them; a mapped key's up event
     // is swallowed too, so the system never adds its own fallback (B as Back, A as Enter).
     // RestrictedApi: lint misreads androidx's override of this public Activity method.
     @SuppressLint("RestrictedApi")
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // In standby a key is a press toward waking, held or not; volume still sets the volume.
+        // The triggers count no more than the sticks (owner): the Portal sends each as a button
+        // as well as an axis, so their buttons are swallowed here and their axes below.
+        if (state.standby) {
+            if (event.keyCode == KeyEvent.KEYCODE_VOLUME_UP || event.keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+                return super.dispatchKeyEvent(event)
+            }
+            val trigger = event.keyCode == KeyEvent.KEYCODE_BUTTON_L2 || event.keyCode == KeyEvent.KEYCODE_BUTTON_R2
+            if (!trigger && event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) state.standbyPress(event.keyCode)
+            return true
+        }
+        // While a category's name is typed, keys are typing, except B, which keeps what is typed.
+        if (state.categoryEdit == CategoryEdit.Renaming) {
+            if (event.keyCode != KeyEvent.KEYCODE_BUTTON_B) return super.dispatchKeyEvent(event)
+            if (event.action == KeyEvent.ACTION_DOWN) state.finishRename()
+            return true
+        }
         // While the art search has the keyboard, keys are typing, except B, which ends it.
         state.picker?.takeIf { it.typing }?.let { picker ->
             if (event.keyCode != KeyEvent.KEYCODE_BUTTON_B) return super.dispatchKeyEvent(event)
@@ -181,12 +231,37 @@ class MainActivity : ComponentActivity() {
     // (gotchas.md). Focus here is always drawn, so that press only felt lost: the window leaves
     // touch mode as each touch ends instead (owner, 2026-10-25). Not while the keyboard is up.
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        // Standby counts buttons only (owner): touches are swallowed, not counted.
+        if (state.standby) return true
         val handled = super.dispatchTouchEvent(event)
         if (event.actionMasked == MotionEvent.ACTION_UP && state.picker?.typing != true) {
             window.decorView.post { (currentFocus ?: window.decorView).requestFocusFromTouch() }
         }
         return handled
     }
+
+    /**
+     * In standby the sticks wake nothing (owner: buttons only), so their motion is swallowed
+     * before Android turns it into D-pad keys. The D-pad is a hat on this controller and arrives
+     * here too; each push from rest counts once, as the D-pad key of its direction, so four
+     * pushes the same way wake and a roll around the pad doesn't.
+     */
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        if (!state.standby) return super.dispatchGenericMotionEvent(event)
+        val x = event.getAxisValue(MotionEvent.AXIS_HAT_X)
+        val y = event.getAxisValue(MotionEvent.AXIS_HAT_Y)
+        val direction = when {
+            x < 0f -> KeyEvent.KEYCODE_DPAD_LEFT
+            x > 0f -> KeyEvent.KEYCODE_DPAD_RIGHT
+            y < 0f -> KeyEvent.KEYCODE_DPAD_UP
+            y > 0f -> KeyEvent.KEYCODE_DPAD_DOWN
+            else -> null
+        }
+        if (direction != null && hatPushed == null) state.standbyPress(direction)
+        hatPushed = direction
+        return true
+    }
+    private var hatPushed: Int? = null
 
     /**
      * The app's window is revealed out of its tile: a clip that grows from the tile's rect to the
@@ -212,6 +287,11 @@ class MainActivity : ComponentActivity() {
         if (prefs.askedForHome || !roles.isRoleAvailable(RoleManager.ROLE_HOME) || roles.isRoleHeld(RoleManager.ROLE_HOME)) return
         prefs.askedForHome = true
         roleRequest.launch(roles.createRequestRoleIntent(RoleManager.ROLE_HOME))
+    }
+
+    companion object {
+        /** Opens standby: from HomeHoldService when Home is held. */
+        const val ACTION_STANDBY = "io.github.whatwhatwhoa.portallauncher.STANDBY"
     }
 }
 
@@ -310,6 +390,21 @@ private fun Layers(state: LauncherState, motion: Boolean) {
             SettingsPanel(state)
         }
         StatusCluster(Modifier.align(Alignment.TopCenter))
+        AnimatedVisibility(
+            visible = state.standbyHint,
+            modifier = Modifier.align(Alignment.TopCenter),
+            enter = if (motion) fadeIn(Transit.enter()) else EnterTransition.None,
+            exit = if (motion) fadeOut(Transit.exit()) else ExitTransition.None,
+        ) {
+            StandbyHint()
+        }
+        AnimatedVisibility(
+            visible = state.standby,
+            enter = if (motion) fadeIn(Transit.enter()) else EnterTransition.None,
+            exit = if (motion) fadeOut(Transit.exit()) else ExitTransition.None,
+        ) {
+            StandbyScreen(state)
+        }
     }
 }
 

@@ -3,12 +3,15 @@ package io.github.whatwhatwhoa.portallauncher
 import android.content.Intent
 import android.graphics.Rect
 import android.net.Uri
+import android.view.KeyEvent
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -61,10 +64,16 @@ class LauncherState(
     private val openSystem: (Intent) -> Unit,
     /** Whether the launcher holds the Home role now. */
     private val holdsHome: () -> Boolean,
+    /** Whether the Home-hold service (HomeHoldService) is on, so holding Home opens standby. */
+    private val holdsHomeKey: () -> Boolean = { false },
     /** Brightness, volume and the rest, for the quick panel. */
     val controls: DeviceControls,
     /** The clipboard's text, for pasting a SteamGridDB key without typing it on the controller. */
     private val readClipboard: () -> String? = { null },
+    /** The GitHub releases, for the Updates row; null leaves the row saying so. */
+    private val updates: Updates? = null,
+    /** The UI sounds; null plays none. */
+    private val sounds: Sounds? = null,
 ) {
     /** The quick panel (− on Home and All apps), over everything but the settings. */
     var quickOpen by mutableStateOf(false)
@@ -120,13 +129,38 @@ class LauncherState(
     var moving by mutableStateOf<Origin?>(null)
         private set
 
-    /** The categories layer (B on Home), and which name in it has focus. */
+    /**
+     * The categories layer (B on Home), and which line in it has focus: a category, or New
+     * category after the last one ([categoryList]'s size).
+     */
     var categoriesOpen by mutableStateOf(false)
         private set
     private var categoryIndex by mutableIntStateOf(0)
+    /** Home's category, by id, so a rename keeps it. */
     private var currentCategory by mutableStateOf(
-        prefs.lastCategory.takeIf { prefs.home.start == StartOn.Left } ?: Category.Favorites,
+        prefs.lastCategory.takeIf { prefs.home.start == StartOn.Left } ?: Category.FAVORITES,
     )
+    /** Every category, the empty ones too, in the owner's order: the layer's names. */
+    var categoryList by mutableStateOf(prefs.categoryList)
+        private set
+
+    /**
+     * The layer's edit mode (+ in it): every category, the empty ones too, and New category after
+     * them; out of it the layer is only the names Home shows (owner: clean, editing apart).
+     */
+    var editingCategories by mutableStateOf(false)
+        private set
+    /** What A on a name in edit mode opened, while it is open; null is moving between names. */
+    var categoryEdit by mutableStateOf<CategoryEdit?>(null)
+        private set
+    private var actionIndex by mutableIntStateOf(0)
+    /** Delete is waiting for its second A; any other key disarms it. */
+    var deleteArmed by mutableStateOf(false)
+        private set
+    /** The name being typed while renaming; the field writes it. */
+    var categoryName by mutableStateOf("")
+    // The category being named is a new one, not saved until it has a name.
+    private var addingCategory = false
 
     private var favorites by mutableStateOf(prefs.favorites)
     private var hidden by mutableStateOf(prefs.hidden)
@@ -153,6 +187,12 @@ class LauncherState(
         private set
     var fetchArt by mutableStateOf(prefs.fetchArt)
         private set
+    /** Settings → Sound, applied live; the player keeps a copy, as it plays outside Compose. */
+    var sound by mutableStateOf(prefs.sound)
+        private set
+    init {
+        sounds?.settings = sound
+    }
     /** What the SteamGridDB key row says while a key is checked or after it failed; null shows Set or Not set. */
     var keyNote by mutableStateOf<String?>(null)
         private set
@@ -164,6 +204,15 @@ class LauncherState(
         private set
     var isHomeApp by mutableStateOf(false)
         private set
+    var homeHold by mutableStateOf(false)
+        private set
+    /** What the Updates row says: the check's answer, then the download and install. */
+    var updateNote by mutableStateOf<String?>(null)
+        private set
+    /** The newer release the last check found. */
+    private var release: Release? = null
+    private var updateCheckedAt = 0L
+    private var updating: Job? = null
     /** A row that can't be undone, waiting for its second A; any other key disarms it. */
     var armed by mutableStateOf<Setting?>(null)
         private set
@@ -189,7 +238,10 @@ class LauncherState(
         placed["$origin/${entry.key}"] = bounds
     }
 
-    private fun launchFrom(origin: Origin, entry: AppEntry) = launch(entry, placed["$origin/${entry.key}"])
+    private fun launchFrom(origin: Origin, entry: AppEntry) {
+        sounds?.play(Sound.Launch)
+        launch(entry, placed["$origin/${entry.key}"])
+    }
 
     private val byKey by derivedStateOf { catalog.apps.associateBy { it.key } }
 
@@ -198,9 +250,12 @@ class LauncherState(
     }
     val hiddenCount by derivedStateOf { catalog.apps.count { it.key in hidden } }
 
-    /** Apps whose art is looked up without asking: the owner's favorites and the Games category. */
+    /**
+     * Apps whose art is looked up without asking: the owner's favorites and the Games category,
+     * whatever it is called now; once deleted, favorites only.
+     */
     val artWanted: List<AppEntry> by derivedStateOf {
-        favorites.mapNotNull { byKey[it] } + appsIn(Category.Games)
+        favorites.mapNotNull { byKey[it] } + byId(Category.GAMES)?.let(::appsIn).orEmpty()
     }
 
     /** The owner's dock once they have changed it; until then the default utilities. */
@@ -208,29 +263,51 @@ class LauncherState(
         dockKeys?.mapNotNull { byKey[it] } ?: catalog.dockApps(catalog.apps)
     }
 
-    /** The owner's move wins over where the app starts; null is All apps only, not on Home. */
-    fun categoryOf(app: AppEntry): Category? =
-        if (app.key in categoryMoves) categoryMoves[app.key] else startOf(app)
+    private fun byId(id: String?) = categoryList.firstOrNull { it.id == id }
+
+    /**
+     * The categories an app is in, any number (owner: an app can show in several): the owner's
+     * choice wins over where the app starts; none is All apps only, not on Home, as is a
+     * category that has been deleted.
+     */
+    fun categoriesOf(app: AppEntry): List<Category> {
+        val ids = categoryMoves[app.key] ?: setOfNotNull(startOf(app))
+        return categoryList.filter { it.id in ids }
+    }
+
+    /** Where the app is now, as ids: the owner's choice, else where it started. */
+    private fun idsOf(app: AppEntry): Set<String> = categoriesOf(app).mapTo(HashSet()) { it.id }
+
+    /** Whether the Category… page dots this place for the app; All apps only (null) when it is in none. */
+    fun isIn(app: AppEntry, place: Category?) = if (place == null) categoriesOf(app).isEmpty() else place in categoriesOf(app)
 
     /** The app's seed if it was there when the launcher first sorted the apps, else All apps only. */
-    private fun startOf(app: AppEntry): Category? = app.seed?.takeIf { app.installed <= sortedAt }
+    private fun startOf(app: AppEntry): String? = app.seed?.takeIf { app.installed <= sortedAt }
 
     /** Favorites in the owner's order; any other category is its visible apps, alphabetical. */
     private fun appsIn(category: Category): List<AppEntry> =
-        if (category == Category.Favorites) {
+        if (category.isFavorites) {
             favorites.mapNotNull { byKey[it] }
         } else {
-            catalog.apps.filter { it.key !in hidden && categoryOf(it) == category }
+            catalog.apps.filter { it.key !in hidden && category.id in (categoryMoves[it.key] ?: setOfNotNull(startOf(it))) }
         }
 
-    /** The categories with something in them, in the owner's order. */
-    val categories: List<Category> by derivedStateOf { Category.entries.filter { appsIn(it).isNotEmpty() } }
+    /** The categories with something in them, in the owner's order: the ones Home shows. */
+    val categories: List<Category> by derivedStateOf { categoryList.filter { appsIn(it).isNotEmpty() } }
+
+    fun hasApps(category: Category) = category in categories
+
+    /** Where the sheet's Category… page can move an app: every category but Favorites, then All apps only (null). */
+    val places: List<Category?> get() = categoryList.filterNot { it.isFavorites } + null
 
     /** Home's category; if it has emptied, the first one that hasn't. */
-    val category get() = currentCategory.takeIf { it in categories } ?: categories.firstOrNull() ?: Category.Favorites
+    val category get() = categories.firstOrNull { it.id == currentCategory } ?: categories.firstOrNull() ?: categoryList.first()
 
     /** While the layer is open, the row previews the focused category instead. */
-    private val shownCategory get() = if (categoriesOpen) categories.getOrNull(categoryFocus) ?: category else category
+    private val shownCategory get() = if (categoriesOpen) layerCategories.getOrNull(categoryFocus) ?: category else category
+
+    /** The layer's names: the ones Home shows, or in edit mode every one. */
+    val layerCategories get() = if (editingCategories) categoryList else categories
 
     val row: List<AppEntry> by derivedStateOf { appsIn(shownCategory) }
 
@@ -242,8 +319,13 @@ class LauncherState(
     val dockSettings get() = dock.size + 1
     val drawerFocus get() = drawerIndex.coerceIn(0, maxOf(0, drawer.lastIndex))
     val sheetFocus get() = sheetIndex.coerceIn(0, maxOf(0, sheetRows - 1))
-    val categoryFocus get() = categoryIndex.coerceIn(0, maxOf(0, categories.lastIndex))
-    private val sheetRows get() = if (choosingCategory) Category.places.size else sheet?.options?.size ?: 0
+    /** In edit mode [categoryList]'s size is New category, after the last name. */
+    val categoryFocus get() = categoryIndex.coerceIn(0, if (editingCategories) categoryList.size else maxOf(0, categories.lastIndex))
+    private val sheetRows get() = if (choosingCategory) places.size else sheet?.options?.size ?: 0
+    /** The focused name's actions, beside it, while + has opened them. */
+    val categoryActions get() =
+        if (categoryList.getOrNull(categoryFocus)?.isFavorites == true) listOf(CategoryAction.Rename) else CategoryAction.entries
+    val categoryActionFocus get() = actionIndex.coerceIn(0, categoryActions.lastIndex)
 
     fun isFavorite(entry: AppEntry) = entry.key in favorites
     fun isHidden(entry: AppEntry) = entry.key in hidden
@@ -251,14 +333,28 @@ class LauncherState(
     /** Whether + does anything where focus is now (All apps and Launcher Settings have none). */
     val focusHasOptions get() = screen == Screen.Drawer || zone == Zone.Row || dockFocus in 1..dock.size
 
-    fun onAction(action: Action) = when {
-        settingsOpen -> onSettings(action)
-        quickOpen -> onQuick(action)
-        sheetOpen -> onSheet(action)
-        moving != null -> onMove(action)
-        categoriesOpen -> onCategories(action)
-        screen == Screen.Home -> onHome(action)
-        else -> onDrawer(action)
+    fun onAction(action: Action) = sounding(action) {
+        when {
+            settingsOpen -> onSettings(action)
+            quickOpen -> onQuick(action)
+            sheetOpen -> onSheet(action)
+            moving != null -> onMove(action)
+            categoriesOpen -> onCategories(action)
+            screen == Screen.Home -> onHome(action)
+            else -> onDrawer(action)
+        }
+    }
+
+    /**
+     * Runs [block], then plays the sound for what it did (Sounds.kt [cue]), unless it asked for one
+     * itself (a launch, waking). [action] null makes no sound.
+     */
+    private fun sounding(action: Action?, block: () -> Unit) {
+        val sounds = sounds ?: return block()
+        val before = spot()
+        val asked = sounds.asked
+        block()
+        if (sounds.asked == asked) cue(before, spot(), action)?.let { (sound, pitch) -> sounds.play(sound, pitch) }
     }
 
     private fun onHome(action: Action) {
@@ -286,16 +382,42 @@ class LauncherState(
     private fun rowStep(by: Int) = if (home.wraps && row.size > 1) Math.floorMod(rowFocus + by, row.size) else rowFocus + by
 
     private fun onCategories(action: Action) {
+        categoryEdit?.let { return onCategoryEdit(it, action) }
         when (action) {
             Action.Up -> categoryIndex = categoryFocus - 1
             Action.Down -> categoryIndex = categoryFocus + 1
             Action.First -> categoryIndex = 0
-            Action.Last -> categoryIndex = categories.lastIndex
-            Action.Open -> enterCategory(categoryFocus)
-            Action.Back -> closeCategories()
+            Action.Last -> categoryIndex = if (editingCategories) categoryList.size else categories.lastIndex
+            Action.Open -> if (editingCategories) editCategory() else enterCategory(categoryFocus)
+            Action.Options -> if (editingCategories) stopEditingCategories() else startEditingCategories()
+            Action.Back -> if (editingCategories) stopEditingCategories() else closeCategories()
             else -> Unit
         }
         categoryIndex = categoryFocus
+    }
+
+    // While renaming, keys go to the name's field (MainActivity), B ending it.
+    private fun onCategoryEdit(edit: CategoryEdit, action: Action) {
+        when (edit) {
+            CategoryEdit.Actions -> {
+                if (action != Action.Open) deleteArmed = false
+                when (action) {
+                    Action.Left -> actionIndex = categoryActionFocus - 1
+                    Action.Right -> actionIndex = categoryActionFocus + 1
+                    Action.Open -> categoryAction(categoryActions[categoryActionFocus])
+                    Action.Back, Action.Options -> categoryEdit = null
+                    else -> Unit
+                }
+                actionIndex = categoryActionFocus
+            }
+            CategoryEdit.Moving -> when (action) {
+                Action.Up -> shiftCategory(-1)
+                Action.Down -> shiftCategory(1)
+                Action.Open, Action.Back, Action.Options -> categoryEdit = null
+                else -> Unit
+            }
+            CategoryEdit.Renaming -> Unit
+        }
     }
 
     private fun onDrawer(action: Action) {
@@ -446,6 +568,13 @@ class LauncherState(
                 home = home.step(setting, by)
                 prefs.home = home
             }
+            SettingGroup.Sound -> {
+                sound = sound.step(setting, by)
+                prefs.sound = sound
+                sounds?.settings = sound
+                // A new family or volume is heard at once, in itself.
+                if (setting != Setting.SoundsOn) sounds?.play(Sound.Select)
+            }
             else -> if (setting == Setting.FetchArt) {
                 fetchArt = !fetchArt
                 prefs.fetchArt = fetchArt
@@ -478,7 +607,9 @@ class LauncherState(
                 dockIndex = 0
             }
             Setting.HomeApp -> openSystem(Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
+            Setting.HomeHold -> openSystem(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
             Setting.AndroidSettings -> openSystem(Intent(android.provider.Settings.ACTION_SETTINGS))
+            Setting.Updates -> update()
             else -> Unit
         }
     }
@@ -499,7 +630,59 @@ class LauncherState(
         if (quickOpen) controls.read()
         if (!settingsOpen) return
         isHomeApp = holdsHome()
+        homeHold = holdsHomeKey()
         scope.launch { artBytes = art?.bytes() }
+        // Asked again after a while, or at once after a failed check; never while one runs.
+        val stale = System.currentTimeMillis() - updateCheckedAt > UPDATE_CHECK_MS
+        if (stale && updating?.isActive != true) checkUpdate()
+    }
+
+    private fun checkUpdate() {
+        val updates = updates ?: return
+        updateNote = "Checking…"
+        updating = scope.launch {
+            updateNote = try {
+                val latest = updates.latest()
+                release = latest?.takeIf { Updates.isNewer(it.version, BuildConfig.VERSION_NAME) }
+                updateCheckedAt = System.currentTimeMillis()
+                when {
+                    latest == null -> "None published"
+                    release == null -> "Up to date"
+                    else -> "Install ${latest.version}"
+                }
+            } catch (e: Exception) {
+                updateCheckedAt = 0L
+                "Offline, try again"
+            }
+        }
+    }
+
+    /**
+     * A on Updates: checks again, or fetches the newer release and installs it. The first time,
+     * Android's "Install unknown apps" page opens for the one-time grant; A again after it.
+     */
+    private fun update() {
+        val updates = updates ?: return
+        if (updating?.isActive == true) return
+        val release = release ?: return checkUpdate()
+        if (!updates.mayInstall()) {
+            updateNote = "Allow, then A again"
+            openSystem(Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, "package:${BuildConfig.APPLICATION_ID}".toUri()))
+            return
+        }
+        Updates.failed = { updateNote = it }
+        updating = scope.launch {
+            updateNote = "Downloading"
+            try {
+                val apk = updates.download(release) { updateNote = "Downloading $it%" }
+                val refusal = updates.refusal(apk)
+                updateNote = refusal ?: "Installing…"
+                // Android ends this process when the update is in; the note stays meanwhile.
+                if (refusal == null) updates.install(apk)
+            } catch (e: Exception) {
+                updateNote = "Offline, try again"
+            }
+        }
     }
 
     /**
@@ -678,7 +861,17 @@ class LauncherState(
 
     fun tapSheet(index: Int) = if (choosingCategory) chooseCategory(index) else choose(index)
 
-    fun tapCategory(index: Int) = enterCategory(index)
+    fun tapCategory(index: Int) {
+        if (categoryEdit != null) return
+        categoryIndex = index
+        if (editingCategories) editCategory() else enterCategory(categoryFocus)
+    }
+
+    fun tapCategoryAction(index: Int) {
+        if (index != categoryActionFocus) deleteArmed = false
+        actionIndex = index
+        categoryAction(categoryActions[categoryActionFocus])
+    }
 
     fun openDrawer() {
         if (!categoriesOpen) screen = Screen.Drawer
@@ -700,23 +893,113 @@ class LauncherState(
     }
 
     fun closeCategories() {
+        if (categoryEdit == CategoryEdit.Renaming) finishRename()
+        categoryEdit = null
+        editingCategories = false
         categoriesOpen = false
+    }
+
+    /** + in the layer: edit mode, on the same name. */
+    private fun startEditingCategories() {
+        categoryIndex = categoryList.indexOf(categories.getOrNull(categoryFocus)).coerceAtLeast(0)
+        editingCategories = true
+    }
+
+    /** Out of edit mode, on the same name if Home shows it, else on Home's category. */
+    private fun stopEditingCategories() {
+        val focused = categoryList.getOrNull(categoryFocus)
+        editingCategories = false
+        categoryIndex = categories.indexOf(focused).takeIf { it >= 0 } ?: categories.indexOf(category).coerceAtLeast(0)
     }
 
     /** Into a category from the layer: its row from the start, unless it is the one already shown. */
     private fun enterCategory(index: Int) {
         val chosen = categories.getOrNull(index) ?: return
         if (chosen != category) {
-            currentCategory = chosen
-            prefs.lastCategory = chosen
+            currentCategory = chosen.id
+            prefs.lastCategory = chosen.id
             rowIndex = 0
         }
         zone = Zone.Row
         categoriesOpen = false
     }
 
+    /** A in edit mode: a name's actions beside it, Rename first; on New category, a new one. */
+    private fun editCategory() {
+        if (categoryFocus == categoryList.size) return addCategory()
+        actionIndex = 0
+        deleteArmed = false
+        categoryEdit = CategoryEdit.Actions
+    }
+
+    private fun categoryAction(action: CategoryAction) {
+        when (action) {
+            CategoryAction.Rename -> {
+                categoryName = categoryList.getOrNull(categoryFocus)?.label ?: return
+                categoryEdit = CategoryEdit.Renaming
+            }
+            CategoryAction.Move -> categoryEdit = CategoryEdit.Moving
+            CategoryAction.Delete -> if (deleteArmed) deleteCategory() else deleteArmed = true
+        }
+    }
+
+    /** A new category at the end, its name typed at once; it is kept only once it has one. */
+    private fun addCategory() {
+        categoryList = categoryList + Category(Category.newId(), "")
+        categoryIndex = categoryList.lastIndex
+        categoryName = ""
+        addingCategory = true
+        categoryEdit = CategoryEdit.Renaming
+    }
+
+    /**
+     * The typed name, spaces tidied, becomes the category's (tabs and line breaks can't reach the
+     * stored list). Left empty, a rename keeps the old name and a new category goes away.
+     */
+    fun finishRename() {
+        val name = categoryName.trim().split(Regex("\\s+")).joinToString(" ")
+        val target = categoryList.getOrNull(categoryFocus)
+        when {
+            target == null -> Unit
+            name.isNotEmpty() -> saveCategoryList(categoryList.map { if (it.id == target.id) it.copy(label = name) else it })
+            addingCategory -> categoryList = categoryList - target
+        }
+        addingCategory = false
+        categoryEdit = null
+        categoryIndex = categoryFocus
+    }
+
+    /** Moving a category up or down the list; Favorites stays first. */
+    private fun shiftCategory(by: Int) {
+        val i = categoryFocus
+        if (i == 0 || i + by !in 1..categoryList.lastIndex) return
+        saveCategoryList(categoryList.toMutableList().apply { add(i + by, removeAt(i)) })
+        categoryIndex = i + by
+    }
+
+    /**
+     * Deletes the focused category; its apps go to All apps only (owner), the ones that started
+     * in it and the ones moved there alike.
+     */
+    private fun deleteCategory() {
+        val target = categoryList.getOrNull(categoryFocus)?.takeUnless { it.isFavorites } ?: return
+        saveCategoryList(categoryList - target)
+        val moves = categoryMoves.mapValues { (_, ids) -> ids - target.id }
+        categoryMoves = moves
+        prefs.categories = moves
+        deleteArmed = false
+        categoryEdit = null
+        categoryIndex = categoryFocus
+    }
+
+    private fun saveCategoryList(list: List<Category>) {
+        categoryList = list
+        prefs.categoryList = list
+    }
+
     /** Back as a gesture: closes the innermost layer. */
     fun back() = when {
+        standby -> Unit
         settingsOpen -> closeSettings()
         quickOpen -> closeQuick()
         picker?.typing == true -> picker?.stopTyping()
@@ -725,18 +1008,27 @@ class LauncherState(
         choosingCategory -> backToOptions()
         sheetOpen -> closeSheet()
         moving != null -> moving = null
-        categoriesOpen -> closeCategories()
+        categoriesOpen -> when {
+            categoryEdit == CategoryEdit.Renaming -> finishRename()
+            categoryEdit != null -> categoryEdit = null
+            editingCategories -> stopEditingCategories()
+            else -> closeCategories()
+        }
         else -> closeDrawer()
     }
 
-    val backHandled get() = settingsOpen || quickOpen || sheetOpen || moving != null || categoriesOpen || screen == Screen.Drawer
+    val backHandled get() = standby || settingsOpen || quickOpen || sheetOpen || moving != null || categoriesOpen || screen == Screen.Drawer
 
     /**
      * The Home key: closes everything. While already home (not on the way back from an app), it
      * also goes back to the first category's start, as the Switch does, unless Home key goes to
-     * is Where you left.
+     * is Where you left. Coming back from an app makes no sound; pressed at home it sounds as B.
      */
-    fun onHomePressed(alreadyHome: Boolean) {
+    fun onHomePressed(alreadyHome: Boolean) = sounding(Action.Back.takeIf { alreadyHome }) { goHome(alreadyHome) }
+
+    private fun goHome(alreadyHome: Boolean) {
+        if (standby) return standbyPress(KeyEvent.KEYCODE_HOME)
+        if (holdsHomeKey()) flashStandbyHint()
         closeSettings()
         closeQuick()
         closeSheet()
@@ -744,10 +1036,74 @@ class LauncherState(
         categoriesOpen = false
         screen = Screen.Home
         if (!alreadyHome || home.start == StartOn.Left) return
-        currentCategory = categories.firstOrNull() ?: Category.Favorites
+        currentCategory = (categories.firstOrNull() ?: categoryList.first()).id
         prefs.lastCategory = currentCategory
         zone = Zone.Row
         rowIndex = 0
+    }
+
+    /**
+     * Standby (F19): a rest that doesn't lock, over whatever was showing, which is still there
+     * after. Opened by holding Home (HomeHoldService).
+     */
+    var standby by mutableStateOf(false)
+        private set
+    /** Presses so far toward leaving standby, 0 until [WAKE_PRESSES]; the dots show them. */
+    var wakePresses by mutableIntStateOf(0)
+        private set
+    val wakePressesNeeded = WAKE_PRESSES
+    private var wakeWindow: Job? = null
+    /** "Hold Home for standby", shown briefly on each Home press while holding Home opens it. */
+    var standbyHint by mutableStateOf(false)
+        private set
+    private var hintTimer: Job? = null
+
+    fun openStandby() {
+        standbyHint = false
+        endWakeWindow()
+        standby = true
+    }
+
+    /** Leaving without the presses: the launcher went out of view (the screen off, an app over it). */
+    fun endStandby() {
+        endWakeWindow()
+        standby = false
+    }
+
+    /**
+     * A button press in standby, [button] its key code (not a touch, a stick or a trigger:
+     * MainActivity swallows those). [WAKE_PRESSES] of the same button within [WAKE_WINDOW] of the
+     * first leave it, so a bump in a bag, which presses whatever it presses, doesn't; another
+     * button starts the count again from one (owner).
+     */
+    fun standbyPress(button: Int) {
+        if (button != wakeButton) endWakeWindow()
+        wakeButton = button
+        if (++wakePresses >= WAKE_PRESSES) {
+            sounds?.play(Sound.Wake)
+            return endStandby()
+        }
+        if (wakePresses == 1) wakeWindow = scope.launch {
+            delay(WAKE_WINDOW)
+            wakePresses = 0
+            wakeButton = null
+        }
+    }
+    private var wakeButton: Int? = null
+
+    private fun endWakeWindow() {
+        wakeWindow?.cancel()
+        wakePresses = 0
+        wakeButton = null
+    }
+
+    private fun flashStandbyHint() {
+        hintTimer?.cancel()
+        standbyHint = true
+        hintTimer = scope.launch {
+            delay(HINT_SHOWN)
+            standbyHint = false
+        }
     }
 
     private fun optionsForFocused() {
@@ -767,7 +1123,7 @@ class LauncherState(
         val docked = dock.any { it.key == app.key }
         when (origin) {
             // Only Favorites has an order of its own; the other categories are alphabetical.
-            Origin.Row -> if (favorite && category == Category.Favorites) add(Option.Move)
+            Origin.Row -> if (favorite && category.isFavorites) add(Option.Move)
             Origin.Dock -> add(Option.Move)
             Origin.Drawer -> Unit
         }
@@ -795,7 +1151,7 @@ class LauncherState(
         }
         if (option == Option.ChangeCategory) {
             choosingCategory = true
-            sheetIndex = Category.places.indexOf(categoryOf(app)).coerceAtLeast(0)
+            sheetIndex = places.indexOfFirst { isIn(app, it) }.coerceAtLeast(0)
             return
         }
         closeSheet()
@@ -821,18 +1177,24 @@ class LauncherState(
     }
 
     /**
-     * Moves the sheet's app to a category, or to All apps only, and closes the sheet. Only moves
-     * are stored, so moving an app back to where it started drops the entry. If it leaves the row
-     * on show, the row's focus is clamped onto its neighbor.
+     * Puts the sheet's app in a category or takes it out (it can be in several), or All apps only
+     * takes it out of all; the page stays, B goes back. Only changes are stored, so putting an
+     * app back where it started drops the entry. If it leaves the row on show, the row's focus
+     * is clamped onto its neighbor.
      */
     private fun chooseCategory(index: Int) {
         val app = sheet?.app ?: return
-        if (index !in Category.places.indices) return
-        val chosen = Category.places[index]
-        val moves = if (chosen == startOf(app)) categoryMoves - app.key else categoryMoves + (app.key to chosen)
+        if (index !in places.indices) return
+        val now = idsOf(app)
+        val chosen = places[index]?.id
+        val next = when (chosen) {
+            null -> emptySet()
+            in now -> now - chosen
+            else -> now + chosen
+        }
+        val moves = if (next == setOfNotNull(byId(startOf(app))?.id)) categoryMoves - app.key else categoryMoves + (app.key to next)
         categoryMoves = moves
         prefs.categories = moves
-        closeSheet()
     }
 
     /** Swaps the moving tile with its neighbor; focus follows it. */
@@ -916,8 +1278,14 @@ class LauncherState(
         const val DOCK_MAX = 6
         // How long a player takes to start or stop after the media key, before reading it again.
         const val MEDIA_SETTLE = 400L
+        const val WAKE_PRESSES = 4
+        const val WAKE_WINDOW = 2_000L
+        // The owner's "0.5 or so seconds", plus the fades.
+        const val HINT_SHOWN = 600L
         val WALLPAPER_TYPES = setOf("jpg", "jpeg", "png", "webp")
         // SteamGridDB's API keys are 32 hex digits.
         val KEY_SHAPE = Regex("[0-9a-fA-F]{32}")
+        /** How long a check holds before the panel asks GitHub again. */
+        const val UPDATE_CHECK_MS = 10 * 60_000L
     }
 }

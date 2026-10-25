@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sound Audition</title>
+<style>
+:root {
+  --bg: #f4f4f6; --surface: #ffffff; --text: #16161a; --muted: #6b6b76; --line: #dcdce2;
+  --accent: #2f6fe0; --accent-text: #ffffff; --tile: #e6e6ec;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1013; --surface: #17181d; --text: #ececf1; --muted: #9a9aa6; --line: #2a2b33;
+    --accent: #6ea2ff; --accent-text: #0f1013; --tile: #23242c;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1013; --surface: #17181d; --text: #ececf1; --muted: #9a9aa6; --line: #2a2b33;
+  --accent: #6ea2ff; --accent-text: #0f1013; --tile: #23242c;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.45 system-ui, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+h1 { font-size: 24px; margin: 0 0 4px; }
+h2 { font-size: 17px; margin: 32px 0 8px; }
+p { margin: 4px 0 12px; color: var(--muted); }
+.bar { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin: 12px 0; }
+.bar label { display: flex; gap: 8px; align-items: center; }
+.wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left;
+  vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+th { font-size: 13px; font-weight: 600; }
+th small, td small { display: block; color: var(--muted); font-weight: 400; font-size: 12px; }
+button { font: inherit; color: var(--text); background: var(--tile); border: 1px solid var(--line);
+  border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.picked { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.cell { display: flex; gap: 6px; align-items: center; }
+.pick { font-size: 12px; padding: 4px 8px; }
+#picks { font-family: ui-monospace, Consolas, monospace; font-size: 13px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px; white-space: pre-wrap; }
+.stage { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 20px; outline: none; }
+.stage:focus { border-color: var(--accent); }
+.tiles { display: flex; gap: 12px; transition: opacity .15s, transform .15s; }
+.tiles.dim { opacity: .2; transform: scale(.94); }
+.t { flex: 1; aspect-ratio: 3/4; border-radius: 10px; background: var(--tile);
+  transition: transform .12s, box-shadow .12s; }
+.t.on { transform: scale(1.08); box-shadow: 0 0 0 3px var(--surface), 0 0 0 6px var(--accent); }
+.t.flash { background: var(--accent); }
+.status { margin-top: 14px; color: var(--muted); font-size: 13px; min-height: 1.4em; }
+kbd { font: 12px ui-monospace, Consolas, monospace; border: 1px solid var(--line);
+  border-radius: 4px; padding: 0 4px; }
+</style>
+</head>
+<body>
+<main>
+<h1>Sound audition</h1>
+<p>F22: three families of the launcher's UI sounds, synthesized by
+<code>tools/sounds/make_sounds.py</code>. Listen through the speaker you'll actually use:
+the Portal's speakers are small and lose the low end. Click a cell to play it, ✓ to pick it.</p>
+
+<div class="bar">
+  <label>Volume <input id="vol" type="range" min="0" max="100" value="35"></label>
+  <span id="volnote" class="muted"></span>
+</div>
+
+<h2>Try it</h2>
+<p>Click the panel, then use the keyboard or a controller.
+<kbd>←</kbd><kbd>→</kbd> / D-pad move (the ends bump) ·
+<kbd>Enter</kbd> / A launch · <kbd>B</kbd> / B layer open and close ·
+<kbd>Esc</kbd> / X back · <kbd>Space</kbd> / Start sheet ·
+<kbd>T</kbd> / Y toggle · <kbd>↑</kbd><kbd>↓</kbd> / D-pad up and down slider · <kbd>W</kbd> / Select wake.</p>
+<div class="bar" id="famsel"></div>
+<div class="stage" id="stage" tabindex="0">
+  <div class="tiles" id="tiles"></div>
+  <div class="status" id="status">Click here first: browsers start audio only after a click.</div>
+</div>
+
+<h2>All sounds</h2>
+<p>A walk-through button under each family plays move, move, move, edge, select, launch.</p>
+<div class="wrap"><table id="grid"></table></div>
+
+<h2>Your picks</h2>
+<p>Copy this into the chat. A row without a pick follows the family picked most.</p>
+<div id="picks"></div>
+<div class="bar"><button id="copy">Copy picks</button><button id="clear">Clear picks</button></div>
+</main>
+<script>
+const META = /*META*/null;
+const DATA = /*DATA*/null;
+const FAM = META.families, EV = META.events;
+let ctx = null, out = null, buffers = {};
+let picks = {};
+try { picks = JSON.parse(localStorage.getItem("picks") || "{}"); } catch (e) {}
+
+function b64(s) {
+  const bin = atob(s), u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return u.buffer;
+}
+async function ready() {
+  if (ctx) { if (ctx.state !== "running") await ctx.resume(); return; }
+  ctx = new AudioContext();
+  out = ctx.createGain(); out.connect(ctx.destination); setVol();
+  for (const f of FAM) {
+    buffers[f.id] = {};
+    for (const e of EV) buffers[f.id][e.id] = await ctx.decodeAudioData(b64(DATA[f.id][e.id]));
+  }
+}
+function play(fam, ev, rate = 1, when = 0) {
+  const b = buffers[fam] && buffers[fam][ev];
+  if (!b) return;
+  const s = ctx.createBufferSource();
+  s.buffer = b; s.playbackRate.value = rate; s.connect(out);
+  s.start(ctx.currentTime + when);
+}
+function setVol() {
+  const v = document.getElementById("vol").value / 100;
+  if (out) out.gain.value = v * v * 2;  // perceptual curve; 35 is the proposed low default
+  document.getElementById("volnote").textContent = v === 0.35 ? "the proposed default" : "";
+}
+document.getElementById("vol").addEventListener("input", setVol);
+
+function sliderRun(fam) {
+  for (let i = 0; i < 6; i++) play(fam, "slider", Math.pow(2, i / 12), i * 0.08);
+}
+function walk(fam) {
+  [["move", 0], ["move", .14], ["move", .28], ["edge", .46], ["select", .85], ["launch", 1.3]]
+    .forEach(([e, t]) => play(fam, e, 1, t));
+}
+
+// --- grid ---
+const grid = document.getElementById("grid");
+grid.innerHTML = "<tr><th>Event</th>" + FAM.map(f =>
+  `<th>${f.name}<small>${f.about}</small></th>`).join("") + "</tr>" +
+  EV.map(e => "<tr><td>" + e.name + "<small>" + e.when + "</small></td>" + FAM.map(f =>
+    `<td><div class="cell"><button data-f="${f.id}" data-e="${e.id}" class="play">▶</button>` +
+    `<button class="pick" data-f="${f.id}" data-e="${e.id}" title="Pick">✓</button></div></td>`
+  ).join("") + "</tr>").join("") +
+  "<tr><td>Walk-through<small>in a row, as you'd hear them</small></td>" + FAM.map(f =>
+    `<td><button class="walk" data-f="${f.id}">▶ ${f.name}</button></td>`).join("") + "</tr>";
+grid.addEventListener("click", async ev => {
+  const b = ev.target.closest("button"); if (!b) return;
+  await ready();
+  const f = b.dataset.f, e = b.dataset.e;
+  if (b.classList.contains("walk")) return walk(f);
+  if (b.classList.contains("pick")) {
+    picks[e] = picks[e] === f ? undefined : f;
+    if (!picks[e]) delete picks[e];
+    try { localStorage.setItem("picks", JSON.stringify(picks)); } catch (x) {}
+    showPicks(); play(f, e); return;
+  }
+  e === "slider" ? sliderRun(f) : play(f, e);
+});
+function topFamily() {
+  const n = {}; Object.values(picks).forEach(f => n[f] = (n[f] || 0) + 1);
+  return Object.keys(n).sort((a, b) => n[b] - n[a])[0] || FAM[0].id;
+}
+function chosen(e) { return picks[e] || topFamily(); }
+function showPicks() {
+  document.querySelectorAll(".pick").forEach(b =>
+    b.classList.toggle("picked", picks[b.dataset.e] === b.dataset.f));
+  const top = topFamily();
+  document.getElementById("picks").textContent = "F22 picks (rest: " + top + ")\n" +
+    EV.map(e => `${e.id.padEnd(12)} ${picks[e.id] || "(" + top + ")"}`).join("\n");
+}
+document.getElementById("copy").onclick = () => {
+  try { navigator.clipboard.writeText(document.getElementById("picks").textContent); } catch (e) {}
+};
+document.getElementById("clear").onclick = () => {
+  picks = {}; try { localStorage.removeItem("picks"); } catch (e) {} showPicks();
+};
+showPicks();
+
+// --- try it ---
+let fam = FAM[0].id;
+const famsel = document.getElementById("famsel");
+famsel.innerHTML = [...FAM.map(f => [f.id, f.name]), ["picks", "My picks"]].map(([id, n]) =>
+  `<label><input type="radio" name="fam" value="${id}" ${id === fam ? "checked" : ""}> ${n}</label>`
+).join("");
+famsel.addEventListener("change", e => { fam = e.target.value; stage.focus(); });
+const tiles = document.getElementById("tiles"), stage = document.getElementById("stage");
+const status = document.getElementById("status");
+const N = 7; let pos = 0, layer = false, toggle = false, level = 5;
+tiles.innerHTML = Array.from({ length: N }, () => '<div class="t"></div>').join("");
+function draw() { [...tiles.children].forEach((t, i) => t.classList.toggle("on", i === pos)); }
+draw();
+function fx(e, rate = 1) { play(fam === "picks" ? chosen(e) : fam, e, rate); status.textContent = e; }
+function act(a) {
+  if (a === "left" || a === "right") {
+    const next = pos + (a === "left" ? -1 : 1);
+    if (layer || next < 0 || next >= N) return fx("edge");
+    pos = next; draw(); fx("move");
+  } else if (a === "a") {
+    if (layer) { layer = false; tiles.classList.remove("dim"); return fx("select"); }
+    const t = tiles.children[pos]; t.classList.add("flash");
+    setTimeout(() => t.classList.remove("flash"), 400); fx("launch");
+  } else if (a === "b") {
+    layer = !layer; tiles.classList.toggle("dim", layer); fx(layer ? "layer_open" : "layer_close");
+  } else if (a === "back") fx("back");
+  else if (a === "sheet") fx("sheet_open");
+  else if (a === "toggle") { toggle = !toggle; fx(toggle ? "toggle_on" : "toggle_off"); }
+  else if (a === "up" || a === "down") {
+    level = Math.max(0, Math.min(10, level + (a === "up" ? 1 : -1)));
+    fx("slider", Math.pow(2, (level - 5) / 12)); status.textContent = "slider " + level + "/10";
+  } else if (a === "wake") fx("wake");
+}
+const KEYS = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down",
+  Enter: "a", b: "b", B: "b", Escape: "back", " ": "sheet", t: "toggle", T: "toggle",
+  w: "wake", W: "wake" };
+stage.addEventListener("click", ready);
+stage.addEventListener("keydown", async e => {
+  const a = KEYS[e.key]; if (!a) return;
+  e.preventDefault(); await ready(); act(a);
+});
+// Standard gamepad mapping: 0 A, 1 B, 2 X, 3 Y, 8 Select, 9 Start, 12-15 D-pad.
+const PAD = { 0: "a", 1: "b", 2: "back", 3: "toggle", 8: "wake", 9: "sheet",
+  12: "up", 13: "down", 14: "left", 15: "right" };
+let was = {};
+(function poll() {
+  for (const gp of navigator.getGamepads ? navigator.getGamepads() : []) {
+    if (!gp) continue;
+    for (const [i, a] of Object.entries(PAD)) {
+      const down = gp.buttons[i] && gp.buttons[i].pressed, k = gp.index + ":" + i;
+      if (down && !was[k] && ctx) act(a);
+      was[k] = down;
+    }
+  }
+  requestAnimationFrame(poll);
+})();
+</script>
+</body>
+</html>

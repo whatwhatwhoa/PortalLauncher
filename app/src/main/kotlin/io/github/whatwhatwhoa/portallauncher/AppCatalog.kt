@@ -37,8 +37,8 @@ class AppEntry(
     val user: UserHandle,
     /** Part of the system image: it can't be uninstalled, only its updates. */
     val system: Boolean,
-    /** Where the app starts ([seedCategory]), null for All apps only; the owner's move wins (LauncherState). */
-    val seed: Category?,
+    /** Where the app starts, a category id ([seedCategory]), null for All apps only; the owner's move wins (LauncherState). */
+    val seed: String?,
     /** When the app was first installed: one installed after the launcher's first run starts off Home. */
     val installed: Long,
     private val icon: Drawable,
@@ -176,18 +176,31 @@ class Prefs(context: Context) {
         set(value) = sp.edit { if (value == null) remove("dock") else putString("dock", value.joinToString("\n")) }
 
     /**
-     * The owner's category moves only, one "key<TAB>category" per line; a null category (stored
-     * as [ALL_APPS_ONLY]) keeps the app off Home.
+     * The owner's category choices only, one "key<TAB>id,id…" per line; no category (stored as
+     * [ALL_APPS_ONLY]) keeps the app off Home. A built-in category's id is the name it was stored
+     * under before categories could change, so older one-category lines still read.
      */
-    var categories: Map<String, Category?>
+    var categories: Map<String, Set<String>>
         get() = sp.getString("categories", "").orEmpty().split('\n').mapNotNull { line ->
-            val (key, name) = line.split('\t').takeIf { it.size == 2 } ?: return@mapNotNull null
-            if (name == ALL_APPS_ONLY) return@mapNotNull key to null
-            Category.entries.firstOrNull { it.name == name }?.let { key to it }
+            val (key, ids) = line.split('\t').takeIf { it.size == 2 } ?: return@mapNotNull null
+            key to if (ids == ALL_APPS_ONLY) emptySet() else ids.split(',').toSet()
         }.toMap()
         set(value) = sp.edit {
-            putString("categories", value.entries.joinToString("\n") { "${it.key}\t${it.value?.name ?: ALL_APPS_ONLY}" })
+            putString("categories", value.entries.joinToString("\n") { "${it.key}\t${it.value.joinToString(",").ifEmpty { ALL_APPS_ONLY }}" })
         }
+
+    /**
+     * Home's categories in the owner's order, one "id<TAB>name" per line; the built-in five until
+     * they change them. Favorites always comes first, whatever was stored.
+     */
+    var categoryList: List<Category>
+        get() {
+            val stored = sp.getString("categories.list", null)?.split('\n')?.mapNotNull { line ->
+                line.split('\t').takeIf { it.size == 2 }?.let { (id, label) -> Category(id, label) }
+            } ?: return Category.defaults
+            return listOf(stored.firstOrNull { it.isFavorites } ?: Category.defaults.first()) + stored.filterNot { it.isFavorites }
+        }
+        set(value) = sp.edit { putString("categories.list", value.joinToString("\n") { "${it.id}\t${it.label}" }) }
 
     /**
      * When the launcher first sorted the apps into categories. Apps installed before then start in
@@ -254,15 +267,31 @@ class Prefs(context: Context) {
             putString("home.start", value.start.name)
         }
 
-    /** The category Home was last on, for Start on → Where you left after a restart. */
-    var lastCategory: Category?
-        get() = sp.getString("home.category", null)?.let { name -> Category.entries.firstOrNull { it.name == name } }
-        set(value) = sp.edit { putString("home.category", value?.name) }
+    /** The id of the category Home was last on, for Start on → Where you left after a restart. */
+    var lastCategory: String?
+        get() = sp.getString("home.category", null)
+        set(value) = sp.edit { putString("home.category", value) }
 
     /** Settings → Art: look art up without being asked; off, the launcher uses the network only from Art…. */
     var fetchArt: Boolean
         get() = sp.getBoolean("art.fetch", true)
         set(value) = sp.edit { putBoolean("art.fetch", value) }
+
+    /** Settings → Sound, stored the same way as [look]. */
+    var sound: SoundSettings
+        get() {
+            val d = SoundSettings()
+            return SoundSettings(
+                on = sp.getBoolean("sound.on", d.on),
+                family = named("sound.family", d.family),
+                level = named("sound.level", d.level),
+            )
+        }
+        set(value) = sp.edit {
+            putBoolean("sound.on", value.on)
+            putString("sound.family", value.family.name)
+            putString("sound.level", value.level.name)
+        }
 
     /** Settings → Art: the owner's own SteamGridDB key, or null until one is given. */
     var artKey: String?

@@ -216,6 +216,65 @@ All three are on; + → Launcher settings… switches each off and on to compare
 ## V-reflection (F9, built 2026-10-25; owner saw the first build)
 - [ ] The darker reflection (about 40% instead of 62%): dark enough now, still visible?
 
+## V-gap (F20, built 2026-10-25)
+On Home, focus an app with a hero but no scene (Covers or Scenes off, or a game without a scene).
+- [ ] A clear gap between the hero's foot and the reflection, like the sketch; the reflection's
+      top is soft, not a hard line; it is gone before the dock.
+
+## V-categories-edit (F12, built 2026-10-25)
+- [ ] B on Home: the layer shows only the categories with apps, no New category; + Edit bottom right.
+- [ ] + : edit mode, every category (an empty one faint), New category at the end, + Done; + or B leaves.
+- [ ] A on Games: Rename, Move, Delete beside it; on Favorites only Rename.
+- [ ] Rename: the keyboard comes up and the name stays above it; type, Done: Home's label and the
+      layer show the new name, and it lasts a restart. B keeps the typed name too.
+- [ ] Move: up and down move it, never above Favorites; Home's order follows.
+- [ ] New category, type a name, Done: it shows faint with the empty note. + → Category… on an app:
+      the new one is a row; A on it dots it and the page stays; the app shows there on Home.
+- [ ] Category… on an app: dot two categories, it shows in both; All apps only clears them; the
+      first and last rows' ring isn't clipped.
+- [ ] Delete (A twice) on that new category: it goes, and an app only in it is in All apps only.
+- [ ] Remove the agent's test category **Test** the same way if it is still there.
+
+## V-standby (F19, built 2026-10-25)
+First: + → Launcher settings… → Home → Hold Home for standby (Off) → A → turn on *Portal: hold
+Home for standby* in Android's accessibility settings; back in Launcher Settings the row says On.
+- [ ] A short Home press: "Hold Home for standby" shows at the top for about half a second;
+      Home does what it always did (closes layers; while home, back to the start).
+- [ ] Hold Home on Home, and in a game: standby opens (black, clock, date, battery, four
+      rings), no Circle to Search; readable at your brightness; stays on past the screen timeout.
+- [ ] One to three presses fill rings and leave you in standby; wait 2 s and they empty; four
+      quick presses of one button (any: Home, A, D-pad up …) come back to where you were.
+- [ ] Mixed buttons (A, B, A, B) don't wake it: each new button starts the rings again at one.
+- [ ] Touches, swipes, both sticks and both triggers do nothing in standby: no rings fill.
+- [ ] Volume keys in standby still change the volume; power off and on: Home, not standby.
+- [ ] The clock moves to a new spot each minute.
+
+## V-updates (F18, built 2026-10-25)
+Once the repo is public and a release has its APK, on the release build (a debug build reads
+"Signed differently", which is right).
+- [ ] + → Launcher settings… → System → Updates: "Checking…", then "Up to date", or
+      "Install <version>" when a newer release is up.
+- [ ] Before any release (or while private): "None published". Wi-Fi off: "Offline, try
+      again"; A checks again.
+- [ ] A on Install the first time: Android's *Install unknown apps* page for Portal; allow, B
+      back: the row says "Allow, then A again"; A: "Downloading n%", then "Installing…".
+- [ ] The launcher restarts on the new version (the credits line shows it); favorites, dock,
+      art and settings are all still there. If Play Protect asks, *Install without scanning*.
+
+## V-sounds (F22, built 2026-10-25)
+Media volume up a little first: the sounds follow it.
+- [ ] Home: left and right tick softly; at the row's end (Carousel wraps off) a duller bump, and
+      holding against the end doesn't machine-gun. Down to the dock and back up tick too.
+- [ ] B: the layer opens with a rising swish, B again closes with a falling one; Y and B on All
+      apps the same. + and − (sheet, quick panel) swell open; B out of them is Back.
+- [ ] A on a tile: the launch sound, once (no select on top), and it isn't cut off as the app opens.
+- [ ] Quick panel: Volume and Brightness tick higher as they rise; Auto brightness toggles up
+      and down. Do not disturb on: everything is silent until it's off again.
+- [ ] Launcher Settings → Sound: Family steps play Select in Soft, Glass, Crisp; Volume steps
+      get louder; Sounds off: silent everywhere, on: the toggle sound.
+- [ ] Standby: the fourth press wakes with the chime. Home pressed at home: Back.
+- [ ] Too loud or too quiet at Low against a game's sound? Which sound grates after a while?
+
 ## V-starting (F10, built 2026-10-25)
 - [ ] After this build, Home's categories hold the apps the table or their manifest places;
       the rest (system odds and ends) are in All apps only, and Chrome is in Utilities.

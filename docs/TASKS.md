@@ -10,7 +10,7 @@ Rules:
 - **Work** on the first open card or task under *Working on*, or the owner's explicit ask; one
   per session unless the owner bundles several.
 - **IDs never change when a card moves.** A new card is **F<n>**, numbered on from the last
-  milestone M8 (F9 first; next free F21), so its tasks are T<n>.1, T<n>.2 … and its decision
+  milestone M8 (F9 first; next free F25), so its tasks are T<n>.1, T<n>.2 … and its decision
   entries D<n>.1 …, clashing with no milestone's. A card that came out of a milestone keeps its
   task IDs. Owner bug and tweak batches stay **B<n>** (B6 next). A follow-up gets an F number
   when it is planned.
@@ -29,21 +29,37 @@ Rules:
 
 ## Working on
 
-Nothing yet: 0.2.0 moves here when the owner starts it.
-
-## Planned
-
 ### 0.2.0 — Functional and refinement
-- **F20 Reflection changes**: See concept, but right now the reflection is too close. Add some spacing.
-- **F19 Long press home button to lock screen**: Allow long press home button to lock screen. When single click, a hint comes up and displays for 0.5 or so seconds
-- **F12 Renaming or adding categories** (2026-10-25): the fixed five first (`decisions/M5-categories.md`).
-- **F18 Github Update**: Able to update via Github
+- [x] **F20 Reflection changes** (2026-10-25: a 32 dp gap under the band, soft top; `decisions/0.2.0.md` D20.1):
+  See concept, but right now the reflection is too close. Add some spacing.
+- [x] **F19 Long press home button to lock screen** (2026-10-25: hold Home for standby, not lock,
+  owner's change; `decisions/0.2.0.md` D19.1):
+  Allow long press home button to lock screen. When single click, a hint comes up and displays for 0.5 or so seconds
+- [x] **F12 Renaming or adding categories** (2026-10-25: + in the layer is edit mode, rename, move, delete,
+  new; an app in several categories; `decisions/0.2.0.md` D12.1).
+- [x] **F18 Github Update** (2026-10-25: an Updates row in Launcher Settings; finds releases once the
+  repo is public; `decisions/0.2.0.md` D18.1):
+  Able to update via Github
 - **VERIFY rounds** (owner, 2026-10-25; carried from 0.1.0): the milestones' hand checks on the Portal (`VERIFY.md`).
   - [ ] T2.3 Device session: install, run `docs/VERIFY.md` *V-skeleton*, fix what breaks; the
     owner sets it as Home and goes back to Launcher3 once, to prove the way back.
   - [ ] T5.3 VERIFY round: ghost opacity, type size (`VERIFY.md` *V-categories*).
   - [ ] T7.3 VERIFY round on the device (`VERIFY.md` *V-quick*).
   - [ ] T6.5 VERIFY round on the device (`VERIFY.md` *V-transit*, *V-accent*).
+
+## Planned
+
+### 0.3.0 — Sounds and effects
+- [x] **F22 Add sounds** (2026-10-25: 12 synthesized sounds, three families, Soft by default, on at
+  Low, silent in Do Not Disturb; `decisions/F22-sounds.md` D22.1–D22.2):
+  Add sounds, use Nintendo switch as the basis. While the switch has playful sounds, ours will a bit more techy/modern. Let me know how to prompt this
+- **F23 Tile setting**: For tile setting, instead of going through the menu, you scroll UP, and it'll select the preview,
+  so you can change it based off there. Closer to WYSIWYG.  The larger hero/scene can be set within that submenu instead.
+- **F21 Add back and forward button tiles for quick settings**
+- **F24 Choosing Hero or Scene is either or option**: Right now it is allowing both, with no way to disable one.
+  Instead of calling it Hero, we'll call it Banner or Scene (unless steamdb calls it HERO, then we'll follow steamgrid).
+  You can only set to either one.
+- **Launcher Setting Menu**: Bigger window (maybe even full screen or 70%, with categories and submenus, simliar to switch. for example sounds, look and feel, etc
 
 ### Candidates
 Nothing planned yet: the owner picks a version, a theme and the cards from the feature list.

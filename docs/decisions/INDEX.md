@@ -37,3 +37,14 @@ since 2026-10-25); a big card's file is `F<n>-<slug>.md`, a release's small ones
 - `0.1.0.md` (2026-10-25) — the first release's small cards: the hero reflection (D9.1: mirror
   line inside the band's fade, streaky blur, slow ripple, a switch); starting categories (D10.1:
   the table, unknown and new apps in All apps only); the dock's settings icon (B5.1); all accepted.
+- `0.2.0.md` (2026-10-25) — 0.2.0's small cards: the reflection as its own block under a gap
+  (D20.1, the owner's sketch; not yet seen); hold Home for standby (D19.1: lock became standby,
+  an accessibility service because Android keeps the Home key, four presses of one button to
+  wake, triggers not counting); renaming and adding categories (D12.1: ids and names, edit mode
+  in the layer, an app in several categories); updates from GitHub (D18.1: a Settings row asked
+  when the panel opens, checks before installing, self-update without a confirm; the owner's
+  debug build can't take releases).
+- `F22-sounds.md` (2026-10-25) — UI sounds: synthesized by a script rather than AI-generated
+  (consistency, ours to ship), 12 sounds in one key, three families (Soft the default), on at
+  Low, silent in Do Not Disturb (D22.1); all families loaded, media stream, sounds read from
+  state before and after each action (D22.2).

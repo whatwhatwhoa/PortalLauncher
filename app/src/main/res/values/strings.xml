@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Portal</string>
+    <string name="home_hold_label">Portal: hold Home for standby</string>
+    <string name="home_hold_description">Holding the Home button opens Portal\'s standby: the clock on black, the screen kept on, without locking. Four presses of any button leave it; touches and the sticks don\'t count. A short press of Home works as always. Portal reads only the Home button, nothing on the screen.</string>
 </resources>

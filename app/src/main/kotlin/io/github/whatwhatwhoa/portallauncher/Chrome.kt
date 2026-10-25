@@ -65,6 +65,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.delay
@@ -376,7 +377,7 @@ private const val HINT_ALPHA = 0.8f
 
 /** The time, ticking on the minute: in the system's 12/24-hour format unless Settings → Clock fixes one. */
 @Composable
-fun Clock(modifier: Modifier = Modifier) {
+fun Clock(modifier: Modifier = Modifier, style: TextStyle = LocalType.current.body.copy(color = LocalPalette.current.text)) {
     val context = LocalContext.current
     val clock = LocalHome.current.clock
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -392,7 +393,7 @@ fun Clock(modifier: Modifier = Modifier) {
     BasicText(
         format.format(Date(now)),
         modifier = modifier,
-        style = LocalType.current.body.copy(color = LocalPalette.current.text),
+        style = style,
     )
 }
 

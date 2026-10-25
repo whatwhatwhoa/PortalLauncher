@@ -59,6 +59,19 @@ access, or over adb (no `cmd netpolicy` verb exists): `service call netpolicy 3 
 `cmd package list packages -U <package>`. Transaction codes follow `INetworkPolicyManager.aidl`;
 check them with the read (code 4) before writing. Survives a reinstall (`install -r`).
 
+### Trying an update before it is on GitHub
+The repo is private, so GitHub answers 404 and Updates says "None published". To try the whole
+path: put `update.url=http://localhost:8765/latest.json` in `local.properties` (debug builds
+only; plain http to localhost is allowed in debug only), serve a folder holding `latest.json`
+(`{"tag_name":"v0.1.1","assets":[{"name":"x.apk","size":…,"browser_download_url":"http://localhost:8765/x.apk"}]}`)
+and the APK with `py -I -m http.server 8765 --bind 127.0.0.1`, then `adb reverse tcp:8765 tcp:8765`.
+To keep the owner's install untouched, build both APKs with a temporary
+`applicationIdSuffix = ".check"` and versionCodes 1 and 2, and grant the copy only:
+`adb shell appops set <pkg>.check REQUEST_INSTALL_PACKAGES allow` (gone with its uninstall).
+Restricted networking didn't block the new copy's localhost requests. Play Protect asks to
+scan an APK it hasn't seen: *More details → Install without scanning*, never *Scan app* (it
+uploads the APK). Take `update.url` back out after.
+
 ### Git Bash rewrites device paths
 In the Bash tool, `adb push x /sdcard/...` or `adb shell ls /data/...` gets the path turned into
 `C:/Program Files/Git/sdcard/...` and fails ("secure_mkdirs() failed"). Prefix the command with
@@ -85,6 +98,16 @@ event must be older than our own last key. Stop when it isn't.
 A key sent while a sheet is still sliding in can be lost: three downs on the options sheet
 moved focus two rows and left it on *Uninstall* (2026-10-25). Screenshot before every A and
 send it only when the focus is where it should be.
+
+### The Home key never reaches an app
+The Portal's Home button comes from its built-in controller ("Xbox Wireless Controller",
+`KEY_HOME`) as Android's Home key, which the system handles itself: the Home app only gets a
+Home intent on release, and a hold starts Circle to Search instead (seen 2026-10-25). Only an
+accessibility service with key filtering sees it first (`HomeHoldService`). LineageOS has its
+own hold action (`key_home_long_press_action` in `content://lineagesettings/system`, 7 = sleep,
+0 = nothing), but its provider refuses deletes and updates from adb; only `content insert`
+works (it replaces the row). On the owner's Portal it is 0 since 2026-10-25 (it was unset:
+Circle to Search).
 
 ### Pull app files with `adb exec-out`, not `adb shell`
 `adb shell run-as … cat` goes through a terminal that turns every LF into CRLF, so a preferences

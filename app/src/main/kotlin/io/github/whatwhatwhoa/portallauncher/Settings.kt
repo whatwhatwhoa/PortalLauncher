@@ -41,7 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 /** The panel's groups, in order, each under its heading (`decisions/M6-settings.md`). */
-enum class SettingGroup(val label: String) { Look("Look"), Home("Home"), Art("Art"), Apps("Apps"), System("System") }
+enum class SettingGroup(val label: String) { Look("Look"), Home("Home"), Sound("Sound"), Art("Art"), Apps("Apps"), System("System") }
 
 /**
  * One row of the settings panel. A value row changes with left and right, and A steps it on; an
@@ -64,6 +64,10 @@ enum class Setting(val group: SettingGroup, val label: String, val acts: Boolean
     Hints(SettingGroup.Home, "Button hints"),
     Wraps(SettingGroup.Home, "Carousel wraps"),
     Start(SettingGroup.Home, "Home key goes to"),
+    HomeHold(SettingGroup.Home, "Hold Home for standby", acts = true),
+    SoundsOn(SettingGroup.Sound, "Sounds"),
+    SoundSet(SettingGroup.Sound, "Family"),
+    SoundVolume(SettingGroup.Sound, "Volume"),
     ArtKey(SettingGroup.Art, "SteamGridDB key", acts = true),
     FetchArt(SettingGroup.Art, "Fetch art"),
     ClearArt(SettingGroup.Art, "Clear all art", acts = true, confirms = true),
@@ -71,6 +75,7 @@ enum class Setting(val group: SettingGroup, val label: String, val acts: Boolean
     ResetDock(SettingGroup.Apps, "Reset the dock", acts = true, confirms = true),
     HomeApp(SettingGroup.System, "Home app", acts = true),
     AndroidSettings(SettingGroup.System, "Android settings", acts = true),
+    Updates(SettingGroup.System, "Updates", acts = true),
 }
 
 /** The Look settings after one step of [setting]: a choice moves along its list and wraps, a switch flips. */
@@ -125,6 +130,10 @@ private fun LauncherState.shown(setting: Setting): String {
         Setting.Hints -> onOff(home.hints)
         Setting.Wraps -> onOff(home.wraps)
         Setting.Start -> home.start.label
+        Setting.HomeHold -> onOff(homeHold)
+        Setting.SoundsOn -> onOff(sound.on)
+        Setting.SoundSet -> sound.family.label
+        Setting.SoundVolume -> sound.level.label
         Setting.ArtKey -> keyNote ?: if (art?.hasKey == true) "Set" else "Not set"
         Setting.FetchArt -> onOff(fetchArt)
         Setting.ClearArt -> artBytes?.let(::megabytes).orEmpty()
@@ -132,6 +141,7 @@ private fun LauncherState.shown(setting: Setting): String {
         Setting.ResetDock -> if (dockChanged) "" else "Default"
         Setting.HomeApp -> if (isHomeApp) "Portal" else "Not set"
         Setting.AndroidSettings -> ""
+        Setting.Updates -> updateNote.orEmpty()
     }
 }
 

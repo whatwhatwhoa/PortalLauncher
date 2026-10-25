@@ -19,12 +19,20 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextOverflow
 
@@ -74,11 +82,12 @@ fun AnimatedVisibilityScope.OptionsSheet(state: LauncherState, sheet: Sheet) {
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                Spacer(Modifier.height(Space.xl))
+                // Less the rows' own room for the ring, so they sit where they always did.
+                Spacer(Modifier.height(Space.xl - Space.m))
                 if (state.choosingCategory) {
-                    val current = state.categoryOf(sheet.app)
-                    Rows(state, Category.places.size, corner) { i ->
-                        Choice(Category.places[i].placeLabel, picked = Category.places[i] == current)
+                    val places = state.places
+                    Rows(state, places.size, corner, Modifier.weight(1f, fill = false)) { i ->
+                        Choice(places[i].placeLabel, picked = state.isIn(sheet.app, places[i]))
                     }
                 } else {
                     Rows(state, sheet.options.size, corner) { i ->
@@ -91,16 +100,26 @@ fun AnimatedVisibilityScope.OptionsSheet(state: LauncherState, sheet: Sheet) {
     }
 }
 
-/** The sheet's rows: its options, or the categories on the Category… page (the one in use dotted). */
+/**
+ * The sheet's rows: its options, or the categories on the Category… page (the one in use dotted),
+ * which scroll once the owner has more than fit.
+ */
 @Composable
-private fun Rows(state: LauncherState, count: Int, corner: Shape, row: @Composable (Int) -> Unit) {
+private fun Rows(state: LauncherState, count: Int, corner: Shape, modifier: Modifier = Modifier, row: @Composable (Int) -> Unit) {
     val p = LocalPalette.current
-    Column(verticalArrangement = Arrangement.spacedBy(Space.xs)) {
+    // The scroll clips, so the ring around the first and last rows needs room inside it.
+    Column(modifier.verticalScroll(rememberScrollState()).padding(vertical = Space.m), verticalArrangement = Arrangement.spacedBy(Space.xs)) {
         repeat(count) { i ->
             val focused = state.sheetOpen && i == state.sheetFocus
+            val inView = remember { BringIntoViewRequester() }
+            // The ring lies outside the row, so a margin past it comes into view too.
+            val margin = with(LocalDensity.current) { Space.m.toPx() }
+            val height = with(LocalDensity.current) { Dimens.sheetRow.toPx() }
+            LaunchedEffect(focused) { if (focused) inView.bringIntoView(Rect(0f, -margin, 1f, height + margin)) }
             Box(
                 Modifier.fillMaxWidth()
                     .height(Dimens.sheetRow)
+                    .bringIntoViewRequester(inView)
                     .focusRing(focused, Space.m)
                     .background(if (focused) p.rule else Color.Transparent, corner)
                     .clickable(interactionSource = null, indication = null) { state.tapSheet(i) }

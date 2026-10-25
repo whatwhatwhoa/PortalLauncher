@@ -10,6 +10,8 @@ val local = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
 }
 
+val GITHUB_LATEST = "https://api.github.com/repos/whatwhatwhoa/PortalLauncher/releases/latest"
+
 android {
     namespace = "io.github.whatwhatwhoa.portallauncher"
     compileSdk = 37
@@ -20,6 +22,8 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
+        // Where Updates asks for the latest release (F18).
+        buildConfigField("String", "UPDATE_URL", "\"$GITHUB_LATEST\"")
     }
 
     // The release key stays outside the repo; local.properties says where it is. Without it a
@@ -41,6 +45,9 @@ android {
             // The owner's own builds may carry their SteamGridDB key; empty, it is given in
             // Launcher Settings like everyone else's.
             buildConfigField("String", "STEAMGRIDDB_KEY", "\"${local.getProperty("steamgriddb.apiKey", "")}\"")
+            // An update can be tried before it is on GitHub: update.url names a stand-in for the
+            // releases API, e.g. a laptop server reached through adb reverse (gotchas.md *Updates*).
+            buildConfigField("String", "UPDATE_URL", "\"${local.getProperty("update.url", GITHUB_LATEST)}\"")
         }
         release {
             // A published APK never carries a key: users bring their own.
