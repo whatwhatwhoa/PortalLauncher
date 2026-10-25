@@ -23,7 +23,7 @@ gitignored. Everything is committed and pushed. The repo stays private (owner).
 ## Waiting on the owner
 - Back up the release keystore `C:\Users\Jim\.android\portallauncher-release.jks` together with
   its password (in `local.properties`). If it is lost, users can't update.
-- When to make the repo public. Before that: the deleted `concepts/` files (test wallpapers, mock-up
+- When to make the repo public. First decide: the deleted `concepts/` files (test wallpapers, mock-up
   images) are still in the git history; purge them with a history rewrite if they mustn't be public.
 - Quick panel: a swipe down from the top by touch too?
 - The VERIFY checks.
