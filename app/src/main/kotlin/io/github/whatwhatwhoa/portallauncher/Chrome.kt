@@ -5,6 +5,7 @@ import android.graphics.Paint
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.text.format.DateFormat
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.core.EaseInOutSine
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -162,8 +163,9 @@ fun Modifier.focusRing(focused: Boolean, corner: Dp?, steady: Boolean = false): 
         rememberInfiniteTransition(label = "pulse").animateFloat(
             initialValue = 1f,
             targetValue = 0.55f,
-            // Slow (1.8 s each way) is half the first speed (owner's ask), a breath, not a blink.
-            animationSpec = infiniteRepeatable(tween(period), RepeatMode.Reverse),
+            // Slow (1.8 s each way) is half the first speed (owner's ask), a breath, not a blink;
+            // eased like one too, lingering at full and at faint instead of bouncing off them.
+            animationSpec = infiniteRepeatable(tween(period, easing = EaseInOutSine), RepeatMode.Reverse),
             label = "pulseAlpha",
         )
     } else {

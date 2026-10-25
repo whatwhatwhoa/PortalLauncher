@@ -22,8 +22,13 @@ what.
   why each looks as it does, effects on by default, the panel undimmed instead of full screen,
   light accents at 0.55; T6.4: value and action rows, the confirming second A, what changed from
   the proposal (no Refresh art, no About row, Home key goes to); owner's answers: effects
-  settled, the dock's Launcher Settings gear.
+  settled, the dock's Launcher Settings gear; eight accents and the hue/intensity picker
+  (B4.1); the motion pass (T6.3: one `Transit` timing, All apps and Home's step back, eased
+  pulse).
 - `M7-quick-settings.md` (2026-10-25) — controller quick panel (brightness, volume, …): what
   Android lets a launcher change, the proposal, Home only; the owner's answers (the square);
   as built: text buttons, the brightness curve, AYN by component, no swipe; then icons
   (Material Symbols, which ones, names on the note line).
+- `M8-release.md` (2026-10-25) — the public page: README for users, screenshots, MIT; the
+  SteamGridDB key moved to Launcher Settings (clipboard, checked) so release APKs carry none;
+  release signing outside the repo; what is left before going public.

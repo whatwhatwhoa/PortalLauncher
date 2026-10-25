@@ -5,6 +5,7 @@ import android.annotation.SuppressLint
 import android.app.ActivityOptions
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
+import android.content.ClipboardManager
 import android.content.Intent
 import android.database.ContentObserver
 import android.graphics.Rect
@@ -23,6 +24,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
@@ -45,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -82,21 +86,21 @@ class MainActivity : ComponentActivity() {
         hideSystemBars()
         prefs = Prefs(this)
         catalog = AppCatalog(this, lifecycleScope)
-        val art = BuildConfig.STEAMGRIDDB_KEY.takeIf { it.isNotBlank() }?.let { Art(this, lifecycleScope, it) }
+        // The owner's key from Launcher Settings; a debug build may carry one from local.properties.
+        val art = Art(this, lifecycleScope, prefs.artKey ?: BuildConfig.STEAMGRIDDB_KEY)
         state = LauncherState(
             catalog, prefs, art, lifecycleScope, ::launch, ::pickImage, File(filesDir, "backdrops"),
             openSystem = ::openSystem,
             holdsHome = { getSystemService(RoleManager::class.java).isRoleHeld(RoleManager.ROLE_HOME) },
             controls = DeviceControls(this),
+            readClipboard = ::clipboardText,
         )
         catalog.start()
         // New favorites and newly installed games get their art looked up as they appear, and
-        // everything again after Clear all art; not at all while Fetch art is off.
-        if (art != null) {
-            lifecycleScope.launch {
-                snapshotFlow { Triple(state.fetchArt, state.artCleared, state.artWanted) }
-                    .collect { (fetch, _, wanted) -> if (fetch) art.lookUp(wanted) }
-            }
+        // everything again after Clear all art or a new key; not at all while Fetch art is off.
+        lifecycleScope.launch {
+            snapshotFlow { listOf(state.fetchArt, state.artCleared, art.key, state.artWanted) }
+                .collect { if (state.fetchArt) art.lookUp(state.artWanted) }
         }
         motion = ValueAnimator.areAnimatorsEnabled()
         contentResolver.registerContentObserver(
@@ -113,6 +117,11 @@ class MainActivity : ComponentActivity() {
         imageReply = reply
         imageRequest.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
     }
+
+    // Android lets the app with focus read the clipboard (and says so in a toast).
+    private fun clipboardText(): String? =
+        getSystemService(ClipboardManager::class.java).primaryClip?.takeIf { it.itemCount > 0 }
+            ?.getItemAt(0)?.coerceToText(this)?.toString()
 
     // Settings → System and the quick panel open Android's screens; the panel stays open behind them.
     private fun openSystem(intent: Intent) {
@@ -246,45 +255,63 @@ private fun canvasDensity(system: Density, width: Dp, height: Dp): Density {
     return Density(system.density * factor, system.fontScale.coerceIn(0.9f, 1.15f))
 }
 
+// Every layer comes and goes on the same timing (Transit); the ones that slide say how far.
 @Composable
 private fun Layers(state: LauncherState, motion: Boolean) {
+    val drawer = state.screen == Screen.Drawer
+    // Home steps back a little while All apps rises over it, so the two read as layers.
+    val recede by animateFloatAsState(
+        if (drawer) RECEDE else 1f,
+        if (!motion) snap() else if (drawer) Transit.enter() else Transit.exit(),
+        label = "recede",
+    )
     Box(Modifier.fillMaxSize()) {
-        HomeScreen(state)
+        Box(
+            Modifier.fillMaxSize().graphicsLayer {
+                scaleX = recede
+                scaleY = recede
+            },
+        ) { HomeScreen(state) }
         AnimatedVisibility(
             visible = state.categoriesOpen,
-            enter = if (motion) slideInHorizontally { -it / 16 } + fadeIn() else EnterTransition.None,
-            exit = if (motion) slideOutHorizontally { -it / 16 } + fadeOut() else ExitTransition.None,
+            enter = if (motion) slideInHorizontally(Transit.enter()) { -it / 16 } + fadeIn(Transit.enter()) else EnterTransition.None,
+            exit = if (motion) slideOutHorizontally(Transit.exit()) { -it / 16 } + fadeOut(Transit.exit()) else ExitTransition.None,
         ) {
             CategoriesLayer(state)
         }
+        // All apps rises from below (where the swipe that opens it starts) and sinks back a
+        // shorter way, so closing feels quicker than opening.
         AnimatedVisibility(
-            visible = state.screen == Screen.Drawer,
-            enter = if (motion) slideInVertically { it / 8 } + fadeIn() else EnterTransition.None,
-            exit = if (motion) slideOutVertically { it / 8 } + fadeOut() else ExitTransition.None,
+            visible = drawer,
+            enter = if (motion) slideInVertically(Transit.enter()) { it / 8 } + fadeIn(Transit.enter()) else EnterTransition.None,
+            exit = if (motion) slideOutVertically(Transit.exit()) { it / 16 } + fadeOut(Transit.exit()) else ExitTransition.None,
         ) {
             AllAppsScreen(state)
         }
         AnimatedVisibility(
             visible = state.sheetOpen,
-            enter = if (motion) fadeIn() else EnterTransition.None,
-            exit = if (motion) fadeOut() else ExitTransition.None,
+            enter = if (motion) fadeIn(Transit.enter()) else EnterTransition.None,
+            exit = if (motion) fadeOut(Transit.exit()) else ExitTransition.None,
         ) {
             state.sheet?.let { OptionsSheet(state, it) }
         }
         AnimatedVisibility(
             visible = state.quickOpen,
-            enter = if (motion) fadeIn() else EnterTransition.None,
-            exit = if (motion) fadeOut() else ExitTransition.None,
+            enter = if (motion) fadeIn(Transit.enter()) else EnterTransition.None,
+            exit = if (motion) fadeOut(Transit.exit()) else ExitTransition.None,
         ) {
             QuickPanel(state)
         }
         AnimatedVisibility(
             visible = state.settingsOpen,
-            enter = if (motion) fadeIn() else EnterTransition.None,
-            exit = if (motion) fadeOut() else ExitTransition.None,
+            enter = if (motion) fadeIn(Transit.enter()) else EnterTransition.None,
+            exit = if (motion) fadeOut(Transit.exit()) else ExitTransition.None,
         ) {
             SettingsPanel(state)
         }
         StatusCluster(Modifier.align(Alignment.TopCenter))
     }
 }
+
+/** How far Home steps back behind All apps. */
+private const val RECEDE = 0.96f

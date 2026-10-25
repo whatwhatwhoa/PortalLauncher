@@ -190,7 +190,7 @@ class Prefs(context: Context) {
             val d = LookSettings()
             return LookSettings(
                 theme = named("look.theme", d.theme),
-                accent = named("look.accent", d.accent),
+                accent = Accent.of(sp.getString("look.accent", null)) ?: d.accent,
                 backdrop = sp.getString("look.backdrop", null) ?: d.backdrop,
                 scenes = sp.getBoolean("look.scenes", d.scenes),
                 covers = sp.getBoolean("look.covers", d.covers),
@@ -204,7 +204,7 @@ class Prefs(context: Context) {
         }
         set(value) = sp.edit {
             putString("look.theme", value.theme.name)
-            putString("look.accent", value.accent.name)
+            putString("look.accent", value.accent.id)
             putString("look.backdrop", value.backdrop)
             putBoolean("look.scenes", value.scenes)
             putBoolean("look.covers", value.covers)
@@ -243,6 +243,11 @@ class Prefs(context: Context) {
     var fetchArt: Boolean
         get() = sp.getBoolean("art.fetch", true)
         set(value) = sp.edit { putBoolean("art.fetch", value) }
+
+    /** Settings → Art: the owner's own SteamGridDB key, or null until one is given. */
+    var artKey: String?
+        get() = sp.getString("art.key", null)
+        set(value) = sp.edit { putString("art.key", value) }
 
     private inline fun <reified E : Enum<E>> named(key: String, default: E): E =
         sp.getString(key, null)?.let { name -> enumValues<E>().firstOrNull { it.name == name } } ?: default

@@ -70,6 +70,9 @@ Goal: real art where an app's icon is too small, and the Home layout built aroun
 - [x] B3.4 (2026-10-25) The first D-pad press after a touch counts: the window leaves touch mode as a touch ends (`gotchas.md`).
 - [x] B3.5 (2026-10-25) Covers stay on Home only; the dock is for utilities (`decisions/M4-art.md` T4.2).
 
+### B4 — Owner tweaks (2026-10-25)
+- [x] B4.1 (2026-10-25) Eight accents (Lime, Rose added) and a hue/intensity picker on A (`decisions/M6-settings.md` *Accents*).
+
 ### M5 — Categories (owner, 2026-10-25)
 Goal: the carousel shows one category at a time, and a big-type categories layer (XMB / Metro)
 moves between them. Proposal and open questions: `decisions/M5-categories.md`.
@@ -94,9 +97,17 @@ and the settings screen that holds the choices. Settings proposal: `decisions/M6
   the ring, tile depth (top highlight dark, shadow light); each a switch (`decisions/M6-settings.md` *Built*).
 - [x] T6.2 (2026-10-25) Settings *Look* panel from + → Settings… and Android's gear: theme,
   six accents, backdrop, scenes, covers, the three effects, pulse (`decisions/M6-settings.md` *Built*).
-- [ ] T6.3 Motion pass: focus pulse tuning, All apps transition, a VERIFY round.
+- [x] T6.3 (2026-10-25) Motion pass: one timing for every layer, All apps rises as Home steps back, eased pulse (`decisions/M6-settings.md` *Motion pass*).
+- [ ] T6.5 VERIFY round on the device (`VERIFY.md` *V-transit*, *V-accent*).
 - [x] T6.4 (2026-10-25) *Home*, *Art*, *Apps*, *System* groups, action rows with a confirming
   second A, credits (`decisions/M6-settings.md` *Built (T6.4)*).
+
+### M8 — Public page and release (owner, 2026-10-25)
+Goal: a GitHub page users can install from: what it is, the APK, setup, screenshots.
+- [x] T8.1 (2026-10-25) User-facing README with screenshots, MIT license, SteamGridDB key entry
+  in Launcher Settings (release APKs carry no key), release signing (`decisions/M8-release.md`).
+- [ ] T8.2 Run the release APK on a device once (R8-minified, never run), then the owner makes
+  the repo public and publishes v0.1.0 with the APK as `PortalLauncher-0.1.0.apk`.
 
 ### Later
 - Tile reflections back on the carousel (dropped 2026-10-25, never committed; how it was built: `decisions/M4-art.md`).

@@ -10,7 +10,9 @@ import android.util.LruCache
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.content.edit
@@ -65,9 +67,13 @@ enum class ArtKind(val suffix: String) { Cover("cover"), Hero("hero"), Scene("sc
  * app's files and never upscaled (only sizes at least as big as they are shown are asked for).
  * Favorites and apps Android marks as games are looked up by their label and taken only on a
  * close match; anything else waits for the owner (+ → Art…). A matched game also gets a scene
- * from Steam when it is sold there; anything else keeps the hero band.
+ * from Steam when it is sold there; anything else keeps the hero band. Lookups need the owner's
+ * own SteamGridDB [key] (Launcher Settings → Art); without one, only gallery images work.
  */
-class Art(context: Context, private val scope: CoroutineScope, private val key: String) {
+class Art(context: Context, private val scope: CoroutineScope, key: String) {
+    var key by mutableStateOf(key)
+    val hasKey get() = key.isNotBlank()
+
     private val dir = File(context.filesDir, "art").apply { mkdirs() }
     private val resolver = context.contentResolver
     private val sp = context.getSharedPreferences("art", Context.MODE_PRIVATE)
@@ -107,6 +113,7 @@ class Art(context: Context, private val scope: CoroutineScope, private val key: 
             val matched = records[pkg] as? ArtRecord.Matched
             if (matched != null && !hasScene(pkg)) findScene(pkg, matched.match)
         }
+        if (!hasKey) return
         val todo = unique.filter { it.component.packageName !in records && looked.add(it.component.packageName) }
         if (todo.isEmpty()) return
         scope.launch {
@@ -123,6 +130,23 @@ class Art(context: Context, private val scope: CoroutineScope, private val key: 
                 if (pkg in records) continue
                 if (match == null || !use(pkg, match)) save(pkg, ArtRecord.NoMatch)
             }
+        }
+    }
+
+    /**
+     * Whether SteamGridDB takes [candidate] as a key: one search with it. Throws when the service
+     * can't be reached, so offline isn't mistaken for a wrong key.
+     */
+    suspend fun accepts(candidate: String): Boolean = withContext(Dispatchers.IO) {
+        val c = connect("$BASE/search/autocomplete/portal").apply { setRequestProperty("Authorization", "Bearer $candidate") }
+        try {
+            when (c.responseCode) {
+                HttpURLConnection.HTTP_OK -> true
+                HttpURLConnection.HTTP_UNAUTHORIZED, HttpURLConnection.HTTP_FORBIDDEN -> false
+                else -> throw IOException("HTTP ${c.responseCode}")
+            }
+        } finally {
+            c.disconnect()
         }
     }
 

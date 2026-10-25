@@ -19,13 +19,33 @@ android {
         minSdk = 31
         targetSdk = 37
         versionCode = 1
-        versionName = "0.0.1"
-        // Empty when the key is missing: the art lookup is then switched off.
-        buildConfigField("String", "STEAMGRIDDB_KEY", "\"${local.getProperty("steamgriddb.apiKey", "")}\"")
+        versionName = "0.1.0"
+    }
+
+    // The release key stays outside the repo; local.properties says where it is. Without it a
+    // release build is left unsigned.
+    val releaseStore = local.getProperty("release.storeFile")
+    signingConfigs {
+        if (releaseStore != null) {
+            create("release") {
+                storeFile = file(releaseStore)
+                storePassword = local.getProperty("release.storePassword")
+                keyAlias = local.getProperty("release.keyAlias")
+                keyPassword = local.getProperty("release.keyPassword")
+            }
+        }
     }
 
     buildTypes {
+        debug {
+            // The owner's own builds may carry their SteamGridDB key; empty, it is given in
+            // Launcher Settings like everyone else's.
+            buildConfigField("String", "STEAMGRIDDB_KEY", "\"${local.getProperty("steamgriddb.apiKey", "")}\"")
+        }
         release {
+            // A published APK never carries a key: users bring their own.
+            buildConfigField("String", "STEAMGRIDDB_KEY", "\"\"")
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))

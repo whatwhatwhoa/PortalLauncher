@@ -33,7 +33,7 @@ Mint, Amber, Coral, Lavender. The owner names their favorites and the rest go.
 packs, grid size, backup and restore of settings.
 
 ## Open
-- Which colors are the owner's favorites (the six are built; the rest go).
+Nothing; the accents were answered below.
 
 ## Owner's answers (2026-10-25)
 - **Effects settled:** "all effects are good so far": the three stay as built, on by default.
@@ -119,3 +119,32 @@ surface for one question.
 
 Stored as `home.*` (clock, battery percent, hints, wraps, start), `home.category` and
 `art.fetch` in the `launcher` preferences; a key not stored reads as the default.
+
+## Accents: eight and a picker (B4.1, owner, 2026-10-25)
+"Give the users a minimal 8 palette to choose from with color picker."
+- **The eight:** the six built, plus Lime (125°) and Rose (350°), which fill the two widest gaps
+  in the hue circle (75–165° and 295–28°). Chromas stay muted (0.08–0.15), so "minimal" holds:
+  none shouts. In hue order after White, so the swatches read as a quiet rainbow.
+- **The picker is hue and intensity only.** Lightness stays fixed per theme (0.80 / 0.55), as
+  the presets' is, so no pick can make the ring unreadable on either background; a full
+  color wheel or HSV square would let it, and needs a pointer the controller doesn't have.
+  Intensity tops out at 0.18 (sRGB clips most hues before that at 0.80).
+- **A page of the settings column, not a dialog:** same width, same rows, B back, so it feels
+  like one more level of the list. Left and right on the Accent row still step the presets
+  without opening it.
+- **Live, like every setting:** moving over a swatch wears it, so the owner sees it on the
+  ring and glow around the picker itself. Nothing to confirm.
+- **Stored by name** for presets (the old values load unchanged), `custom:<hue>:<chroma>` else.
+
+## Motion pass (T6.3, 2026-10-25)
+- **One timing for everything that comes and goes** (`Transit` in `Look.kt`): 240 ms in with a
+  decelerating curve, 180 ms out accelerating. Before, every layer used Compose's default
+  springs and fades, which differ slightly per kind, so the sheet, the panels and All apps each
+  felt a little different. Exits are shorter: leaving should never feel like waiting.
+- **All apps** rises 1/8 from below (where the swipe up starts) and sinks back only 1/16; Home
+  behind it scales to 96%, so opening reads as a layer coming forward, not a page swap.
+- **The pulse eases** (sine in and out) instead of running linear: a linear fade bounces off
+  full and faint, which reads as a blink at Normal speed; the sine lingers at both ends.
+- **Kept:** the focus and lift springs (0.7 damping, a hint of overshoot, follows the stick
+  well), the row's no-bounce slide, the 250 ms hero and backdrop crossfades. All of it still
+  snaps with animations off.

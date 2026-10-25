@@ -63,6 +63,7 @@ enum class Setting(val group: SettingGroup, val label: String, val acts: Boolean
     Hints(SettingGroup.Home, "Button hints"),
     Wraps(SettingGroup.Home, "Carousel wraps"),
     Start(SettingGroup.Home, "Home key goes to"),
+    ArtKey(SettingGroup.Art, "SteamGridDB key", acts = true),
     FetchArt(SettingGroup.Art, "Fetch art"),
     ClearArt(SettingGroup.Art, "Clear all art", acts = true, confirms = true),
     HiddenApps(SettingGroup.Apps, "Hidden apps", acts = true),
@@ -121,6 +122,7 @@ private fun LauncherState.shown(setting: Setting): String {
         Setting.Hints -> onOff(home.hints)
         Setting.Wraps -> onOff(home.wraps)
         Setting.Start -> home.start.label
+        Setting.ArtKey -> keyNote ?: if (art?.hasKey == true) "Set" else "Not set"
         Setting.FetchArt -> onOff(fetchArt)
         Setting.ClearArt -> artBytes?.let(::megabytes).orEmpty()
         Setting.HiddenApps -> if (hiddenCount == 0) "None" else "$hiddenCount"
@@ -150,8 +152,8 @@ fun AnimatedVisibilityScope.SettingsPanel(state: LauncherState) {
         Column(
             Modifier.align(Alignment.CenterEnd)
                 .animateEnterExit(
-                    enter = if (motion) slideInHorizontally { it / 8 } else EnterTransition.None,
-                    exit = if (motion) slideOutHorizontally { it / 8 } else ExitTransition.None,
+                    enter = if (motion) slideInHorizontally(Transit.enter()) { it / 8 } else EnterTransition.None,
+                    exit = if (motion) slideOutHorizontally(Transit.exit()) { it / 8 } else ExitTransition.None,
                 )
                 .fillMaxHeight()
                 .width(Dimens.sheet)
@@ -159,8 +161,13 @@ fun AnimatedVisibilityScope.SettingsPanel(state: LauncherState) {
                 .clickable(interactionSource = null, indication = null) {}
                 .padding(start = Space.xxl, end = Space.xxl, top = Dimens.sheetTop, bottom = Space.xl),
         ) {
-            BasicText("Launcher Settings", style = t.title.copy(color = p.text), maxLines = 1)
+            BasicText(if (state.accentOpen) "Accent" else "Launcher Settings", style = t.title.copy(color = p.text), maxLines = 1)
             Spacer(Modifier.height(Space.xl))
+            // A on Accent opens its picker in place of the list; B comes back to the list.
+            if (state.accentOpen) {
+                AccentPicker(state)
+                return@Column
+            }
             Column(
                 Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(Space.xs),

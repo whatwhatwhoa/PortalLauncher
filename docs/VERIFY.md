@@ -167,6 +167,32 @@ All three are on; + → Launcher settings… switches each off and on to compare
 - [ ] Wi-Fi, Bluetooth, Battery, AYN and Android settings each open their page; B comes back to
       the panel still open.
 
+## V-artkey (built 2026-10-25)
+- [ ] Launcher Settings → Art: the first row is *SteamGridDB key* and reads Set (the debug build
+      still carries the key from `local.properties`). Art keeps arriving as before.
+- [ ] With something else copied (or nothing), A on it: "Copy your key first"; nothing changes.
+- [ ] Copy the key (steamgriddb.com → Preferences → API), A: "Checking…", then Set. A wrong
+      32-digit key: "Not accepted". Wi-Fi off: "Offline, try again".
+- [ ] README: read it on github.com once; the steps and button table match what you see.
+
+## V-accent (built 2026-10-25)
+- [ ] Settings → Accent, left/right: White, Coral, Amber, Lime, Mint, Ice blue, Lavender, Rose,
+      round again; the ring and dot follow at once.
+- [ ] A on Accent: the page *Accent*, two rows of four swatches, the one in use dotted; moving
+      over them wears each; B back to the list on the Accent row.
+- [ ] Down to Hue: left/right walk the color round the circle; Intensity from near gray to
+      strong; the tracks show where they lead and the ring sits where the accent is. The row
+      reads "Custom" in the list; after a restart the custom color is still there.
+- [ ] Light theme: every swatch and a strong custom color still read as a ring on the light
+      background. Taps: a swatch picks it, a tap on a track sets it there.
+
+## V-transit (built 2026-10-25)
+- [ ] Y (or a swipe up): All apps rises and fades in, Home behind steps back a little; B: it
+      sinks away quicker than it came. Neither feels slow or jumpy.
+- [ ] The +, − and settings panels and the categories layer (B) come and go with the same feel.
+- [ ] The ring's pulse at Slow and at Normal: a calm breath, no blink at the ends.
+- [ ] Animations off: all of it snaps (then put the duration scale back to 0.5).
+
 ## V-b3 (built 2026-10-25)
 - [ ] The dock ends with a gear; focused it reads "Launcher settings", A opens the panel, B
       closes it and focus is still on the gear. + on the gear does nothing (no hint either).

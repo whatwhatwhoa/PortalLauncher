@@ -187,10 +187,14 @@ pick). The others: *Dark* (`#141414`), *Hero glow* (the focused app's hero over 
 Home, decoded at 480 px, blurred 40 dp and dimmed 50% with the background, crossfading with
 focus), and each image in the app's `files/backdrops`, cropped full screen and dimmed 35%. All
 apps keeps the plain background. Surface is the background mixed 8% toward the text; muted text
-is the text at 60%; the rule at 16%. The **accent** is *White*, the text color (so `#2D2D2D`
-in light mode; the owner's pick). The others are a hue and chroma made into OKLCH color at
-lightness 0.80 (dark) or 0.55 (light), fitted to sRGB: Ice blue 235° 0.08, Mint 165° 0.11,
-Amber 75° 0.14, Coral 28° 0.15, Lavender 295° 0.12.
+is the text at 60%; the rule at 16%. The **accent** is one of eight presets or a custom color. *White* is the text color (so
+`#2D2D2D` in light mode; the owner's pick and the default). The other seven are a hue and chroma
+made into OKLCH color at lightness 0.80 (dark) or 0.55 (light), fitted to sRGB, in hue order:
+Coral 28° 0.15, Amber 75° 0.14, Lime 125° 0.13, Mint 165° 0.11, Ice blue 235° 0.08, Lavender
+295° 0.12, Rose 350° 0.12. A custom color is a hue (whole degrees) and a chroma (0.02–0.18, in
+hundredths) made the same way, so it keeps the presets' contrast on either background; one
+stepped back onto a preset's numbers is that preset. Stored in `look.accent` as the preset's
+name or `custom:<hue>:<chroma>`.
 
 **Overlay effects.** Three, each switchable in *Settings*, all on by default (the owner kept
 all three as they are):
@@ -214,14 +218,17 @@ undone (the value reads "A again to confirm"; any other key cancels). Up and dow
 list scrolls to keep the focused row, its ring and its heading in view, and the credits under
 the last row), B or + closes, a tap outside closes, a tap on a row acts as A. Every change
 applies at once and is kept (`look.*`, `home.*`, `art.fetch` in the `launcher` preferences).
-- *Look*: Theme (System, Light, Dark), Accent, Backdrop, Scenes (off: the hero band instead),
+- *Look*: Theme (System, Light, Dark), Accent (left and right step through the presets; A opens
+  the accent picker), Backdrop, Scenes (off: the hero band instead),
   Covers on tiles (off: icons on Home, whatever art is picked), Background gradient, Focus
   glow, Tile depth, Focus pulse (Off, Slow, Normal).
 - *Home*: Clock (System, 12-hour, 24-hour), Battery percent (off: only the fill), Button hints,
   Carousel wraps (off by default: the row stops at its ends), Home key goes to (Favorites, the
   first category's start; or Where you left, which also reopens the last category after a restart).
-- *Art* (only with a SteamGridDB key): Fetch art (off: no lookups without being asked; Art…
-  still searches), Clear all art (its size shown; confirmed; every file, match, scene and
+- *Art*: SteamGridDB key (an action row: A reads the clipboard, takes 32 hex digits only, checks
+  them with one search and keeps them only if SteamGridDB accepts; shows Set, Not set, "Copy your
+  key first", "Checking…", "Not accepted" or "Offline, try again"), Fetch art (off: no lookups
+  without being asked; Art… still searches), Clear all art (its size shown; confirmed; every file, match, scene and
   pick goes, and with Fetch art on it is all looked up afresh).
 - *Apps*: Hidden apps (the count; A opens All apps with them shown), Reset the dock (confirmed;
   back to the utility apps; "Default" when it already is).
@@ -254,8 +261,22 @@ slider row reads "A: let the launcher change it" and A (on the row or the toggle
 page. Nothing is asked for on install. Values are read when it opens, after every change and
 when the launcher comes back to the front. Home and All apps only, not over a game.
 
+**Accent picker.** A on *Accent* turns the settings column into the picker, titled *Accent*: the
+eight presets as 40 dp swatches in two rows of four (the one in use carries a dot in the
+background color), then *Custom* ("Custom (in use)" while it is) with two slider rows, *Hue*
+and *Intensity*, each a track painted with the colors it leads to at the theme's lightness and
+a ring in the accent where it sits. Moving over a swatch wears it; left and right on Hue (5°)
+or Intensity (0.01) make a custom color from the one shown (from White: chroma 0.12). Every
+change applies at once, so the ring, the glow and the Accent dot show it live. A or B goes back
+to the list, + closes the settings. Taps: a swatch picks it, a track sets the slider there.
+
 **Motion.** Short and springy, never decorative: focus scale on a spring, the row and grid
-scroll animated to the focused item, All apps slides 1/8 of the screen and fades. Opening an
+scroll animated to the focused item. Everything that comes and goes (All apps, the categories
+layer, the options sheet, the quick panel, the settings) uses one timing, `Transit`: in over
+240 ms decelerating, out over 180 ms accelerating (then stretched by Android's duration scale;
+the Portal's is 0.5). All apps rises 1/8 of the screen and fades in, sinks 1/16 and fades out,
+and Home behind it steps back to 96% and returns. The focus ring's pulse eases in and out (a
+sine), lingering at full and at faint. Opening an
 app reveals its window out of the tile (a clip that grows from the tile's rect to the screen).
 With the system's animations off (animator duration scale 0, from Developer options or
 Accessibility → Remove animations) everything snaps: no spring, no slide or fade, no scroll
@@ -321,13 +342,22 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
 - **Art** (`Art.kt`). Lookups, downloads and records (one per package, in their own
   `SharedPreferences`; images in `files/art/`), plain `HttpURLConnection` and `org.json` on the
   IO dispatcher; `rememberArt` decodes a file scaled down to the size it is drawn. The
-  SteamGridDB key comes from `local.properties` through `BuildConfig`; without it there is no
-  Art option.
+  SteamGridDB key is the owner's, from *Settings → Art* (`art.key` in the `launcher`
+  preferences); a debug build falls back to `steamgriddb.apiKey` from `local.properties` through
+  `BuildConfig`, a release build carries none. Without a key nothing is looked up and Art…
+  offers only the gallery and the icon.
 - **Launches.** Every tile reports where it was laid out (`launchesFrom`), keyed by where it sits
   (row, dock, All apps) and the app; opening an app passes that rect to `startMainActivity` as
   the source bounds and as a clip-reveal `ActivityOptions`.
 - **Build.** Gradle wrapper, one module, Compose foundation and ui only (no Material: every
-  surface is ours), no Hilt, no navigation library.
+  surface is ours), no Hilt, no navigation library. A release build is minified and signed with
+  the release key, which lives outside the repo; `local.properties` names it (`release.storeFile`,
+  `release.storePassword`, `release.keyAlias`, `release.keyPassword`). Without those lines the
+  release APK is unsigned.
+
+**The public page.** `README.md` is written for users, not developers: download, install,
+buttons, the SteamGridDB key, quick settings, screenshots (`docs/screenshots/`, taken on the
+Portal with `adb exec-out screencap`, photos as JPEG 90). License MIT (`LICENSE`).
 
 Planned: the motion pass (`TASKS.md` T6.3).
 

@@ -186,8 +186,8 @@ fun AnimatedVisibilityScope.QuickPanel(state: LauncherState) {
         Column(
             Modifier.align(Alignment.TopCenter)
                 .animateEnterExit(
-                    enter = if (motion) slideInVertically { -it / 4 } else EnterTransition.None,
-                    exit = if (motion) slideOutVertically { -it / 4 } else ExitTransition.None,
+                    enter = if (motion) slideInVertically(Transit.enter()) { -it / 4 } else EnterTransition.None,
+                    exit = if (motion) slideOutVertically(Transit.exit()) { -it / 4 } else ExitTransition.None,
                 )
                 .width(QUICK_WIDTH)
                 .background(p.surface, RoundedCornerShape(bottomStart = Space.xl, bottomEnd = Space.xl))

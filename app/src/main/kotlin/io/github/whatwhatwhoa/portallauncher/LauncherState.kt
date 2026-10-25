@@ -48,7 +48,7 @@ class Sheet(val app: AppEntry, val origin: Origin, val options: List<Option>)
 class LauncherState(
     private val catalog: AppCatalog,
     private val prefs: Prefs,
-    /** Null when there is no SteamGridDB key: the Art option is then left out. */
+    /** The app's art; its SteamGridDB lookups wait for a key ([Art.hasKey]), gallery images don't. */
     val art: Art?,
     private val scope: CoroutineScope,
     /** Opens an app; the rect is where its tile is on screen, for the launch animation. */
@@ -63,6 +63,8 @@ class LauncherState(
     private val holdsHome: () -> Boolean,
     /** Brightness, volume and the rest, for the quick panel. */
     val controls: DeviceControls,
+    /** The clipboard's text, for pasting a SteamGridDB key without typing it on the controller. */
+    private val readClipboard: () -> String? = { null },
 ) {
     /** The quick panel (− on Home and All apps), over everything but the settings. */
     var quickOpen by mutableStateOf(false)
@@ -142,13 +144,16 @@ class LauncherState(
     private var settingsIndex by mutableIntStateOf(0)
     val settingsFocus get() = settingsIndex.coerceIn(0, settings.lastIndex)
 
-    /** The panel's rows; the Art group only when there is a SteamGridDB key. */
+    /** The panel's rows; the Art group only when there is art at all. */
     val settings = Setting.entries.filter { art != null || it.group != SettingGroup.Art }
 
     /** Settings → Home, applied live as it changes. */
     var home by mutableStateOf(prefs.home)
         private set
     var fetchArt by mutableStateOf(prefs.fetchArt)
+        private set
+    /** What the SteamGridDB key row says while a key is checked or after it failed; null shows Set or Not set. */
+    var keyNote by mutableStateOf<String?>(null)
         private set
     /** Bumped when the art is cleared, so it is looked up again. */
     var artCleared by mutableIntStateOf(0)
@@ -326,6 +331,7 @@ class LauncherState(
     }
 
     private fun onSettings(action: Action) {
+        if (accentOpen) return onAccent(action)
         val setting = settings[settingsFocus]
         if (action != Action.Open) armed = null
         when (action) {
@@ -335,7 +341,7 @@ class LauncherState(
             Action.Last -> settingsIndex = settings.lastIndex
             Action.Left -> if (!setting.acts) change(setting, -1)
             Action.Right -> if (!setting.acts) change(setting, 1)
-            Action.Open -> if (setting.acts) act(setting) else change(setting, 1)
+            Action.Open -> if (setting == Setting.Accent) openAccent() else if (setting.acts) act(setting) else change(setting, 1)
             Action.Back, Action.Options -> closeSettings()
             else -> Unit
         }
@@ -346,7 +352,83 @@ class LauncherState(
         if (index != settingsFocus) armed = null
         settingsIndex = index
         val setting = settings[settingsFocus]
-        if (setting.acts) act(setting) else change(setting, 1)
+        if (setting == Setting.Accent) openAccent() else if (setting.acts) act(setting) else change(setting, 1)
+    }
+
+    /**
+     * The accent picker, a page of the settings panel (A on Accent): two rows of four presets,
+     * then a custom hue and intensity. Each change applies at once, as the settings do: moving
+     * over a swatch wears it, left and right on a slider make a custom color from the one shown.
+     */
+    var accentOpen by mutableStateOf(false)
+        private set
+    private var accentRowIndex by mutableIntStateOf(0)
+    private var accentColumnIndex by mutableIntStateOf(0)
+    val accentRow get() = accentRowIndex.coerceIn(0, ACCENT_ROWS - 1)
+    val accentColumn get() = accentColumnIndex.coerceIn(0, SWATCH_COLUMNS - 1)
+
+    private fun openAccent() {
+        val preset = look.accent.preset
+        accentRowIndex = preset?.let { it.ordinal / SWATCH_COLUMNS } ?: HUE_ROW
+        accentColumnIndex = preset?.let { it.ordinal % SWATCH_COLUMNS } ?: 0
+        accentOpen = true
+    }
+
+    private fun onAccent(action: Action) {
+        val row = accentRow
+        when (action) {
+            Action.Up -> accentRowIndex = row - 1
+            Action.Down -> accentRowIndex = row + 1
+            Action.Left -> stepAccent(row, -1)
+            Action.Right -> stepAccent(row, 1)
+            Action.Open, Action.Back -> accentOpen = false
+            Action.Options -> closeSettings()
+            else -> Unit
+        }
+        accentRowIndex = accentRow
+        // Landing on a swatch row wears the swatch under focus, as moving along it does.
+        if (accentRow != row && accentRow < SWATCH_ROWS) wearSwatch()
+    }
+
+    private fun stepAccent(row: Int, by: Int) {
+        val accent = look.accent
+        when (row) {
+            HUE_ROW -> setAccent(customAccent(hue = (accent.hue ?: 0f) + by * HUE_STEP, chroma = accent.customChroma))
+            INTENSITY_ROW -> setAccent(customAccent(hue = accent.hue ?: 0f, chroma = accent.customChroma + by * CHROMA_STEP))
+            else -> {
+                accentColumnIndex = accentColumn + by
+                wearSwatch()
+            }
+        }
+    }
+
+    private fun wearSwatch() {
+        AccentPreset.entries.getOrNull(accentRow * SWATCH_COLUMNS + accentColumn)?.let { setAccent(it.accent) }
+    }
+
+    fun tapSwatch(preset: AccentPreset) {
+        accentRowIndex = preset.ordinal / SWATCH_COLUMNS
+        accentColumnIndex = preset.ordinal % SWATCH_COLUMNS
+        setAccent(preset.accent)
+    }
+
+    /** A tap on the hue or intensity track sets it there. */
+    fun tapAccentSlider(row: Int, fraction: Float) {
+        accentRowIndex = row
+        val accent = look.accent
+        val f = fraction.coerceIn(0f, 1f)
+        setAccent(
+            if (row == HUE_ROW) {
+                customAccent(hue = f * 360f, chroma = accent.customChroma)
+            } else {
+                customAccent(hue = accent.hue ?: 0f, chroma = Accent.MIN_CHROMA + f * (Accent.MAX_CHROMA - Accent.MIN_CHROMA))
+            },
+        )
+    }
+
+    private fun setAccent(accent: Accent) {
+        look = look.copy(accent = accent)
+        prefs.look = look
     }
 
     private fun change(setting: Setting, by: Int) {
@@ -373,6 +455,7 @@ class LauncherState(
         }
         armed = null
         when (setting) {
+            Setting.ArtKey -> takeKey()
             Setting.ClearArt -> scope.launch {
                 art?.clear()
                 artBytes = art?.bytes()
@@ -401,6 +484,7 @@ class LauncherState(
         closeSheet()
         settingsIndex = 0
         armed = null
+        accentOpen = false
         settingsOpen = true
         refreshSettings()
     }
@@ -413,8 +497,37 @@ class LauncherState(
         scope.launch { artBytes = art?.bytes() }
     }
 
+    /**
+     * The key from the clipboard: copied on SteamGridDB's site (Preferences → API), A here. It is
+     * kept only once SteamGridDB accepts it, and then the art is looked up.
+     */
+    private fun takeKey() {
+        val art = art ?: return
+        val candidate = readClipboard()?.trim().orEmpty()
+        if (!KEY_SHAPE.matches(candidate)) {
+            keyNote = "Copy your key first"
+            return
+        }
+        keyNote = "Checking…"
+        scope.launch {
+            keyNote = try {
+                if (art.accepts(candidate)) {
+                    prefs.artKey = candidate
+                    art.key = candidate
+                    null
+                } else {
+                    "Not accepted"
+                }
+            } catch (e: Exception) {
+                "Offline, try again"
+            }
+        }
+    }
+
     fun closeSettings() {
         settingsOpen = false
+        keyNote = null
+        accentOpen = false
         armed = null
     }
 
@@ -798,5 +911,7 @@ class LauncherState(
         // How long a player takes to start or stop after the media key, before reading it again.
         const val MEDIA_SETTLE = 400L
         val WALLPAPER_TYPES = setOf("jpg", "jpeg", "png", "webp")
+        // SteamGridDB's API keys are 32 hex digits.
+        val KEY_SHAPE = Regex("[0-9a-fA-F]{32}")
     }
 }

@@ -32,15 +32,17 @@ works → `architecture.md` · why → `docs/decisions/` · traps → `gotchas.m
    scaled bitmaps: the reason this project exists is that other launchers look off.
 5. **Commit wording**: "commit" = local only; "commit to github" = commit + push.
 6. **Small diffs.** One task per session unless the owner bundles several.
-7. **Secrets stay in `local.properties`** (gitignored), e.g. `steamgriddb.apiKey`. Never copy a
-   key into code, notes, a commit or a reply; the repo may be made public.
+7. **Secrets stay in `local.properties`** (gitignored), e.g. `steamgriddb.apiKey` and the
+   `release.*` signing lines. Never copy a key or password into code, notes, a commit or a reply;
+   the repo may be made public. The release keystore lives outside the repo (`decisions/M8-release.md`).
 
 ## Commands
 - adb: `C:\Users\Jim\AppData\Local\Android\Sdk\platform-tools\adb.exe` (device `82ee7769`)
 - SDK packages: `...\Sdk\cmdline-tools\latest\bin\android.exe --no-metrics sdk list|install`
   (replaces `sdkmanager`)
 - Build (Bash): `JAVA_HOME="C:/Users/Jim/AppData/Local/Android/jdk-21" ./gradlew assembleDebug lintDebug`
-  → `app/build/outputs/apk/debug/app-debug.apk`
+  → `app/build/outputs/apk/debug/app-debug.apk`; `assembleRelease` → `.../release/app-release.apk`
+  (no art key, signed with the release key; can't be installed over the debug build)
 - Install + run: `adb install -r app/build/outputs/apk/debug/app-debug.apk`, then
   `adb shell am start -n io.github.whatwhatwhoa.portallauncher/.MainActivity`
 - Log: `adb logcat --pid=$(adb shell pidof io.github.whatwhatwhoa.portallauncher)`;

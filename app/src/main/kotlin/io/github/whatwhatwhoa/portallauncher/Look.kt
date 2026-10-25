@@ -1,5 +1,9 @@
 package io.github.whatwhatwhoa.portallauncher
 
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -145,21 +149,62 @@ class Type(private val family: FontFamily, private val scale: Float = 1f) {
 fun TextUnit.asDp(): Dp = with(LocalDensity.current) { this@asDp.toDp() }
 
 /**
- * White is the default (owner's pick): the text color, so near-black in the light theme. The
- * others are a hue and a chroma, made into OKLCH at a lightness fixed per theme, so each reads
- * with the same weight on the light and the dark background: about 11:1 on Black at 0.80, and
- * 3.8–4.4:1 on the light background at 0.55 (0.60 left Mint at 3.1). The owner keeps their
- * favorites from this first set (`decisions/M6-settings.md`).
+ * The eight accents offered (owner, 2026-10-25: "a minimal 8"), in hue order. White is the
+ * default (owner's pick): the text color, so near-black in the light theme. The others are a hue
+ * and a chroma, made into OKLCH at a lightness fixed per theme, so each reads with the same
+ * weight on the light and the dark background: about 11:1 on Black at 0.80, and 3.8–4.4:1 on the
+ * light background at 0.55 (0.60 left Mint at 3.1). Muted chromas, so none shouts.
  */
-enum class Accent(val label: String, val hue: Float?, val chroma: Float = 0f) {
+enum class AccentPreset(val label: String, val hue: Float?, val chroma: Float = 0f) {
     White("White", null),
-    IceBlue("Ice blue", 235f, 0.08f),
-    Mint("Mint", 165f, 0.11f),
-    Amber("Amber", 75f, 0.14f),
     Coral("Coral", 28f, 0.15f),
-    Lavender("Lavender", 295f, 0.12f);
+    Amber("Amber", 75f, 0.14f),
+    Lime("Lime", 125f, 0.13f),
+    Mint("Mint", 165f, 0.11f),
+    IceBlue("Ice blue", 235f, 0.08f),
+    Lavender("Lavender", 295f, 0.12f),
+    Rose("Rose", 350f, 0.12f);
 
-    fun on(dark: Boolean) = hue?.let { oklch(if (dark) 0.80f else 0.55f, chroma, it) } ?: text(dark)
+    val accent get() = Accent(hue, chroma)
+}
+
+/**
+ * The accent in use: a preset, or a custom hue and chroma from the picker, made the same way so
+ * a custom color keeps the presets' contrast. Hue in whole degrees, chroma in hundredths, so a
+ * custom color stepped back onto a preset is that preset again.
+ */
+data class Accent(val hue: Float?, val chroma: Float = 0f) {
+    val preset get() = AccentPreset.entries.firstOrNull { it.hue == hue && it.chroma == chroma }
+    val label get() = preset?.label ?: "Custom"
+
+    /** Stored as the preset's name (what was stored before the picker) or `custom:<hue>:<chroma>`. */
+    val id get() = preset?.name ?: "custom:${hue ?: 0f}:$chroma"
+
+    fun on(dark: Boolean) = hue?.let { color(dark, chroma, it) } ?: text(dark)
+
+    /** The next or previous preset; from a custom color, the first or the last. */
+    fun cycled(by: Int): Accent {
+        val all = AccentPreset.entries
+        val i = preset?.ordinal ?: if (by > 0) -1 else all.size
+        return all[Math.floorMod(i + by, all.size)].accent
+    }
+
+    companion object {
+        val White = AccentPreset.White.accent
+        const val MAX_CHROMA = 0.18f
+        const val MIN_CHROMA = 0.02f
+
+        fun color(dark: Boolean, chroma: Float, hue: Float) = oklch(if (dark) 0.80f else 0.55f, chroma, hue)
+
+        fun of(id: String?): Accent? {
+            if (id == null) return null
+            AccentPreset.entries.firstOrNull { it.name == id }?.let { return it.accent }
+            val parts = id.split(':').takeIf { it.size == 3 && it[0] == "custom" } ?: return null
+            val hue = parts[1].toFloatOrNull() ?: return null
+            val chroma = parts[2].toFloatOrNull() ?: return null
+            return Accent(hue, chroma)
+        }
+    }
 }
 
 /** The theme follows Android's dark setting unless the owner fixes it. */
@@ -261,6 +306,19 @@ val LocalType = staticCompositionLocalOf { Type(selawik, FONT_SCALE) }
 val LocalEffects = staticCompositionLocalOf { Effects() }
 val LocalPulse = staticCompositionLocalOf { Pulse.Slow }
 val LocalHome = staticCompositionLocalOf { HomeSettings() }
+
+/**
+ * One timing for everything that comes and goes (All apps, the sheets, the panels, the categories
+ * layer), so the launcher moves as one thing: in decelerating, out a little quicker and
+ * accelerating away, as Material's motion has it. Android's duration scale stretches both (the
+ * Portal runs at 0.5). Focus and the row keep their springs: they follow the stick, not a page.
+ */
+object Transit {
+    const val IN = 240
+    const val OUT = 180
+    fun <T> enter(): FiniteAnimationSpec<T> = tween(IN, easing = LinearOutSlowInEasing)
+    fun <T> exit(): FiniteAnimationSpec<T> = tween(OUT, easing = FastOutLinearInEasing)
+}
 
 /** False while the system's animations are off (animator duration scale 0): everything snaps. */
 val LocalMotion = staticCompositionLocalOf { true }

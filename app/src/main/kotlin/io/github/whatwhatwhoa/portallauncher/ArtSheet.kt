@@ -115,12 +115,15 @@ class ArtPicker(
 
     private val matched get() = (art.record(pkg) as? ArtRecord.Matched)?.match
     private val slots get() = if (matched != null) SLOTS.map { ArtRow.Slot(it) } else emptyList()
+    /** Without a SteamGridDB key the page has only the gallery and the icon. */
+    val hasKey get() = art.hasKey
+    private val searchRows get() = if (hasKey) results.map { ArtRow.Result(it) } + ArtRow.Search else emptyList()
     val rows: List<ArtRow>
-        get() = slots + results.map { ArtRow.Result(it) } + ArtRow.Search + GALLERY.map { ArtRow.Gallery(it) } + ArtRow.UseIcon
+        get() = slots + searchRows + GALLERY.map { ArtRow.Gallery(it) } + ArtRow.UseIcon
     val focus get() = index.coerceIn(0, rows.lastIndex)
 
     init {
-        search()
+        if (hasKey) search()
     }
 
     /** False when B leaves the page. */
@@ -306,6 +309,7 @@ fun ColumnScope.ArtPage(picker: ArtPicker) {
             picker.picking != null -> "Saving…"
             picker.searching -> "Searching…"
             picker.failed != null -> picker.failed!!
+            !picker.hasKey -> "Add a SteamGridDB key in Launcher Settings to search"
             picker.results.isEmpty() -> "No matches for “${picker.query}”"
             else -> "SteamGridDB"
         },

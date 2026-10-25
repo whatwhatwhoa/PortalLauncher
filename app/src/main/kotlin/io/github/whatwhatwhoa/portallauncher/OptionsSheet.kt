@@ -45,8 +45,8 @@ fun AnimatedVisibilityScope.OptionsSheet(state: LauncherState, sheet: Sheet) {
         Column(
             Modifier.align(Alignment.CenterEnd)
                 .animateEnterExit(
-                    enter = if (LocalMotion.current) slideInHorizontally { it / 8 } else EnterTransition.None,
-                    exit = if (LocalMotion.current) slideOutHorizontally { it / 8 } else ExitTransition.None,
+                    enter = if (LocalMotion.current) slideInHorizontally(Transit.enter()) { it / 8 } else EnterTransition.None,
+                    exit = if (LocalMotion.current) slideOutHorizontally(Transit.exit()) { it / 8 } else ExitTransition.None,
                 )
                 .fillMaxHeight()
                 .width(Dimens.sheet)
