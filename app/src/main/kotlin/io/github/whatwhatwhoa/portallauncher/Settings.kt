@@ -57,6 +57,7 @@ enum class Setting(val group: SettingGroup, val label: String, val acts: Boolean
     Gradient(SettingGroup.Look, "Background gradient"),
     Glow(SettingGroup.Look, "Focus glow"),
     Depth(SettingGroup.Look, "Tile depth"),
+    Reflection(SettingGroup.Look, "Hero reflection"),
     Pulse(SettingGroup.Look, "Focus pulse"),
     Clock(SettingGroup.Home, "Clock"),
     BatteryPercent(SettingGroup.Home, "Battery percent"),
@@ -85,6 +86,7 @@ fun LookSettings.step(setting: Setting, by: Int, backdrops: List<Backdrop>): Loo
     Setting.Gradient -> copy(effects = effects.copy(gradient = !effects.gradient))
     Setting.Glow -> copy(effects = effects.copy(glow = !effects.glow))
     Setting.Depth -> copy(effects = effects.copy(depth = !effects.depth))
+    Setting.Reflection -> copy(effects = effects.copy(reflection = !effects.reflection))
     Setting.Pulse -> copy(pulse = pulse.cycled(by))
     else -> this
 }
@@ -116,6 +118,7 @@ private fun LauncherState.shown(setting: Setting): String {
         Setting.Gradient -> onOff(look.effects.gradient)
         Setting.Glow -> onOff(look.effects.glow)
         Setting.Depth -> onOff(look.effects.depth)
+        Setting.Reflection -> onOff(look.effects.reflection)
         Setting.Pulse -> look.pulse.label
         Setting.Clock -> home.clock.label
         Setting.BatteryPercent -> onOff(home.batteryPercent)

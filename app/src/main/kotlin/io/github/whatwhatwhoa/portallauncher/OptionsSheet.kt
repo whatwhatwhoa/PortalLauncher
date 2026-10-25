@@ -77,8 +77,8 @@ fun AnimatedVisibilityScope.OptionsSheet(state: LauncherState, sheet: Sheet) {
                 Spacer(Modifier.height(Space.xl))
                 if (state.choosingCategory) {
                     val current = state.categoryOf(sheet.app)
-                    Rows(state, Category.movable.size, corner) { i ->
-                        Choice(Category.movable[i].label, picked = Category.movable[i] == current)
+                    Rows(state, Category.places.size, corner) { i ->
+                        Choice(Category.places[i].placeLabel, picked = Category.places[i] == current)
                     }
                 } else {
                     Rows(state, sheet.options.size, corner) { i ->

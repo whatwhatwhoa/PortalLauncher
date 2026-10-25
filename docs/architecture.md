@@ -59,7 +59,12 @@ second input, never the only one.
    width; it crossfades in 250 ms as focus moves (the old one stays while the next decodes) and
    stays on the row's app while the dock has focus. A vignette fades its alpha, so it melts into
    whatever backdrop is behind it: fully at the bottom, 85% at the left edge (under the name),
-   50% along the top and the right. No hero: the plain background. An app with a **scene** (a
+   50% along the top and the right. Under it lies the hero's **reflection** (an effect): the same
+   crop mirrored about a line at 80% of the band, inside the band's fade so the two melt
+   together, blurred 3 dp across and 10 dp down, darkened to about 40% and cooled toward blue (light themes:
+   only desaturated), at 55% fading out by 400 dp, behind the carousel. It sways sideways in a
+   slow 9 s ripple that grows away from the line (an Android 13 runtime shader; still with
+   animations off). No hero: the plain background. An app with a **scene** (a
    1920×1080 picture, *Art*) shows that over the whole of Home instead, 1:1, under a heavy alpha
    vignette: brightest right of center above the carousel, near gone at the left under the name
    and along the bottom under the dock and hints; it crossfades like the hero.
@@ -81,7 +86,9 @@ second input, never the only one.
    the row by touch moves focus a slot per tile width.
 4. *Bottom row*, 24 dp from the bottom, everything bottom-aligned. In the middle of the screen
    the dock: round 56 dp buttons, 24 dp apart: All apps first, then up to six apps the owner
-   picks (+ → Add to dock), in their order, then a gear that opens Launcher Settings. Until the
+   picks (+ → Add to dock), in their order, then Launcher Settings: the launcher's own icon with
+   a small gear on a background-colored disc over its lower right, so it isn't one more plain
+   gear beside Android's Settings. Until the
    first change it shows the utility apps (Settings, Files, Play Store, default browser,
    whichever exist); the dock is for utilities (mail, messages), covers stay on Home. The focused button's name
    shows 12 dp above it in caption type. On the right the live button hints, stacked 4 dp
@@ -96,10 +103,15 @@ second input, never the only one.
    go; only a dock too wide to clear them would move left.
 
 **Categories.** Home shows one category at a time: Favorites (the owner's list, in their
-order), Games, Entertainment, Social, Utilities (the rest), each but Favorites alphabetical;
-an empty one doesn't show. An app starts where its own manifest puts it (game → Games, audio and
-video → Entertainment, social → Social, anything else or nothing → Utilities); + → *Category…*
-moves it, stored as a move only, so moving it back forgets it. An app can be a favorite and in
+order), Games, Entertainment, Social, Utilities, each but Favorites alphabetical; an empty one
+doesn't show. An app starts where a built-in table of well-known packages puts it (emulators,
+frontends, stores and remote play → Games; video, music and books → Entertainment; chat →
+Social; browsers, system apps and tools → Utilities), else where its own manifest does (game →
+Games, audio and video → Entertainment, social → Social); anything else starts in **All apps
+only**, off Home, so Home holds only what can be placed with confidence. That holds for the
+apps there when the launcher first sorted them (a time kept in the preferences); an app first
+installed later always starts in All apps only, so a new install never changes Home by itself. + → *Category…* moves it, also to All apps
+only, stored as a move only, so moving it back to its start forgets it. An app can be a favorite and in
 a category at once. **B on Home opens the categories layer**: the names stacked on the content
 margin, vertically centered, in heading type, the focused one in the text color and the rest
 muted (a 150 ms fade as focus moves). Behind it Home zooms out: its art and row at 18% opacity, drawn at 0.94, showing the
@@ -122,7 +134,8 @@ brings them back faded to 40% until it is turned off or the launcher restarts.
 options as 48 dp rows (the focused row filled with the rule color and ringed); no hints (A and B
 are known). Options depend on where it was opened: Move (favorites on the Favorites row, and
 the dock), Favorite or Unfavorite (not from the dock), Add to or Remove from dock, Category…
-(a page of the four categories, the app's own dotted; A moves it and closes, B goes back), Hide
+(a page of the four categories and All apps only, the app's own dotted; A moves it and closes,
+B goes back), Hide
 or Unhide (not from the dock), Art…,
 App info, Uninstall (not for system apps; the system asks to confirm), Show or Hide hidden apps (All
 apps only), and last, always, *Launcher settings…* (*Settings*). Hiding an app also
@@ -211,7 +224,7 @@ all three as they are):
   All apps tiles.
 
 **Settings.** One panel, *Launcher Settings*, from + → *Launcher settings…*, the dock's last
-button (a gear), or the gear beside Portal in Android's Default apps → Home app: the options sheet's 360 dp column at the right,
+button, or the gear beside Portal in Android's Default apps → Home app: the options sheet's 360 dp column at the right,
 over the screen *undimmed* so a change is judged live against Home. The title, then each group
 under a muted caption heading, its rows 48 dp: the name left, the value right (the accent with
 a swatch); the focused row is filled and ringed. Two kinds of row: a *value* row shows its
@@ -224,7 +237,7 @@ applies at once and is kept (`look.*`, `home.*`, `art.fetch` in the `launcher` p
 - *Look*: Theme (System, Light, Dark), Accent (left and right step through the presets; A opens
   the accent picker), Backdrop, Scenes (off: the hero band instead),
   Covers on tiles (off: icons on Home, whatever art is picked), Background gradient, Focus
-  glow, Tile depth, Focus pulse (Off, Slow, Normal).
+  glow, Tile depth, Hero reflection, Focus pulse (Off, Slow, Normal).
 - *Home*: Clock (System, 12-hour, 24-hour), Battery percent (off: only the fill), Button hints,
   Carousel wraps (off by default: the row stops at its ends), Home key goes to (Favorites, the
   first category's start; or Where you left, which also reopens the last category after a restart).
@@ -317,7 +330,8 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
 - **App catalog** (`AppCatalog.kt`). `LauncherApps` lists the launchable activities of every
   profile on a background thread and pushes add/remove/change callbacks, so the screens update
   without a restart. An `AppEntry` is key (component + user serial), label, component, user,
-  whether it is part of the system image, its seed category and its icon. It also picks the
+  whether it is part of the system image, its seed category, its first install time and its
+  icon. It also picks the
   dock's utility apps and launches through `startMainActivity`.
 - **Input layer** (`Input.kt`). `dispatchKeyEvent` turns gamepad and keyboard keys into
   `Action`s and swallows both edges of a mapped key; only movement repeats when held. The stick

@@ -45,29 +45,32 @@ Also in it, done since the start: M1–M7, B1–B4 (history under *Released*).
 - **F9 Hero reflection** (owner, 2026-10-25): below the hero band, the hero mirrored, blurred
   and darkened, a soft rippling "windy moonlight" reflection; the band's gradient stays.
   `decisions/0.1.0.md` D9.1.
-  - [ ] T9.1 Build it on Home's hero band.
+  - [x] T9.1 Build it on Home's hero band — 2026-10-25: mirrored, blurred, darkened, rippling;
+    a *Hero reflection* switch (D9.1).
 - **F10 Starting categories** (owner, 2026-10-25): a bundled table puts popular apps in their
   usual category on the launcher's first run; apps installed after that go to All apps only, not
   Home, until placed. `decisions/0.1.0.md` D10.1.
-  - [ ] T10.1 Table, first-run cutoff, an All-apps-only place on Category….
+  - [x] T10.1 Table, first-run cutoff, an All-apps-only place on Category… — 2026-10-25: 117
+    packages, cut by first install time (D10.1).
 - **B5** (owner, 2026-10-25): `decisions/0.1.0.md`.
-  - [ ] B5.1 The dock's Launcher Settings button: the launcher's own icon with a small gear badge, not a third plain gear.
+  - [x] B5.1 The dock's Launcher Settings button: the launcher's own icon with a small gear badge, not a third plain gear — 2026-10-25: built as asked.
 
 ## Planned
 
 ### Candidates
 Nothing planned yet: the owner picks a version, a theme and the cards from the feature list.
+- **Github Update**: Able to update via Github
+- **Long press home button to lock screen**: Allow long press home button to lock screen. When single click, a hint comes up and displays for 0.5 or so seconds
+- **F12 Renaming or adding categories** (2026-10-25): the fixed five first (`decisions/M5-categories.md`).
 
 ## Feature list
 
 ### Big
 - **F11 Recently played** (2026-10-25): recently played ordering (perhaps as a category).
-- **F12 Renaming or adding categories** (2026-10-25): the fixed five first (`decisions/M5-categories.md`).
 - **F13 Notification shade button** (2026-10-25): a dock button that opens the notification shade directly (needs an accessibility service or a hidden API; the swipe works meanwhile).
 - **F14 Monochrome icons** (2026-10-25): a monochrome icon style from Android 13's themed-icon layer (often vector).
 
 ### Small
-- **F15 Tile reflections** (2026-10-25): tile reflections back on the carousel (dropped 2026-10-25, never committed; how it was built: `decisions/M4-art.md`).
 - **F16 Search on Y** (2026-10-25): search on Y.
 - **F17 Work-profile badges** (2026-10-25): work-profile badges on tiles.
 

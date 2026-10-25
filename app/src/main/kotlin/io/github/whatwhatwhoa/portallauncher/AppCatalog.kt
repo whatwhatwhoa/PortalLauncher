@@ -37,8 +37,10 @@ class AppEntry(
     val user: UserHandle,
     /** Part of the system image: it can't be uninstalled, only its updates. */
     val system: Boolean,
-    /** The category the app's own manifest puts it in; the owner's override wins (LauncherState). */
-    val seed: Category,
+    /** Where the app starts ([seedCategory]), null for All apps only; the owner's move wins (LauncherState). */
+    val seed: Category?,
+    /** When the app was first installed: one installed after the launcher's first run starts off Home. */
+    val installed: Long,
     private val icon: Drawable,
 ) {
     /**
@@ -131,7 +133,8 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
                     info.componentName,
                     user,
                     system = info.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0,
-                    seed = seedCategory(info.applicationInfo.category),
+                    seed = seedCategory(info.componentName.packageName, info.applicationInfo.category),
+                    installed = info.firstInstallTime,
                     icon = loadIcon(info),
                 )
             }
@@ -172,13 +175,28 @@ class Prefs(context: Context) {
         get() = sp.getString("dock", null)?.split('\n')?.filter { it.isNotEmpty() }
         set(value) = sp.edit { if (value == null) remove("dock") else putString("dock", value.joinToString("\n")) }
 
-    /** The owner's category moves only, one "key<TAB>category" per line, so new installs sort themselves. */
-    var categories: Map<String, Category>
+    /**
+     * The owner's category moves only, one "key<TAB>category" per line; a null category (stored
+     * as [ALL_APPS_ONLY]) keeps the app off Home.
+     */
+    var categories: Map<String, Category?>
         get() = sp.getString("categories", "").orEmpty().split('\n').mapNotNull { line ->
             val (key, name) = line.split('\t').takeIf { it.size == 2 } ?: return@mapNotNull null
+            if (name == ALL_APPS_ONLY) return@mapNotNull key to null
             Category.entries.firstOrNull { it.name == name }?.let { key to it }
         }.toMap()
-        set(value) = sp.edit { putString("categories", value.entries.joinToString("\n") { "${it.key}\t${it.value.name}" }) }
+        set(value) = sp.edit {
+            putString("categories", value.entries.joinToString("\n") { "${it.key}\t${it.value?.name ?: ALL_APPS_ONLY}" })
+        }
+
+    /**
+     * When the launcher first sorted the apps into categories. Apps installed before then start in
+     * their category; ones installed after start in All apps only (owner, 2026-10-25), so a new
+     * install never changes Home by itself. Set on the first read.
+     */
+    val sortedAt: Long
+        get() = sp.getLong("apps.sortedAt", 0L).takeIf { it > 0 }
+            ?: System.currentTimeMillis().also { now -> sp.edit { putLong("apps.sortedAt", now) } }
 
     var askedForHome: Boolean
         get() = sp.getBoolean("askedForHome", false)
@@ -198,6 +216,7 @@ class Prefs(context: Context) {
                     gradient = sp.getBoolean("look.gradient", d.effects.gradient),
                     glow = sp.getBoolean("look.glow", d.effects.glow),
                     depth = sp.getBoolean("look.depth", d.effects.depth),
+                    reflection = sp.getBoolean("look.reflection", d.effects.reflection),
                 ),
                 pulse = named("look.pulse", d.pulse),
             )
@@ -211,6 +230,7 @@ class Prefs(context: Context) {
             putBoolean("look.gradient", value.effects.gradient)
             putBoolean("look.glow", value.effects.glow)
             putBoolean("look.depth", value.effects.depth)
+            putBoolean("look.reflection", value.effects.reflection)
             putString("look.pulse", value.pulse.name)
         }
 
@@ -248,6 +268,10 @@ class Prefs(context: Context) {
     var artKey: String?
         get() = sp.getString("art.key", null)
         set(value) = sp.edit { putString("art.key", value) }
+
+    private companion object {
+        const val ALL_APPS_ONLY = "-"
+    }
 
     private inline fun <reified E : Enum<E>> named(key: String, default: E): E =
         sp.getString(key, null)?.let { name -> enumValues<E>().firstOrNull { it.name == name } } ?: default

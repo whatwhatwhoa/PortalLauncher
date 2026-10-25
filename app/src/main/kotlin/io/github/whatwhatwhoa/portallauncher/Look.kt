@@ -214,7 +214,12 @@ enum class Theme(val label: String) { System("System"), Light("Light"), Dark("Da
 enum class Pulse(val label: String, val millis: Int?) { Off("Off", null), Slow("Slow", 1800), Normal("Normal", 900) }
 
 /** The overlay effects, each switchable so the owner can judge it against its absence. */
-data class Effects(val gradient: Boolean = true, val glow: Boolean = true, val depth: Boolean = true)
+data class Effects(
+    val gradient: Boolean = true,
+    val glow: Boolean = true,
+    val depth: Boolean = true,
+    val reflection: Boolean = true,
+)
 
 /** Settings → Look. The defaults are what Home looked like before there were settings, plus the effects. */
 data class LookSettings(

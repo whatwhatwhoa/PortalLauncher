@@ -5,16 +5,18 @@ open, delete what is resolved, never append history (git and `docs/decisions/` h
 
 **State (2026-10-25):** The launcher **runs on the Portal and is its Home app** (Launcher3 still
 installed). The foundation (M1–M8) is built; **`TASKS.md` is now the owner's feature board**,
-and **0.1.0 — First public release** is under *Working on*: T8.2 (run the release APK), the
-VERIFY rounds, and the owner's new asks F9 (hero reflection), F10 (starting categories) and B5
-(the dock's settings icon). The decision files are settled (choice, why, status; the what in
-`architecture.md`). The repo stays private (owner). The owner's look: White, System, Black,
-effects on, Covers on tiles On. No VERIFY walked.
+and **0.1.0 — First public release** is under *Working on*. Built and installed this session,
+not yet seen by the owner: **F9** the hero's reflection under the band, **F10** starting
+categories (new installs go to All apps only), **B5** the dock's settings button as the
+launcher's icon with a gear badge (`decisions/0.1.0.md`). Left in 0.1.0: T8.2 and the VERIFY
+rounds. The decision files are settled. The repo stays private (owner). The owner's look:
+White, System, Black, effects on, Covers on tiles On. No VERIFY walked.
 
 ## Next
 1. The first open card or task under *Working on* (0.1.0), or the owner's explicit ask.
-2. The owner tries *V-artkey*, *V-accent*, *V-transit*, *V-b3*, *V-quick*, *V-settings-more*,
-   *V-b2*; tune on their asks.
+2. The owner tries *V-reflection*, *V-starting*, *V-b5* first (the reflection was never seen
+   running: no scene-less app was focused), then *V-artkey*, *V-accent*, *V-transit*, *V-b3*,
+   *V-quick*, *V-settings-more*, *V-b2*; tune on their asks.
 3. T8.2 before going public: run the release APK once (it can't go over the debug install; see
    `decisions/M8-release.md` *Left*), then the owner flips the repo public and publishes v0.1.0.
 
@@ -24,6 +26,8 @@ effects on, Covers on tiles On. No VERIFY walked.
 - How to test the release APK: a second device, or move the Portal to release builds (that
   means uninstalling the debug one and losing favorites, dock and art once).
 - When to make the repo public.
+- D10.1 *Open* (a)–(c): unknown apps at the first run in Utilities; table apps installed later
+  in All apps only; Chrome now in Utilities.
 - Quick panel: a swipe down from the top by touch too?
 - The VERIFY checks.
 - Q-reboot: after a Portal restart, does it still stay landscape and does the rotation app work?
@@ -37,7 +41,8 @@ effects on, Covers on tiles On. No VERIFY walked.
   and are signed from a keystore outside the repo; the release APK builds but has never run.
 - This session's docs: the switch to the feature board, then the settle pass (each a docs-only
   commit; their trees are in the session's scratchpad `trees.txt`).
-- This session's code: (the main session fills this in).
+- This session's code: F9, F10, B5.1 and this session's notes on them (`0.1.0.md`, VERIFY,
+  ticks); builds and lints clean.
 
 ## Watch out (this week only)
 - IDs since the board: new cards F18 on (tasks T<n>.k, decisions D<n>.k), owner batches B6 next;

@@ -3,6 +3,7 @@ package io.github.whatwhatwhoa.portallauncher
 import android.graphics.BlurMaskFilter
 import android.graphics.Paint
 import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.Drawable
 import android.text.format.DateFormat
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.EaseInOutSine
@@ -80,6 +81,19 @@ import kotlin.math.roundToInt
 @Composable
 fun AppIcon(entry: AppEntry, shape: Shape, modifier: Modifier = Modifier) {
     val icon = remember(entry) { entry.newIcon() }
+    IconCanvas(icon, shape, modifier)
+}
+
+/** This launcher's own icon, drawn the same way as any app's. */
+@Composable
+fun OwnIcon(shape: Shape, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val icon = remember { context.packageManager.getApplicationIcon(context.packageName) }
+    IconCanvas(icon, shape, modifier)
+}
+
+@Composable
+private fun IconCanvas(icon: Drawable, shape: Shape, modifier: Modifier) {
     val surface = LocalPalette.current.surface
     Canvas(modifier.clip(shape)) {
         val w = size.width.roundToInt()

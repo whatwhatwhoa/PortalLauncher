@@ -2,11 +2,17 @@ package io.github.whatwhatwhoa.portallauncher
 
 import android.graphics.Paint
 import android.graphics.RadialGradient
+import android.graphics.RuntimeShader
 import android.graphics.Shader
+import android.os.Build
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -18,6 +24,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,7 +55,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
@@ -209,16 +219,117 @@ private fun Hero(art: Art?, app: AppEntry?, scenes: Boolean) {
             when {
                 it == null -> Unit
                 it.full -> Image(it.image, null, Modifier.fillMaxSize().sceneVignette(), contentScale = ContentScale.Crop)
-                else -> Image(
-                    it.image,
-                    null,
-                    Modifier.fillMaxWidth().height(Dimens.band).vignette(),
-                    contentScale = ContentScale.Crop,
-                )
+                else -> Box(Modifier.fillMaxSize()) {
+                    if (LocalEffects.current.reflection) Reflection(it.image)
+                    Image(
+                        it.image,
+                        null,
+                        Modifier.fillMaxWidth().height(Dimens.band).vignette(),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
             }
         }
     }
 }
+
+/**
+ * The hero mirrored below the band like moonlight on water (owner's idea): flipped about a line
+ * in the band's fading lower part, so the two melt into each other instead of meeting at an
+ * edge; darkened and a little cooled, blurred more down than across so it streaks like a
+ * reflection, rippling slowly sideways, and gone before the dock. It sits behind the carousel
+ * and fills the space around it with the game's colors. The ripple needs Android 13's runtime
+ * shaders; before that, or with animations off, the reflection is still.
+ */
+@Composable
+private fun Reflection(image: ImageBitmap) {
+    val dark = LocalPalette.current.dark
+    val ripple = remember { if (Build.VERSION.SDK_INT >= 33) RuntimeShader(RIPPLE_SHADER) else null }
+    val phase = if (ripple != null && LocalMotion.current) {
+        rememberInfiniteTransition(label = "ripple").animateFloat(
+            0f,
+            TWO_PI,
+            infiniteRepeatable(tween(RIPPLE_PERIOD, easing = LinearEasing)),
+            label = "phase",
+        )
+    } else {
+        null
+    }
+    // Light pages get no darkening: a dark smudge on a light page reads as dirt, not water.
+    val filter = remember(dark) {
+        val tone = ColorMatrix().apply { setToSaturation(REFLECT_SATURATION) }
+        // Darkened twice as far as the first build, which the owner found too bright.
+        if (dark) tone.timesAssign(ColorMatrix().apply { setToScale(0.38f, 0.41f, 0.5f, 1f) })
+        ColorFilter.colorMatrix(tone)
+    }
+    Image(
+        image,
+        null,
+        Modifier.offset(y = Dimens.band * REFLECT_AXIS).fillMaxWidth().height(Dimens.band)
+            .reflectionFade()
+            .graphicsLayer {
+                scaleY = -1f
+                val blur = android.graphics.RenderEffect.createBlurEffect(
+                    REFLECT_BLUR_X.toPx(),
+                    REFLECT_BLUR_Y.toPx(),
+                    Shader.TileMode.CLAMP,
+                )
+                // Reading the phase here redraws only this layer each frame, not Home.
+                val effect = if (ripple != null && Build.VERSION.SDK_INT >= 33) {
+                    ripple.setFloatUniform("size", size.width, size.height)
+                    ripple.setFloatUniform("phase", phase?.value ?: 0f)
+                    ripple.setFloatUniform("amp", RIPPLE_AMP.toPx())
+                    android.graphics.RenderEffect.createChainEffect(
+                        blur,
+                        android.graphics.RenderEffect.createRuntimeShaderEffect(ripple, "image"),
+                    )
+                } else {
+                    blur
+                }
+                renderEffect = effect.asComposeRenderEffect()
+            },
+        contentScale = ContentScale.Crop,
+        colorFilter = filter,
+    )
+}
+
+/** Strongest at the mirror line, gone by two thirds of the way down; the band's side fades too. */
+private fun Modifier.reflectionFade() = graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }.drawWithContent {
+    drawContent()
+    val keep = Color.Black
+    drawRect(
+        Brush.verticalGradient(0f to keep.copy(alpha = REFLECT_ALPHA), 0.3f to keep.copy(alpha = REFLECT_ALPHA * 0.5f), 0.68f to keep.copy(alpha = 0f)),
+        blendMode = BlendMode.DstIn,
+    )
+    drawRect(
+        Brush.horizontalGradient(0f to keep.copy(alpha = 0.15f), 0.5f to keep, 0.75f to keep, 1f to keep.copy(alpha = 0.5f)),
+        blendMode = BlendMode.DstIn,
+    )
+}
+
+// Two waves whose speeds are whole multiples of one period, so the loop has no seam; the sway
+// grows away from the mirror line (the layer is flipped, so the line is its local bottom). The x is
+// clamped so the sway never samples past the picture's sides.
+private const val RIPPLE_SHADER = """
+uniform shader image;
+uniform float2 size;
+uniform float phase;
+uniform float amp;
+half4 main(float2 p) {
+    float depth = 1.0 - clamp(p.y / size.y, 0.0, 1.0);
+    float wave = 0.65 * sin(p.y * 0.045 + phase) + 0.35 * sin(p.y * 0.13 - 2.0 * phase + p.x * 0.004);
+    float x = clamp(p.x + wave * amp * (0.2 + depth), 0.0, size.x - 1.0);
+    return image.eval(float2(x, p.y));
+}
+"""
+private const val TWO_PI = 6.2831855f
+private const val RIPPLE_PERIOD = 9000
+private val RIPPLE_AMP = 6.dp
+private const val REFLECT_AXIS = 0.8f
+private const val REFLECT_ALPHA = 0.55f
+private const val REFLECT_SATURATION = 0.75f
+private val REFLECT_BLUR_X = 3.dp
+private val REFLECT_BLUR_Y = 10.dp
 
 private data class Shown(val image: ImageBitmap, val full: Boolean)
 
@@ -498,11 +609,29 @@ private fun Dock(state: LauncherState) {
             lifted = false,
             onClick = { state.tapDock(state.dockSettings) },
             onHold = null,
+            badge = { SettingsBadge(Modifier.align(Alignment.BottomEnd)) },
         ) {
-            Symbol(R.drawable.ic_sym_settings, LocalPalette.current.text)
+            // Our own icon, so it reads as this launcher's settings beside Android's gear (owner).
+            OwnIcon(CircleShape, Modifier.size(Dimens.dockButton))
         }
     }
 }
+
+/** A small gear on a disc of the background color, overlapping the button's lower right. */
+@Composable
+private fun SettingsBadge(modifier: Modifier) {
+    val p = LocalPalette.current
+    Box(
+        modifier.offset(x = BADGE_OUT, y = BADGE_OUT).size(BADGE).clip(CircleShape).background(p.background),
+        contentAlignment = Alignment.Center,
+    ) {
+        Symbol(R.drawable.ic_sym_settings, p.text, Modifier.size(BADGE_GEAR))
+    }
+}
+
+private val BADGE = 24.dp
+private val BADGE_GEAR = 18.dp
+private val BADGE_OUT = 4.dp
 
 @Composable
 private fun DockButton(
@@ -511,6 +640,7 @@ private fun DockButton(
     lifted: Boolean,
     onClick: () -> Unit,
     onHold: (() -> Unit)?,
+    badge: (@Composable BoxScope.() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
     val p = LocalPalette.current
@@ -535,5 +665,6 @@ private fun DockButton(
                 .combinedClickable(interactionSource = null, indication = null, onLongClick = onHold, onClick = onClick),
             contentAlignment = Alignment.Center,
         ) { content() }
+        badge?.invoke(this)
     }
 }

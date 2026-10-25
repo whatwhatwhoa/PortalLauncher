@@ -33,3 +33,6 @@ since 2026-10-25); a big card's file is `F<n>-<slug>.md`, a release's small ones
 - `M8-release.md` (2026-10-25) — the public page: README for users, screenshots, MIT; the
   SteamGridDB key moved to Launcher Settings (clipboard, checked) so release APKs carry none;
   release signing outside the repo; what is left before going public.
+- `0.1.0.md` (2026-10-25) — the first release's small cards: the hero reflection (D9.1: mirror
+  line inside the band's fade, streaky blur, slow ripple, a switch); starting categories (D10.1:
+  the table, first install time as the cutoff, All apps only); the dock's settings icon (B5.1).

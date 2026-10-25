@@ -194,8 +194,9 @@ All three are on; + → Launcher settings… switches each off and on to compare
 - [ ] Animations off: all of it snaps (then put the duration scale back to 0.5).
 
 ## V-b3 (built 2026-10-25)
-- [ ] The dock ends with a gear; focused it reads "Launcher settings", A opens the panel, B
-      closes it and focus is still on the gear. + on the gear does nothing (no hint either).
+- [ ] The dock ends with Launcher Settings (since B5.1 the launcher's icon with a gear badge);
+      focused it reads "Launcher settings", A opens the panel, B closes it and focus is still on
+      it. + on it does nothing (no hint either).
 - [ ] − opens the quick panel: a sun and a speaker before the sliders, then two rows of round
       icon buttons, crisp; the line under them names the focused one ("Wi-Fi", …).
 - [ ] Play / pause shows a pause icon while music plays; Auto brightness and Do not disturb fill
@@ -211,3 +212,24 @@ All three are on; + → Launcher settings… switches each off and on to compare
       round again; the dock focused, it stops and is muted.
 - [ ] NTE: + → Art… → Use the app's icon, then pick NTE's game again: cover, hero **and scene**
       come back (Covers on tiles must be On to see the cover on the Home tile).
+
+## V-reflection (F9, built 2026-10-25)
+- [ ] Focus an app with a hero but no scene (GameNative, or any game with Scenes off): under the
+      band its picture lies mirrored, dark and blurred, behind the carousel, gone before the
+      dock; no line where band and reflection meet.
+- [ ] It sways slowly sideways, like light on water; calm, not wobbly. Too strong, too weak?
+- [ ] Moving along the row, it crossfades with the hero; an app with a scene shows no reflection.
+- [ ] Settings → Look → *Hero reflection* off: only the band; on again: back.
+- [ ] Light theme: the reflection is faint, not a dark smudge. Animations off: it is still.
+
+## V-starting (F10, built 2026-10-25)
+- [ ] After this build, Home's categories hold the same apps as before, except Chrome (now in
+      Utilities, so Social may be gone if it held only Chrome).
+- [ ] Install any app (from the Play Store): it shows in All apps, not on Home.
+- [ ] In All apps, + → Category… on it: five rows, *All apps only* dotted; pick Games: it is on
+      Home under Games. Category… again → *All apps only*: off Home again.
+- [ ] Update an app that is on Home: it stays where it was.
+
+## V-b5 (B5.1, built 2026-10-25)
+- [ ] The dock's last button is the launcher's own icon (three tiles, the middle one ringed) with
+      a small gear on a dark disc at its lower right; crisp, the badge not clipped.

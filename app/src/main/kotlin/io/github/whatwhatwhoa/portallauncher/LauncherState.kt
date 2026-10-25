@@ -132,6 +132,7 @@ class LauncherState(
     private var hidden by mutableStateOf(prefs.hidden)
     private var dockKeys by mutableStateOf(prefs.dock)
     private var categoryMoves by mutableStateOf(prefs.categories)
+    private val sortedAt = prefs.sortedAt
     var showHidden by mutableStateOf(false)
         private set
 
@@ -207,8 +208,12 @@ class LauncherState(
         dockKeys?.mapNotNull { byKey[it] } ?: catalog.dockApps(catalog.apps)
     }
 
-    /** The owner's move wins over the app's own category. */
-    fun categoryOf(app: AppEntry) = categoryMoves[app.key] ?: app.seed
+    /** The owner's move wins over where the app starts; null is All apps only, not on Home. */
+    fun categoryOf(app: AppEntry): Category? =
+        if (app.key in categoryMoves) categoryMoves[app.key] else startOf(app)
+
+    /** The app's seed if it was there when the launcher first sorted the apps, else All apps only. */
+    private fun startOf(app: AppEntry): Category? = app.seed?.takeIf { app.installed <= sortedAt }
 
     /** Favorites in the owner's order; any other category is its visible apps, alphabetical. */
     private fun appsIn(category: Category): List<AppEntry> =
@@ -238,7 +243,7 @@ class LauncherState(
     val drawerFocus get() = drawerIndex.coerceIn(0, maxOf(0, drawer.lastIndex))
     val sheetFocus get() = sheetIndex.coerceIn(0, maxOf(0, sheetRows - 1))
     val categoryFocus get() = categoryIndex.coerceIn(0, maxOf(0, categories.lastIndex))
-    private val sheetRows get() = if (choosingCategory) Category.movable.size else sheet?.options?.size ?: 0
+    private val sheetRows get() = if (choosingCategory) Category.places.size else sheet?.options?.size ?: 0
 
     fun isFavorite(entry: AppEntry) = entry.key in favorites
     fun isHidden(entry: AppEntry) = entry.key in hidden
@@ -790,7 +795,7 @@ class LauncherState(
         }
         if (option == Option.ChangeCategory) {
             choosingCategory = true
-            sheetIndex = Category.movable.indexOf(categoryOf(app)).coerceAtLeast(0)
+            sheetIndex = Category.places.indexOf(categoryOf(app)).coerceAtLeast(0)
             return
         }
         closeSheet()
@@ -816,14 +821,15 @@ class LauncherState(
     }
 
     /**
-     * Moves the sheet's app to a category and closes the sheet. Only moves are stored, so moving
-     * an app back to its own category drops the entry. If it leaves the row on show, the row's
-     * focus is clamped onto its neighbor.
+     * Moves the sheet's app to a category, or to All apps only, and closes the sheet. Only moves
+     * are stored, so moving an app back to where it started drops the entry. If it leaves the row
+     * on show, the row's focus is clamped onto its neighbor.
      */
     private fun chooseCategory(index: Int) {
         val app = sheet?.app ?: return
-        val chosen = Category.movable.getOrNull(index) ?: return
-        val moves = if (chosen == app.seed) categoryMoves - app.key else categoryMoves + (app.key to chosen)
+        if (index !in Category.places.indices) return
+        val chosen = Category.places[index]
+        val moves = if (chosen == startOf(app)) categoryMoves - app.key else categoryMoves + (app.key to chosen)
         categoryMoves = moves
         prefs.categories = moves
         closeSheet()
