@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="background">#FFEBEBEB</color>
+    <!-- AYN's own settings icon is this teal; ours keeps it so the owner still finds it. -->
+    <color name="controller_settings_icon">#FF3F7F84</color>
 </resources>

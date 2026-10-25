@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Controller settings' app icon: the Portal glyph on the teal of AYN's own icon. The glyph's
+     64 units sit in the middle of the 108 dp layer, inside the 66 dp safe circle. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/controller_settings_icon" />
+    <foreground>
+        <inset android:drawable="@drawable/ic_sym_portal" android:inset="20.37%" />
+    </foreground>
+</adaptive-icon>

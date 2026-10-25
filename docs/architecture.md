@@ -1,7 +1,7 @@
 # Architecture
 
 How PortalLauncher works now and where it is going. Present tense, no task IDs; the why behind
-each choice lives in `decisions/`.
+each choice lives in `decisions/`. The build and the Portal itself: `device.md`.
 
 ## Goals
 
@@ -53,7 +53,10 @@ second input, never the only one.
    the text color at 30%, the signal filled from the apex in four steps; no Wi-Fi network
    leaves it dim. The battery is a 40×20 dp rounded body with a small cap, the charge filling
    from the left (accent while charging), the percentage inside in bold caption type, knocked
-   out where it crosses the fill.
+   out where it crosses the fill. While music plays (notification access, as the seek bar), a
+   24 dp bar and title · artist · album at 70% follow the clock, up to the screen's middle;
+   a long one scrolls out under the bar (36 dp/s, 2.5 s pause), its last 48 dp faded. Not while
+   the quick panel or Launcher Settings is open.
 2. *Hero band*: the top 272 dp of the screen, with no edge line. In it, the row's focused app's
    hero at full width, cropped evenly top and bottom (490 of 620 px), decoded at the screen's
    width; it crossfades in 250 ms as focus moves (the old one stays while the next decodes) and
@@ -90,8 +93,8 @@ second input, never the only one.
    picks (+ → Add to dock), in their order, then Launcher Settings: the launcher's own icon with
    a small gear on a background-colored disc over its lower right, so it isn't one more plain
    gear beside Android's Settings. Until the
-   first change it shows the utility apps (Settings, Files, Play Store, default browser,
-   whichever exist); the dock is for utilities (mail, messages), covers stay on Home. The focused button's name
+   first change it shows the utility apps (Settings, Controller settings, Files, Play Store, default
+   browser, whichever exist); the dock is for utilities (mail, messages), covers stay on Home. The focused button's name
    shows 12 dp above it in caption type. On the right the live button hints, stacked 4 dp
    apart and right-aligned, each a 20 dp drawn disc with the button's mark knocked out and an
    8 dp gap to its label in hint type. The mark is the letter, or for the two menu buttons the
@@ -245,24 +248,26 @@ all three as they are):
   light. Dithered. A scene, Hero glow or a wallpaper covers it.
 - *Focus glow*: the accent at 45%, blurred 16 dp outside the ring only, breathing with it.
 - *Tile depth*: in the dark a 1 dp highlight along the top edge (white 22%, gone by the middle);
-  in the light a soft shadow (black 22%, blur 8 dp, 4 dp down). Carousel tiles, dock buttons,
+  in the light a soft shadow (black 22%, blur 8 dp, 4 dp down), outside the tile and its fade
+  layer. Carousel tiles, dock buttons,
   All apps tiles.
 
 **Settings.** One panel, *Launcher Settings*, from + → *Launcher settings…*, the dock's last
-button, or the gear beside Portal in Android's Default apps → Home app: the options sheet's 360 dp column at the right,
-over the screen *undimmed* so a change is judged live against Home. The title, then each group
-under a muted caption heading, its rows 48 dp: the name left, the value right (the accent with
-a swatch); the focused row is filled and ringed. Two kinds of row: a *value* row shows its
-value between two drawn chevrons and left and right change it (wrapping), A steps it on; an
-*action* row has no chevrons and A does its one thing, a second A first for one that can't be
-undone (the value reads "A again to confirm"; any other key cancels). Up and down move (the
-list scrolls to keep the focused row, its ring and its heading in view, and the credits under
-the last row), B or + closes, a tap outside closes, a tap on a row acts as A. Every change
-applies at once and is kept (`look.*`, `home.*`, `art.fetch` in the `launcher` preferences).
+button, or the gear beside Portal in Android's Default apps → Home app: 760 dp (about 70%) at the
+right, over the screen *undimmed* so a change is judged live against Home beside it. As the
+Switch's: the categories down the left, a hairline, the chosen one's rows. It opens on
+the categories at Look; up and down show each page at once, A or right goes into the rows, B
+comes out, B again closes; L1/R1 turn the category from either column, + closes from anywhere,
+so does a tap outside. A row is 48 dp: the name left, the value right (the accent with a
+swatch). A *value* row shows its value between two drawn chevrons and left and right change it
+(wrapping), A steps it on; an *action* row has no chevrons and A does its one thing, a second A
+first for one that can't be undone ("A again to confirm"; any other key cancels). A tap acts as
+A. Every change applies at once and is kept (`look.*`, `home.*`, `art.fetch` in the `launcher`
+preferences).
 - *Look*: Theme (System, Light, Dark), Accent (left and right step through the presets; A opens
-  the accent picker), Backdrop,
-  Covers on tiles (off: icons on Home, whatever art is picked), Background gradient, Focus
-  glow, Tile depth, Hero reflection, Focus pulse (Off, Slow, Normal).
+  the accent picker in the page's place), Backdrop, Covers on tiles (off: icons on Home,
+  whatever art is picked), then the effects: Background gradient, Focus glow, Tile depth, Hero
+  reflection, Focus pulse (Off, Slow, Normal); the page scrolls.
 - *Home*: Clock (System, 12-hour, 24-hour), Battery percent (off: only the fill), Button hints,
   Carousel wraps (off by default: the row stops at its ends), Home key goes to (Favorites, the
   first category's start; or Where you left, which also reopens the last category after a restart),
@@ -279,8 +284,8 @@ applies at once and is kept (`look.*`, `home.*`, `art.fetch` in the `launcher` p
   back to the utility apps; "Default" when it already is).
 - *System*: Home app (Portal or Not set; A opens Android's Default apps), Android settings,
   Updates (an action row; see *Updates* under *Structure*).
-- Under the list, muted: the version, the font and the icons and their licenses, where the art
-  comes from.
+- Under System's rows, muted: the version, the font and the icons and their licenses, where
+  the art comes from.
 
 **Sounds.** Twelve short UI sounds in three families, synthesized by
 `tools/sounds/make_sounds.py` into `assets/sounds/<family>/` (one key, E major pentatonic;
@@ -314,11 +319,11 @@ from the controller (`decisions/M7-quick-settings.md`). A 760 dp panel drops fro
 - Toggles, the same buttons filled in the text color when on: Auto brightness, Do not disturb
   (priority only while on).
 - Shortcuts, the same buttons, to system pages for what a launcher may not change: Wi-Fi,
-  Bluetooth, Battery, AYN settings (a gamepad; its settings activity, no launcher entry),
-  Android settings (a gear).
+  Bluetooth, Battery, Controller settings (AYN's page, by its activity; the Portal glyph, drawn
+  for this launcher), Android settings (a gear).
 - A muted line at the bottom: what the focused control still needs, else its name.
 The icons are Material Symbols (Rounded, filled; Google, Apache 2.0) as vector drawables
-(`res/drawable/ic_sym_*`), the family Android's own panel uses, tinted from the palette.
+(`res/drawable/ic_sym_*`; `ic_sym_portal` is our own), the family Android's own panel uses, tinted from the palette.
 Up and down move between the five rows, left and right along a row, A toggles or opens, B or −
 closes, a tap outside closes. **Grants:** brightness and auto-brightness need Android's *Modify
 system settings* for the launcher, Do not disturb its *Do Not Disturb access*; until granted the
@@ -399,7 +404,9 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
   profile on a background thread and pushes add/remove/change callbacks, so the screens update
   without a restart. An `AppEntry` is key (component + user serial), label, component, user,
   whether it is part of the system image, its seed category, its first install time and its
-  icon. It also picks the
+  icon. `SCREENS` adds settings pages with no launcher icon (AYN's, as *Controller settings*),
+  opened by Settings' action, in All apps only, each with a name and icon of ours (AYN's: the
+  Portal glyph on its teal, `ic_app_controller_settings`). It also picks the
   dock's utility apps and launches through `startMainActivity`.
 - **Input layer** (`Input.kt`). `dispatchKeyEvent` turns gamepad and keyboard keys into
   `Action`s and swallows both edges of a mapped key; only movement repeats when held. The stick
@@ -447,6 +454,18 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
   preferences); a debug build falls back to `steamgriddb.apiKey` from `local.properties` through
   `BuildConfig`, a release build carries none. Without a key nothing is looked up and Art…
   offers only the gallery and the icon.
+- **Setup file** (`Setup.kt`). *Save setup* (Settings → System) writes `Download/Portal
+  setup.json` through MediaStore, over this install's earlier file: the `launcher`, `art`,
+  `picks` and `scenes` preferences as typed JSON (without `art.key`), and the files nothing could
+  fetch again, gallery picks (`files/art/`, a pick stored as a `content:` URI) and wallpapers
+  (`files/backdrops/`), in base64. *Restore setup* (a second A) opens Android's file picker,
+  reads the whole file into `cache/setup/` first and refuses a broken, foreign or newer one
+  ("Not a Portal setup", "Saved by a newer Portal"); then it replaces the four preferences
+  (keeping the current key), empties `files/art/`, copies the files in and restarts the process.
+  `Art.lookUp` fetches the images again for a matched app with neither cover nor hero on disk:
+  a picked or scored URL as is, otherwise SteamGridDB's first one (needs the key), once per
+  start. Android's backup (`res/xml/data_extraction_rules.xml`) carries the same four
+  preferences to the cloud and, in a device-to-device transfer, the art and wallpapers too.
 - **Launches.** Every tile reports where it was laid out (`launchesFrom`), keyed by where it sits
   (row, dock, All apps) and the app; opening an app passes that rect to `startMainActivity` as
   the source bounds and as a clip-reveal `ActivityOptions`.
@@ -459,41 +478,3 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
 **The public page.** `README.md` is written for users, not developers: download, install,
 buttons, the SteamGridDB key, quick settings, screenshots (`docs/screenshots/`, taken on the
 Portal with `adb exec-out screencap`, photos as JPEG 90). License MIT (`LICENSE`).
-
-## Toolchain
-
-- **Language and UI:** Kotlin 2.4.21, Jetpack Compose (BOM 2026.09.00), activity-compose 1.13.0.
-- **Build:** Gradle 9.8.2 (wrapper), Android Gradle Plugin 9.4.1, which compiles Kotlin itself;
-  `compileSdk`/`targetSdk` 37, `minSdk` 31. Application id
-  `io.github.whatwhatwhoa.portallauncher`.
-- **Build types:** `debug` (the owner's daily build, their art key from `local.properties`),
-  `release` (R8-minified, resources shrunk, release-signed, no key: what users get) and
-  `releaseCheck` (`assembleReleaseCheck`: the release build under the package `….check`, so the
-  R8 output runs beside the debug install; it carries the owner's key and is never published).
-  The check build is a second Home app: its first start asks for the Home role (back out), and
-  it is uninstalled after the check.
-- **SDK:** `C:\Users\Jim\AppData\Local\Android\Sdk` (`ANDROID_HOME` set for the user):
-  platform `android-37.0` (Android 17), build-tools 37.0.0, platform-tools 37.0.1,
-  cmdline-tools 23.0. Packages are managed with `cmdline-tools\latest\bin\android.exe sdk`.
-- **Java:** Temurin JDK 21 for Windows ARM64 (native), unpacked at
-  `C:\Users\Jim\AppData\Local\Android\jdk-21`; `JAVA_HOME` must point at it for `gradlew`.
-- **Host:** Windows 11 on ARM (Surface Laptop 7). Google ships only x64 Windows builds of the
-  SDK tools; they run under Windows' x64 emulation. There is no Android emulator on this host:
-  the Portal is the test device, over USB adb. Android Studio is not installed and not needed.
-- **Font:** Selawik's static Regular, Semibold and Bold from Microsoft's GitHub release 1.01, in
-  `res/font/`; its OFL license in `licenses/`.
-
-## The device
-
-AYN Odin 2 Portal (`odin2portal`), Snapdragon 8 Gen 2, 7" OLED 1920×1080, running LineageOS on
-Android 17 (build `CP2A.260605.016`) with AYN's settings app (`org.lineageos.settings.ayn`).
-Portal is its Home app; stock Launcher3 stays installed as the fallback.
-
-- **Natural orientation is landscape** (rotation 0 = 1920×1080); the panel itself is mounted
-  portrait (`ro.surface_flinger.primary_display_orientation=ORIENTATION_90`).
-- **Density 288** (physical 360; LineageOS default 314), so the smallest width is 600 dp and
-  apps and the system use their tablet layouts. Undo: `adb shell wm density 314`.
-- **Rotation is locked to landscape** (`accelerometer_rotation=0`, `user_rotation=0`), rotation
-  suggestions are off, and fixed-to-user-rotation is back to `default` (it was `enabled`). The
-  accelerometer reports gravity 90° off, so the sensor can't drive rotation; portrait comes from
-  apps that ask for it or from a rotation app's tile. See `gotchas.md` *Rotation*.

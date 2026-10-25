@@ -481,10 +481,13 @@ private fun Carousel(state: LauncherState, modifier: Modifier) {
                         .graphicsLayer {
                             scaleX = lift
                             scaleY = lift
-                            this.alpha = alpha
                         }
                         .depth(Dimens.tileRadius)
                         .focusRing(focused, Dimens.tileRadius, steady = lifted)
+                        // The fade in a layer of its own, inside the shadow and the ring: a faded
+                        // layer is drawn offscreen at the tile's size, which cut the light theme's
+                        // shadow off square at the corners (B7.3).
+                        .graphicsLayer { this.alpha = alpha }
                         .combinedClickable(
                             interactionSource = null,
                             indication = null,

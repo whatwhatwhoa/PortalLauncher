@@ -13,12 +13,12 @@ board: `docs/TASKS.md`.
 | Pick or plan work | `docs/TASKS.md`: the first open card or task under *Working on*, or the owner's explicit ask |
 | Reviewing the owner's design input | the files they point at; earlier reviews: `docs/decisions/M1-design.md` |
 | The look, layout, controller feel | `docs/architecture.md` *Goals*, *Look* |
-| Build, SDK, adb, the device | `docs/architecture.md` *Toolchain*, *The device*; `docs/gotchas.md` |
+| Build, SDK, adb, the device | `docs/device.md`; `docs/gotchas.md` |
 | Why something is the way it is | `docs/decisions/INDEX.md`, then the one entry |
 | Hand-testing with the owner | `docs/VERIFY.md` |
 
 **Each fact has one home.** Rules here · state → `HANDOFF.md` · tasks → `TASKS.md` · how it
-works → `architecture.md` · why → `docs/decisions/` · traps → `gotchas.md` · built-not-clicked →
+works → `architecture.md` (build and device: `device.md`) · why → `docs/decisions/` · traps → `gotchas.md` · built-not-clicked →
 `docs/VERIFY.md` · reviews of the owner's design input → `docs/decisions/`. Link, don't copy.
 
 ## Hard rules

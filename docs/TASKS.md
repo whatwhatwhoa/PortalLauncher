@@ -10,9 +10,9 @@ Rules:
 - **Work** on the first open card or task under *Working on*, or the owner's explicit ask; one
   per session unless the owner bundles several.
 - **IDs never change when a card moves.** A new card is **F<n>**, numbered on from the last
-  milestone M8 (F9 first; next free F30), so its tasks are T<n>.1, T<n>.2 … and its decision
+  milestone M8 (F9 first; next free F34), so its tasks are T<n>.1, T<n>.2 … and its decision
   entries D<n>.1 …, clashing with no milestone's. A card that came out of a milestone keeps its
-  task IDs. Owner bug and tweak batches stay **B<n>** (B7 next). A follow-up gets an F number
+  task IDs. Owner bug and tweak batches stay **B<n>** (B9 next). A follow-up gets an F number
   when it is planned.
 - **A card is a line or two**: what, why, a pointer to its spec. A long spec is a decision entry
   marked "planned" (`decisions/F<n>-<slug>.md` for a big feature, `decisions/<version>.md` for
@@ -29,43 +29,21 @@ Rules:
 
 ## Working on
 
-### 0.3.0 — Sounds and effects
-- [x] **F22 Add sounds** (2026-10-25: 12 synthesized sounds, three families, Soft by default, on at
-  Low, silent in Do Not Disturb; `decisions/F22-sounds.md` D22.1–D22.2):
-  Add sounds, use Nintendo switch as the basis. While the switch has playful sounds, ours will a bit more techy/modern. Let me know how to prompt this
-- [x] **F23 Tile setting** (2026-10-25: Up from the first row of Art… selects the preview; its grids
-  show the focused image in place, gallery tile first; `decisions/0.3.0.md` D23.1):
-  For tile setting, instead of going through the menu, you scroll UP, and it'll select the preview,
-  so you can change it based off there. Closer to WYSIWYG.  The larger hero/scene can be set within that submenu instead.
-- [x] **F21 Add back and forward button tiles for quick settings** (2026-10-25: one line at the panel's
-  top, ⏮ ⏯ ⏭ between drawn L1/R1, then title · artist over a seek bar, a faint line, then brightness, where it opens; L1/R1
-  skip from any row; `decisions/0.3.0.md` D21.1):
-  This is for music player. Put it above the brightness, but the default is always brightness. So the normal seek options.
-  When quick setting is engaged, LB and RB controls skips. make sure glyphs are added
-- [x] **F24 Choosing Hero or Scene is either or option** (2026-10-25: per app in Art…, Hero and Scene
-  tabs on L1/R1; the Scenes setting gone; one image and its effects on Home; `decisions/0.3.0.md` D24.1):
-  Right now it is allowing both, with no way to disable one.
-  Instead of calling it Hero, we'll call it Banner or Scene (unless steamdb calls it HERO, then we'll follow steamgrid).
-  You can only set to either one. There is also seems to be some conflict between what gets rendered, make sure we only render one of the options, including effects ontop of that option.
-- [x] **B6** (owner, 2026-10-25): F24's follow-up; `decisions/0.3.0.md` D24.1.
-  - [x] B6.1 (2026-10-25) Without a choice, an app shows SteamGridDB's first hero, a scene only when chosen or with no hero.
-- **F25 Launcher Setting Menu**: Bigger window (maybe even full screen or 70%, with categories and submenus, simliar to switch. for example sounds, look and feel, etc
-- **VERIFY rounds** (owner, 2026-10-25; carried from 0.1.0 and 0.2.0): the milestones' hand checks on the Portal (`VERIFY.md`).
+### 0.4.0 — Stress Test and Prepare for release candidate
+- **F28 Stress Test Script**
+- **F29 Updated GitHub home page**: Updated instructions on must current features
+- **F30 Text on standby screen to unlock**: Only appearings after registering a press, Press same button 4 times to unlock. Disabling helper text also disables this.
+- **F31 Big Font Look**: A setting that makes the big font normal and fits most game titles and less of a metro UI. Doesn't get cutoff, is a bit more opague and less weight.
+- **F32 Change Menu background color**: Currently menu background is black, make it dark gray. Enough to stand out, but subdued to look crisp
+- **F33 Add reorganize dock icon options** Also update the options to when dock is full, the "add to dock" is greyed out with (full)
+- **VERIFY rounds** (owner, 2026-10-25; carried from 0.1.0, 0.2.0 and 0.3.0): the milestones' hand checks on the Portal (`VERIFY.md`).
   - [ ] T2.3 Device session: install, run `docs/VERIFY.md` *V-skeleton*, fix what breaks; the
     owner sets it as Home and goes back to Launcher3 once, to prove the way back.
   - [ ] T5.3 VERIFY round: ghost opacity, type size (`VERIFY.md` *V-categories*).
   - [ ] T7.3 VERIFY round on the device (`VERIFY.md` *V-quick*).
   - [ ] T6.5 VERIFY round on the device (`VERIFY.md` *V-transit*, *V-accent*).
-- **F26 Perserve players setup between updates**: Make sure updates don't the players set up as much as possible
-- **F27 Artist information**: if music is playing, add the arist information inline with the clock. Have a vertical bar to separate it,
-  and scroll it if its long, hidding behind the vertical bar. Like 2:30 PM | ARIST XYZYA SUPER LONG TITLE WOWWww
-  and fade the right tail if its super long. Only allow it to occup left half the screen. Font 70% opacity
 
 ## Planned
-
-### 0.4.0 — Stress Test and Prepare for release candidate
-- **F28 Stress Test Script**
-- **F29 Updated GitHub home page**: Updated instructions on must current features
 
 ### Candidates
 Nothing planned yet: the owner picks a version, a theme and the cards from the feature list.
@@ -95,6 +73,9 @@ One line each, and the milestones before the board. The full task lines:
 `archive/tasks-<version>.md` and `archive/tasks-M1-M7.md`; the why: `decisions/`.
 
 ### Releases
+- **0.3.0** (2026-10-25, Sounds and effects): F22, F23, F24, F21, F25, F26, F27, B6–B8; its VERIFY
+  rounds carried into 0.4.0; no version number or release APK yet. `archive/tasks-0.3.0.md`,
+  `decisions/0.3.0.md`, `F22-sounds.md`, `F25-settings.md`, `F26-setup.md`.
 - **0.2.0** (2026-10-25, Functional and refinement): F20, F19, F12, F18; its VERIFY rounds
   carried into 0.3.0; no version number or release APK yet. `archive/tasks-0.2.0.md`, `decisions/0.2.0.md`.
 - **0.1.0** (2026-10-25, First public release): M8, F9, F10, B5, on top of M1–M7 and B1–B4;

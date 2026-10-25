@@ -2,7 +2,7 @@
 
 The owner's answers to the M1 questions, the build versions picked, and the choices made while
 building the first skeleton (carousel, All apps, dock). How it works now: `architecture.md`
-*Look*, *Structure*, *Toolchain*.
+*Look*, *Structure*; `device.md` *Toolchain*.
 
 Status: accepted 2026-10-25; the skeleton's hand check (*V-skeleton*) is still open.
 

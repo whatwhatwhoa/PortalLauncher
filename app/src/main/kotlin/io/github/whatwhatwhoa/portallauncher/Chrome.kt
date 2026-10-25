@@ -45,14 +45,19 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
@@ -255,7 +260,11 @@ fun Modifier.depth(corner: Dp?): Modifier {
     return drawBehind {
         shadow.maskFilter = shadow.maskFilter ?: BlurMaskFilter(Dimens.shadowBlur.toPx(), BlurMaskFilter.Blur.NORMAL)
         shadow.color = Color.Black.copy(alpha = Dimens.SHADOW_ALPHA).toArgb()
-        drawShape(shadow, corner, grow = 0f, drop = Dimens.shadowDrop.toPx())
+        // Only around the tile, never under it, so a faded tile doesn't show it through.
+        val tile = Path().apply {
+            if (corner == null) addOval(Rect(Offset.Zero, size)) else addRoundRect(RoundRect(size.toRect(), CornerRadius(corner.toPx())))
+        }
+        clipPath(tile, ClipOp.Difference) { drawShape(shadow, corner, grow = 0f, drop = Dimens.shadowDrop.toPx()) }
     }
 }
 

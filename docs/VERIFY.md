@@ -135,8 +135,8 @@ All three are on; + → Launcher settings… switches each off and on to compare
 ## V-settings (built 2026-10-25)
 - [ ] + on any tile: *Launcher settings…* is the last row; A opens *Launcher Settings* at the right, Home not
       dimmed. B or + closes it; Home closes it too.
-- [ ] Up/down move, left/right change the value with chevrons either side; A steps it on. The
-      list scrolls to Focus pulse and back, its ring never cut off.
+- [ ] In a category's rows: up/down move, left/right change the value with chevrons either
+      side; A steps it on.
 - [ ] Each accent recolors ring, glow, name and battery fill at once; Theme Light/Dark
       overrides Android's; Backdrop cycles Black, Dark, Hero glow, then the trial wallpapers.
 - [ ] Covers off: icons on the Home tiles.
@@ -144,9 +144,43 @@ All three are on; + → Launcher settings… switches each off and on to compare
 - [ ] Android Settings → Apps → Default apps → Home app: the gear beside Portal opens the panel.
 - [ ] Restart the launcher (or the Portal): every choice is kept.
 
+## V-b7 (B7, built 2026-10-25)
+- [ ] Launcher Settings → Look: nine rows, Theme down to Focus pulse; going past the eighth
+      scrolls the page; each effect switches (gradient, glow, depth, reflection, pulse).
+- [ ] Light theme, focus on the dock: Home's faded tiles have round shadows at all four
+      corners, no grey square edge; the focused tile too.
+- [ ] All apps lists *Controller settings* (B8) under C; A opens AYN's Gamepad page; Home comes back.
+- [ ] It reaches your dock by + → Add to dock (yours is already your own); Reset the dock would
+      put it after Settings, but resets the rest too.
+
+## V-artist (F27, built 2026-10-25)
+Seen on the Portal (2026-10-25): title · artist · album with YouTube Music playing, a long one
+cut at the middle with its end faded, then scrolling; gone on pause.
+- [ ] A long line waits 2.5 s, then scrolls left and slides under the bar, round again; its
+      right end fades where it is cut. Is the speed (36 dp/s) right?
+- [ ] Skip a track: the line crossfades. Pause: the bar and name fade out.
+- [ ] − opens the quick panel, or + Launcher Settings: the artist is gone while it is open.
+- [ ] Notification access off for Portal: no artist, even while playing (turn it back on).
+
+## V-b8 (B8, built 2026-10-25)
+- [ ] The dock's Controller settings shows the Portal in white on teal, crisp, its name above
+      when focused; the same icon in All apps.
+- [ ] Quick panel (−), the shortcuts row: the Portal glyph, named *Controller settings*.
+
+## V-setup (F26, built 2026-10-25)
+- [ ] Settings → System → *Save setup*: A shows "Saving…", then "In Download". Files (the dock)
+      → Downloads has *Portal setup.json*; a second save replaces it, no "(1)".
+- [ ] *Restore setup*: A asks "A again to confirm"; A opens the file picker; choose the file.
+      The launcher starts again with the same favorites, dock, categories and settings, and the
+      art comes back within a minute (picked heroes and scenes the same as before).
+- [ ] Pick some other file (a photo, any .json): the row says "Not a Portal setup" and nothing
+      changes. B in the picker: nothing changes.
+- [ ] Before moving to a release build (F18): save, uninstall, install the release build,
+      restore, paste the SteamGridDB key again (Settings → Art).
+
 ## V-settings-more (built 2026-10-25)
-- [ ] The list goes on past *Look*: *Home*, *Art*, *Apps*, *System*, each under its heading, and
-      the credits line shows when the last row has focus.
+- [ ] The categories go on past *Look*: *Home*, *Sound*, *Art*, *Apps*, *System*;
+      the credits line closes System's page.
 - [ ] Clock 12-hour / 24-hour changes the corner clock at once; System follows Android again.
 - [ ] Battery percent Off: only the fill. Button hints Off: no hints on Home or All apps.
 - [ ] Carousel wraps On: right on the last tile goes to the first, left on the first to the last.

@@ -36,7 +36,8 @@ Status: accepted 2026-10-25 (B3.1).
   switching them *off*, so the first look has them.
 
 ## The panel (T6.2, 2026-10-25)
-Status: as built 2026-10-25, owner to confirm (*V-settings*).
+Status: as built 2026-10-25, owner to confirm (*V-settings*). The 360 dp column became a 760 dp
+panel in categories with F25 (`F25-settings.md`); undimmed still, for the reason below.
 - **A column over an undimmed Home, not a full-screen page.** The proposal said a full-screen
   page with Home judged behind, which can't both be true. The options sheet's 360 dp column
   keeps the focused tile, the name, the gradient and most of the dock in view while a value

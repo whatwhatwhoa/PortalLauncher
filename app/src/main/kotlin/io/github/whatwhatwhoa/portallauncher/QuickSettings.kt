@@ -9,6 +9,8 @@ import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
 import android.view.KeyEvent
@@ -65,6 +67,7 @@ import kotlin.math.roundToInt
 data class NowPlaying(
     val title: String?,
     val artist: String?,
+    val album: String?,
     val positionMs: Long,
     val durationMs: Long,
     val seekable: Boolean,
@@ -107,6 +110,18 @@ class DeviceControls(private val context: Context) {
     var nowPlaying by mutableStateOf<NowPlaying?>(null)
         private set
 
+    // While the launcher is shown, Android tells it when the track or the playing changes, so
+    // the status band's artist (F27) follows without polling; the panel still polls the position.
+    private val main = Handler(Looper.getMainLooper())
+    private var watching = false
+    private var watched: MediaController? = null
+    private val sessionsChanged = MediaSessionManager.OnActiveSessionsChangedListener { readMedia() }
+    private val trackChanged = object : MediaController.Callback() {
+        override fun onMetadataChanged(metadata: MediaMetadata?) = readMedia()
+        override fun onPlaybackStateChanged(state: PlaybackState?) = readMedia()
+        override fun onSessionDestroyed() = readMedia()
+    }
+
     /** Everything again: the values change outside the launcher (the pull-down, the volume keys). */
     fun read() {
         val raw = Settings.System.getInt(resolver, Settings.System.SCREEN_BRIGHTNESS, MAX_RAW / 2)
@@ -121,10 +136,30 @@ class DeviceControls(private val context: Context) {
         readMedia()
     }
 
+    /**
+     * Follows the player while the launcher is shown ([on]) and stops when it isn't. Again on
+     * every return, since notification access may have been turned on in between.
+     */
+    fun watchMedia(on: Boolean) {
+        if (on && !watching && notifications.isNotificationListenerAccessGranted(listener)) {
+            watching = try {
+                sessions.addOnActiveSessionsChangedListener(sessionsChanged, listener, main)
+                true
+            } catch (e: SecurityException) {
+                false
+            }
+        } else if (!on && watching) {
+            sessions.removeOnActiveSessionsChangedListener(sessionsChanged)
+            watching = false
+        }
+        readMedia()
+    }
+
     /** The track and how far in: often, while the panel is open, as it plays on. */
     fun readMedia() {
         canSeeMedia = notifications.isNotificationListenerAccessGranted(listener)
         val player = player()
+        follow(if (watching) player else null)
         val state = player?.playbackState
         val duration = player?.metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
         nowPlaying = state?.let {
@@ -139,6 +174,7 @@ class DeviceControls(private val context: Context) {
                 artist = player.metadata?.let { m ->
                     m.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: m.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
                 },
+                album = player.metadata?.getString(MediaMetadata.METADATA_KEY_ALBUM),
                 positionMs = (it.position + running).coerceIn(0L, duration.coerceAtLeast(0L)),
                 durationMs = duration,
                 seekable = duration > 0 && it.actions and PlaybackState.ACTION_SEEK_TO != 0L,
@@ -159,6 +195,13 @@ class DeviceControls(private val context: Context) {
         val player = player() ?: return
         player.transportControls.seekTo(to)
         nowPlaying = now.copy(positionMs = to)
+    }
+
+    private fun follow(player: MediaController?) {
+        if (player?.sessionToken == watched?.sessionToken) return
+        watched?.unregisterCallback(trackChanged)
+        player?.registerCallback(trackChanged, main)
+        watched = player
     }
 
     // The most recently active session that says where it is; none without notification access.
@@ -250,7 +293,7 @@ enum class QuickLink(val label: String, @DrawableRes val icon: Int, val intent: 
     Bluetooth("Bluetooth", R.drawable.ic_sym_bluetooth, { Intent(Settings.ACTION_BLUETOOTH_SETTINGS) }),
     Battery("Battery", R.drawable.ic_sym_battery, { Intent(Intent.ACTION_POWER_USAGE_SUMMARY) }),
     // AYN's performance, fan and controller settings; it has no launcher entry of its own.
-    Ayn("AYN settings", R.drawable.ic_sym_gamepad, {
+    Ayn("Controller settings", R.drawable.ic_sym_portal, {
         Intent().setComponent(ComponentName("org.lineageos.settings.ayn", "org.lineageos.settings.ayn.AynSettingsActivity"))
     }),
     Android("Android settings", R.drawable.ic_sym_settings, { Intent(Settings.ACTION_SETTINGS) }),

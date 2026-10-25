@@ -12,13 +12,23 @@ import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Handler
 import android.os.Looper
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -31,9 +41,16 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -48,14 +65,24 @@ import kotlin.math.sqrt
 /**
  * The status band: the clock in the top-left corner, Wi-Fi and battery in the top-right (owner's
  * ask). Drawn once over both screens, so it stays put while All apps slides in. The glyphs are
- * paths drawn in code, crisp at any density.
+ * paths drawn in code, crisp at any density. While music plays, the track follows the clock
+ * ([PlayingTrack]); not while a panel that names it or covers the band ([covered]) is open.
  */
 @Composable
-fun StatusCluster(modifier: Modifier = Modifier) {
+fun StatusCluster(controls: DeviceControls, covered: Boolean, modifier: Modifier = Modifier) {
     val wifi = rememberWifiLevel()
     val battery = rememberBattery()
+    val now = controls.nowPlaying
+    // Title first, as players and the quick panel name a track; a part a player leaves out is skipped.
+    val track = now?.takeIf { controls.playing && !covered }?.let { n ->
+        listOfNotNull(n.title, n.artist, n.album).filter { it.isNotBlank() }.distinct().joinToString(" · ").ifEmpty { null }
+    }
     Box(modifier.fillMaxWidth().padding(top = Dimens.statusTop, start = Dimens.statusEdge, end = Dimens.statusEdge)) {
-        Clock(Modifier.align(Alignment.CenterStart))
+        // Half of the padded band ends at the screen's middle: the artist keeps to the left half.
+        Row(Modifier.align(Alignment.CenterStart).fillMaxWidth(HALF), verticalAlignment = Alignment.CenterVertically) {
+            Clock()
+            PlayingTrack(track)
+        }
         Row(
             Modifier.align(Alignment.CenterEnd),
             verticalAlignment = Alignment.CenterVertically,
@@ -65,6 +92,74 @@ fun StatusCluster(modifier: Modifier = Modifier) {
             if (battery != null) BatteryGlyph(battery)
         }
     }
+}
+
+/**
+ * What is playing, beside the clock (owner, F27): a bar, then title · artist · album in the
+ * clock's type at 70%. A name too long for the room scrolls out behind the bar and round again,
+ * its right end fading where it is cut; with animations off it only fades. It comes and goes with
+ * a fade. Needs notification access, as the seek bar does; without it nothing shows.
+ */
+@Composable
+private fun RowScope.PlayingTrack(track: String?) {
+    val p = LocalPalette.current
+    val t = LocalType.current
+    val motion = LocalMotion.current
+    val color = p.text.copy(alpha = ARTIST_ALPHA)
+    AnimatedContent(
+        track,
+        Modifier.weight(1f, fill = false),
+        transitionSpec = {
+            if (motion) fadeIn(Transit.enter()) togetherWith fadeOut(Transit.exit()) else EnterTransition.None togetherWith ExitTransition.None
+        },
+        label = "track",
+    ) { shown ->
+        if (shown == null) return@AnimatedContent
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Canvas(Modifier.padding(start = Space.s).size(ARTIST_BAR_WIDTH, ARTIST_BAR_HEIGHT)) {
+                // Whole pixels, so the bar is one sharp line.
+                val w = ARTIST_BAR_WIDTH.toPx().roundToInt().toFloat()
+                drawRoundRect(color, Offset(((size.width - w) / 2).roundToInt().toFloat(), 0f), Size(w, size.height), CornerRadius(w / 2))
+            }
+            BoxWithConstraints(Modifier.weight(1f, fill = false)) {
+                val style = t.body.copy(color = color)
+                val measurer = rememberTextMeasurer()
+                val room = constraints.maxWidth - with(LocalDensity.current) { Space.s.roundToPx() }
+                val long = remember(shown, style, room) { measurer.measure(shown, style, softWrap = false, maxLines = 1).size.width > room }
+                // The gap after the bar is inside the scrolling part, so the name slides under the bar.
+                BasicText(
+                    shown,
+                    Modifier.then(if (long) Modifier.tailFade() else Modifier)
+                        .then(
+                            if (long && motion) {
+                                Modifier.basicMarquee(
+                                    iterations = Int.MAX_VALUE,
+                                    initialDelayMillis = ARTIST_SCROLL_PAUSE,
+                                    repeatDelayMillis = ARTIST_SCROLL_PAUSE,
+                                    velocity = ARTIST_SCROLL_SPEED,
+                                )
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .padding(start = Space.s),
+                    style = style,
+                    softWrap = false,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+/** The last [ARTIST_FADE] fade out, so a cut name ends softly rather than mid-letter. */
+private fun Modifier.tailFade() = graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }.drawWithContent {
+    drawContent()
+    val fade = ARTIST_FADE.toPx()
+    drawRect(
+        Brush.horizontalGradient(listOf(Color.Black, Color.Transparent), startX = size.width - fade, endX = size.width),
+        blendMode = BlendMode.DstIn,
+    )
 }
 
 /**
@@ -209,6 +304,13 @@ private fun rememberWifiLevel(): Int? {
 private const val SQRT2 = 1.4142135f
 private val HALF_SQRT2 = sqrt(2f) / 2
 private const val TRACK_ALPHA = 0.3f
+private const val HALF = 0.5f
+private const val ARTIST_ALPHA = 0.7f
+private val ARTIST_BAR_WIDTH = 2.dp
+private val ARTIST_BAR_HEIGHT = Space.xl
+private val ARTIST_FADE = Space.xxxl
+private const val ARTIST_SCROLL_PAUSE = 2_500
+private val ARTIST_SCROLL_SPEED = 36.dp
 
 private const val WIFI_LEVELS = 4
 /** How far the fill reaches, as a share of the wedge's radius, for levels 1..4. */

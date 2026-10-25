@@ -74,6 +74,11 @@ class MainActivity : ComponentActivity() {
         imageReply?.invoke(uri)
         imageReply = null
     }
+    private var setupReply: ((Uri?) -> Unit)? = null
+    private val setupRequest = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        setupReply?.invoke(uri)
+        setupReply = null
+    }
 
     // The system's animation switch (Developer options, or Accessibility → Remove animations) can
     // flip while Home stays open, so it is watched rather than read once.
@@ -102,6 +107,8 @@ class MainActivity : ComponentActivity() {
             readClipboard = ::clipboardText,
             updates = Updates(this),
             sounds = sounds,
+            setup = Setup(this),
+            pickSetup = ::pickSetup,
         )
         catalog.start()
         // New favorites and newly installed games get their art looked up as they appear, and
@@ -138,6 +145,12 @@ class MainActivity : ComponentActivity() {
         imageRequest.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
     }
 
+    // Android's file picker reads the setup file whoever owns it now, with no storage permission.
+    private fun pickSetup(reply: (Uri?) -> Unit) {
+        setupReply = reply
+        setupRequest.launch(Setup.PICKER_TYPES)
+    }
+
     // Android lets the app with focus read the clipboard (and says so in a toast).
     private fun clipboardText(): String? =
         getSystemService(ClipboardManager::class.java).primaryClip?.takeIf { it.itemCount > 0 }
@@ -155,11 +168,13 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         state.refreshSettings()
+        state.controls.watchMedia(true)
     }
 
     // The screen turned off or an app came over it: standby has done its job.
     override fun onStop() {
         state.endStandby()
+        state.controls.watchMedia(false)
         super.onStop()
     }
 
@@ -389,7 +404,7 @@ private fun Layers(state: LauncherState, motion: Boolean) {
         ) {
             SettingsPanel(state)
         }
-        StatusCluster(Modifier.align(Alignment.TopCenter))
+        StatusCluster(state.controls, covered = state.quickOpen || state.settingsOpen, Modifier.align(Alignment.TopCenter))
         AnimatedVisibility(
             visible = state.standbyHint,
             modifier = Modifier.align(Alignment.TopCenter),

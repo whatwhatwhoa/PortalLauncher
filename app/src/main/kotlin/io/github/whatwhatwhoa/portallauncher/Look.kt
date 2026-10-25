@@ -98,6 +98,10 @@ object Dimens {
     // preview and the grids are big enough to judge art by.
     val artSheet = 600.dp
     val artPreview = 120.dp
+    // Launcher Settings: about 70% of the screen from the right (owner, F25), the strip of Home
+    // left of it undimmed; the categories down its left side.
+    val settingsSheet = 760.dp
+    val settingsNav = 200.dp
 
     // The effects (each can be switched off in Settings). The focus glow: a blur this wide outside
     // the ring, at this share of the accent, breathing with it.

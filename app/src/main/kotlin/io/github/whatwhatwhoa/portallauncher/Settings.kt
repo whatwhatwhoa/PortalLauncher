@@ -29,6 +29,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,11 +38,14 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-/** The panel's groups, in order, each under its heading (`decisions/M6-settings.md`). */
-enum class SettingGroup(val label: String) { Look("Look"), Home("Home"), Sound("Sound"), Art("Art"), Apps("Apps"), System("System") }
+/** The panel's categories, in order, down its left side (`decisions/F25-settings.md`). */
+enum class SettingGroup(val label: String) {
+    Look("Look"), Home("Home"), Sound("Sound"), Art("Art"), Apps("Apps"), System("System"),
+}
 
 /**
  * One row of the settings panel. A value row changes with left and right, and A steps it on; an
@@ -75,6 +79,8 @@ enum class Setting(val group: SettingGroup, val label: String, val acts: Boolean
     HomeApp(SettingGroup.System, "Home app", acts = true),
     AndroidSettings(SettingGroup.System, "Android settings", acts = true),
     Updates(SettingGroup.System, "Updates", acts = true),
+    SaveSetup(SettingGroup.System, "Save setup", acts = true),
+    RestoreSetup(SettingGroup.System, "Restore setup", acts = true, confirms = true),
 }
 
 /** The Look settings after one step of [setting]: a choice moves along its list and wraps, a switch flips. */
@@ -139,6 +145,8 @@ private fun LauncherState.shown(setting: Setting): String {
         Setting.HomeApp -> if (isHomeApp) "Portal" else "Not set"
         Setting.AndroidSettings -> ""
         Setting.Updates -> updateNote.orEmpty()
+        Setting.SaveSetup -> saveNote.orEmpty()
+        Setting.RestoreSetup -> restoreNote.orEmpty()
     }
 }
 
@@ -147,11 +155,11 @@ private fun onOff(on: Boolean) = if (on) "On" else "Off"
 private fun megabytes(bytes: Long) = if (bytes < 1_000_000) "Under 1 MB" else "${(bytes + 500_000) / 1_000_000} MB"
 
 /**
- * Launcher Settings, from the + sheet or Android's launcher-settings gear: a column at the right
- * edge like the options sheet, but over an undimmed screen, so each change is judged live
- * against Home beside it. Up and down move, left and right change, A steps on or acts, B or +
- * closes, a tap outside closes too. The rows scroll under their group headings, keeping the
- * focused one in view; the credits close the list.
+ * Launcher Settings, from the + sheet or Android's launcher-settings gear: about 70% of the screen
+ * from the right edge, over an undimmed Home, so each change is judged live against the strip of
+ * it left showing. Laid out as the Switch's settings: the categories down the left, the chosen
+ * one's rows beside them (`LauncherState.onSettings` for the keys). A tap outside closes. A long
+ * page scrolls, keeping the focused row in view; the credits close the System page.
  */
 @Composable
 fun AnimatedVisibilityScope.SettingsPanel(state: LauncherState) {
@@ -166,51 +174,109 @@ fun AnimatedVisibilityScope.SettingsPanel(state: LauncherState) {
                     exit = if (motion) slideOutHorizontally(Transit.exit()) { it / 8 } else ExitTransition.None,
                 )
                 .fillMaxHeight()
-                .width(Dimens.sheet)
+                .width(Dimens.settingsSheet)
                 .background(p.surface)
                 .clickable(interactionSource = null, indication = null) {}
                 .padding(start = Space.xxl, end = Space.xxl, top = Dimens.sheetTop, bottom = Space.xl),
         ) {
             BasicText(if (state.accentOpen) "Accent" else "Launcher Settings", style = t.title.copy(color = p.text), maxLines = 1)
-            Spacer(Modifier.height(Space.xl))
-            // A on Accent opens its picker in place of the list; B comes back to the list.
-            if (state.accentOpen) {
-                AccentPicker(state)
-                return@Column
-            }
-            Column(
-                Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(Space.xs),
-            ) {
-                state.settings.forEachIndexed { i, setting ->
-                    val first = i == 0 || state.settings[i - 1].group != setting.group
-                    if (first) {
-                        BasicText(
-                            setting.group.label,
-                            Modifier.padding(start = Space.l, top = if (i == 0) 0.dp else Space.l, bottom = Space.xs),
-                            style = t.caption.copy(color = p.muted),
+            Spacer(Modifier.height(Space.s))
+            Row(Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Space.xl)) {
+                Column(
+                    Modifier.width(Dimens.settingsNav).padding(top = Space.l),
+                    verticalArrangement = Arrangement.spacedBy(Space.xs),
+                ) {
+                    state.settingGroups.forEachIndexed { i, group ->
+                        GroupRow(
+                            group.label,
+                            chosen = i == state.settingsGroupFocus,
+                            focused = state.settingsOpen && !state.settingsInRows && !state.accentOpen && i == state.settingsGroupFocus,
+                            onClick = { state.tapGroup(i) },
                         )
                     }
-                    SettingRow(
-                        setting,
-                        state.shown(setting),
-                        focused = state.settingsOpen && i == state.settingsFocus,
-                        first = first,
-                        last = i == state.settings.lastIndex,
-                        onClick = { state.tapSetting(i) },
-                    )
                 }
-                BasicText(
-                    "Portal ${BuildConfig.VERSION_NAME} · Selawik font, SIL Open Font License · " +
-                        "Material Symbols icons, Apache License 2.0 · " +
-                        "Art from SteamGridDB and Steam",
-                    Modifier.padding(start = Space.l, end = Space.l, top = Space.l),
-                    style = t.caption.copy(color = p.muted),
-                )
-                // Room to scroll the last row's ring clear of the bottom edge.
-                Spacer(Modifier.height(Space.l))
+                Box(Modifier.width(1.dp).fillMaxHeight().background(p.rule))
+                // A on Accent opens its picker in place of the rows; B comes back to them.
+                if (state.accentOpen) {
+                    Column(Modifier.weight(1f)) { AccentPicker(state) }
+                    return@Row
+                }
+                // A fresh scroll per category, so each page opens at its top.
+                key(state.settingsGroup) {
+                    GroupPage(state, Modifier.weight(1f).fillMaxHeight())
+                }
             }
         }
+    }
+}
+
+/** The chosen category's rows; System's end with the credits. */
+@Composable
+private fun GroupPage(state: LauncherState, modifier: Modifier) {
+    val p = LocalPalette.current
+    val t = LocalType.current
+    val rows = state.groupSettings
+    val credits = state.settingsGroup == SettingGroup.System
+    // The top inset inside the scroll leaves the first row's ring room, as the categories' has.
+    Column(
+        modifier.verticalScroll(rememberScrollState()).padding(top = Space.l),
+        verticalArrangement = Arrangement.spacedBy(Space.xs),
+    ) {
+        rows.forEachIndexed { i, setting ->
+            SettingRow(
+                setting,
+                state.shown(setting),
+                focused = state.settingsOpen && state.settingsInRows && i == state.settingsFocus,
+                last = credits && i == rows.lastIndex,
+                onClick = { state.tapSetting(i) },
+            )
+        }
+        if (credits) {
+            BasicText(
+                "Portal ${BuildConfig.VERSION_NAME} · Selawik font, SIL Open Font License · " +
+                    "Material Symbols icons, Apache License 2.0 · " +
+                    "Art from SteamGridDB and Steam",
+                Modifier.padding(start = Space.l, end = Space.l, top = Space.l),
+                style = t.caption.copy(color = p.muted),
+            )
+        }
+        // Room to scroll the last row's ring clear of the bottom edge.
+        Spacer(Modifier.height(Space.l))
+    }
+}
+
+/**
+ * A category: the chosen one lit, with an accent bar at its left as the Switch marks it, while
+ * focus is in its rows; ringed and filled like a row while focus is on the categories.
+ */
+@Composable
+private fun GroupRow(label: String, chosen: Boolean, focused: Boolean, onClick: () -> Unit) {
+    val p = LocalPalette.current
+    val t = LocalType.current
+    Row(
+        Modifier.fillMaxWidth()
+            .height(Dimens.sheetRow)
+            .focusRing(focused, Space.m)
+            .background(if (focused) p.rule else Color.Transparent, RoundedCornerShape(Space.m))
+            .clickable(interactionSource = null, indication = null, onClick = onClick)
+            .padding(end = Space.l),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier.padding(start = Space.xs, end = Space.s)
+                .width(Dimens.ring)
+                .height(Space.xl)
+                .background(if (chosen && !focused) p.accent else Color.Transparent, CircleShape),
+        )
+        BasicText(
+            label,
+            style = t.body.copy(
+                color = if (chosen) p.text else p.muted,
+                fontWeight = if (chosen) FontWeight.SemiBold else FontWeight.Normal,
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -220,14 +286,13 @@ fun AnimatedVisibilityScope.SettingsPanel(state: LauncherState) {
  * change it, while an action row has none (A does it).
  */
 @Composable
-private fun SettingRow(row: Setting, value: String, focused: Boolean, first: Boolean, last: Boolean, onClick: () -> Unit) {
+private fun SettingRow(row: Setting, value: String, focused: Boolean, last: Boolean, onClick: () -> Unit) {
     val p = LocalPalette.current
     val t = LocalType.current
     val corner = RoundedCornerShape(Space.m)
     val inView = remember { BringIntoViewRequester() }
-    // The ring and its glow lie outside the row, so a margin past it is scrolled into view too;
-    // above the first row, its group's heading.
-    val above = if (first) t.caption.lineHeight.asDp() + Space.xs * 2 + Space.l else Space.l
+    // The ring and its glow lie outside the row, so a margin past it is scrolled into view too.
+    val above = Space.l
     // Below the last row, the credits.
     val below = if (last) Space.l * 2 + t.caption.lineHeight.asDp() * 2 else Space.l
     val (top, margin, height) = with(LocalDensity.current) { Triple(above.toPx(), below.toPx(), Dimens.sheetRow.toPx()) }

@@ -87,6 +87,7 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
     // "pkg.url" → the shot the score chose, so the picker can mark it.
     private val scenes = context.getSharedPreferences("scenes", Context.MODE_PRIVATE)
     private val sceneLooked = HashSet<String>()
+    private val refetched = HashSet<String>()
 
     /** Package → record; also what composables watch, so a new match redraws its art. */
     private val records = mutableStateMapOf<String, ArtRecord>().apply {
@@ -105,7 +106,8 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
 
     /**
      * Looks up every app here that has no record yet, one at a time, once per launcher start; a
-     * matched app without a scene has one looked for too.
+     * matched app without a scene has one looked for too, and one whose images are gone (a
+     * restored setup) has them fetched again.
      */
     fun lookUp(apps: List<AppEntry>) {
         val unique = apps.distinctBy { it.component.packageName }
@@ -113,6 +115,9 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
             val pkg = app.component.packageName
             val matched = records[pkg] as? ArtRecord.Matched
             if (matched != null && !hasScene(pkg)) findScene(pkg, matched.match)
+            if (matched != null && listOf(ArtKind.Cover, ArtKind.Hero).none { File(dir, "$pkg.${it.suffix}").exists() }) {
+                refetch(pkg, matched.match)
+            }
         }
         if (!hasKey) return
         val todo = unique.filter { it.component.packageName !in records && looked.add(it.component.packageName) }
@@ -166,8 +171,8 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
     suspend fun use(pkg: String, match: ArtMatch): Boolean = writing.withLock {
         try {
             val before = (records[pkg] as? ArtRecord.Matched)?.match?.gameId
-            val cover = best("/grids/game/${match.gameId}?dimensions=512x512,1024x1024", preferWidth = 512)
-            val hero = best("/heroes/game/${match.gameId}?dimensions=1920x620,3840x1240", preferWidth = 1920)
+            val cover = best(ArtKind.Cover, match.gameId)
+            val hero = best(ArtKind.Hero, match.gameId)
             if (cover == null && hero == null) return false
             download(cover, File(dir, "$pkg.${ArtKind.Cover.suffix}"))
             download(hero, File(dir, "$pkg.${ArtKind.Hero.suffix}"))
@@ -187,6 +192,38 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
         } catch (e: Exception) {
             Log.w(TAG, "Fetching art for $pkg failed", e)
             false
+        }
+    }
+
+    /**
+     * Fetches [pkg]'s images again from what its record and picks name, after a restored setup
+     * (Setup) or Android's backup brought the choices back without the images: a picked or
+     * scored image from its URL, else the first one, which needs the key. A gallery pick came
+     * back in the setup file.
+     */
+    private fun refetch(pkg: String, match: ArtMatch) {
+        if (!refetched.add(pkg)) return
+        scope.launch {
+            writing.withLock {
+                try {
+                    for (kind in listOf(ArtKind.Cover, ArtKind.Hero)) {
+                        val to = File(dir, "$pkg.${kind.suffix}")
+                        if (to.exists()) continue
+                        val url = picks.getString(pickKey(pkg, kind), null)?.takeIf { it.startsWith("http") }
+                            ?: if (hasKey) best(kind, match.gameId) else null
+                        url?.let { download(it, to) }
+                    }
+                    val scene = sceneFile(pkg)
+                    val sceneUrl = picks.getString(pickKey(pkg, ArtKind.Scene), null)?.takeIf { it.startsWith("http") }
+                        ?: scenes.getString("$pkg.url", null)
+                    if (!scene.exists() && sceneUrl != null) download(sceneUrl, scene)
+                    revisions[pkg] = revision(pkg) + 1
+                } catch (e: Exception) {
+                    // Offline: try again next start.
+                    Log.w(TAG, "Fetching $pkg's art again failed: $e", e)
+                    refetched.remove(pkg)
+                }
+            }
         }
     }
 
@@ -431,6 +468,12 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
         records[pkg] = record
         revisions[pkg] = revision(pkg) + 1
         sp.edit { putString(pkg, encode(record)) }
+    }
+
+    /** A game's first cover or hero, as a match first fetches it. */
+    private suspend fun best(kind: ArtKind, gameId: Int) = when (kind) {
+        ArtKind.Cover -> best("/grids/game/$gameId?dimensions=512x512,1024x1024", preferWidth = 512)
+        else -> best("/heroes/game/$gameId?dimensions=1920x620,3840x1240", preferWidth = 1920)
     }
 
     /** The best-scored still image's URL at the preferred width, else the best at any listed size. */

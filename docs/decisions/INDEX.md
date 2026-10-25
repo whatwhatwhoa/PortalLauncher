@@ -3,7 +3,7 @@
 One line per entry, newest at the bottom. The entry holds the why; `architecture.md` holds the
 what. IDs: D<n>.k is milestone n up to M8, card F<n> from F9 on (`TASKS.md`, the feature board,
 since 2026-10-25); a big card's file is `F<n>-<slug>.md`, a release's small ones go in
-`<version>.md`. Owner batches are B<n>, B7 next. Every entry carries a `Status:` line; settled
+`<version>.md`. Owner batches are B<n>, B9 next. Every entry carries a `Status:` line; settled
 2026-10-25 (the stories cut back to choice and why, the what moved to `architecture.md`).
 
 - `M1-design.md` (2026-10-25) — concept review: Switch 2 mock-up anatomy, flat Switch theme for
@@ -53,4 +53,14 @@ since 2026-10-25); a big card's file is `F<n>-<slug>.md`, a release's small ones
   in place, the panel wider, Hero/Scene tabs between bumper glyphs; not yet tried); hero or
   scene per app (D24.1: the Scenes setting gone, the glow no longer behind a scene; not yet tried;
   the hero by default, B6.1); the quick panel's player row (D21.1: L1/R1 skip, a seek bar on notification access; the seek
-  bar not yet tried).
+  bar not yet tried); B7: AYN settings as an app and a dock default, the light shadow's
+  square corners (a faded layer clips); B8: named Controller settings, a Portal icon of our own;
+  what's playing beside the clock (D27.1: title · artist · album, playing only, Android's callbacks).
+- `F25-settings.md` (2026-10-25) — Launcher Settings in categories (D25.1): 760 dp from the right
+  rather than full screen (Home judged live beside it), the Switch's two columns, focus on the
+  categories first, B back out, L1/R1 turn; Look split into Look and Effects so no page scrolls;
+  credits on System's page; owner OK. D25.2: Look and Effects one category again (B7.1).
+- `F26-setup.md` (2026-10-25) — keeping the setup (D26.1): updates already keep it, an uninstall
+  or new signing key doesn't; a setup file in Download saved by hand (no key, gallery art and
+  wallpapers inside, downloaded art fetched again), restored through the picker; Android's
+  backup limited to the setup prefs (the art pushed it toward the 25 MB limit).

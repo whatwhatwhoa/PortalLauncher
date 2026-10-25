@@ -4,7 +4,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
-import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.graphics.Rect
@@ -21,6 +20,7 @@ import android.os.UserHandle
 import android.os.UserManager
 import android.provider.Settings
 import android.util.DisplayMetrics
+import androidx.annotation.DrawableRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -42,6 +42,8 @@ class AppEntry(
     /** When the app was first installed: one installed after the launcher's first run starts off Home. */
     val installed: Long,
     private val icon: Drawable,
+    /** Set for a settings screen with no launcher icon ([AppCatalog.SCREENS]): it opens by this action. */
+    val action: String? = null,
 ) {
     /**
      * A private copy per place it is drawn: the render thread reads a drawable's bounds after
@@ -76,7 +78,12 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
     fun stop() = launcherApps.unregisterCallback(callback)
 
     fun launch(entry: AppEntry, bounds: Rect?, options: Bundle?): Boolean = try {
-        launcherApps.startMainActivity(entry.component, entry.user, bounds, options)
+        if (entry.action != null) {
+            val intent = Intent(entry.action).setComponent(entry.component).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent.apply { sourceBounds = bounds }, options)
+        } else {
+            launcherApps.startMainActivity(entry.component, entry.user, bounds, options)
+        }
         true
     } catch (e: Exception) {
         false
@@ -107,6 +114,7 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
             pm.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName
         val packages = listOfNotNull(
             resolve(Intent(Settings.ACTION_SETTINGS)),
+            AYN_SETTINGS.packageName,
             "com.android.documentsui",
             "com.google.android.documentsui",
             "com.android.vending",
@@ -123,7 +131,7 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
         job = scope.launch { apps = withContext(Dispatchers.Default) { query() } }
     }
 
-    private fun query(): List<AppEntry> = userManager.userProfiles.flatMap { user ->
+    private fun query(): List<AppEntry> = (screens() + userManager.userProfiles.flatMap { user ->
         launcherApps.getActivityList(null, user)
             .filter { it.componentName.packageName != context.packageName }
             .map { info ->
@@ -135,23 +143,60 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
                     system = info.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0,
                     seed = seedCategory(info.componentName.packageName, info.applicationInfo.category),
                     installed = info.firstInstallTime,
-                    icon = loadIcon(info),
+                    icon = crisp(info.getIcon(DisplayMetrics.DENSITY_XXXHIGH)),
                 )
             }
-    }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+    }).sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+
+    /**
+     * The [SCREENS] this device has, as apps of the main profile. They start in All apps only
+     * (no seed), so one never changes Home by itself.
+     */
+    private fun screens(): List<AppEntry> {
+        val pm = context.packageManager
+        val me = Process.myUserHandle()
+        return SCREENS.mapNotNull { (component, action, label, icon) ->
+            val info = pm.resolveActivity(Intent(action).setComponent(component), 0)?.activityInfo
+                ?.takeIf { it.exported } ?: return@mapNotNull null
+            AppEntry(
+                key(component, me),
+                label,
+                component,
+                me,
+                system = info.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0,
+                seed = null,
+                installed = pm.getPackageInfo(component.packageName, 0).firstInstallTime,
+                icon = context.getDrawable(icon)!!,
+                action = action,
+            )
+        }
+    }
 
     private fun key(component: ComponentName, user: UserHandle) =
         component.flattenToString() + "#" + userManager.getSerialNumberForUser(user)
 
     /**
-     * Asks for the xxxhdpi icon whatever the screen's density: bitmap layers then arrive at
+     * An icon asked for at xxxhdpi whatever the screen's density: bitmap layers then arrive at
      * 432 px and are only ever scaled down. Mipmaps keep the small dock size from aliasing.
      */
-    private fun loadIcon(info: LauncherActivityInfo): Drawable {
-        val icon = info.getIcon(DisplayMetrics.DENSITY_XXXHIGH)
+    private fun crisp(icon: Drawable): Drawable {
         val layers = if (icon is AdaptiveIconDrawable) listOf(icon.background, icon.foreground) else listOf(icon)
         layers.forEach { (it as? BitmapDrawable)?.bitmap?.setHasMipMap(true) }
         return icon
+    }
+
+    companion object {
+        /** AYN's device settings, on the Portal only inside Android's Settings; a dock default (B7.2). */
+        val AYN_SETTINGS = ComponentName("org.lineageos.settings.ayn", "org.lineageos.settings.ayn.AynSettingsActivity")
+
+        /**
+         * Settings screens with no launcher icon, listed as apps so the dock can hold them, each
+         * with the action Android's Settings opens it by and a name and icon of our own: AYN's
+         * calls itself "Gamepad", which beside the games reads like one, under a plain gear.
+         */
+        val SCREENS = listOf(
+            SettingsPage(AYN_SETTINGS, "com.android.settings.action.IA_SETTINGS", "Controller settings", R.drawable.ic_app_controller_settings),
+        )
     }
 }
 
@@ -303,3 +348,6 @@ class Prefs(context: Context) {
     private inline fun <reified E : Enum<E>> named(key: String, default: E): E =
         sp.getString(key, null)?.let { name -> enumValues<E>().firstOrNull { it.name == name } } ?: default
 }
+
+/** A settings page listed as an app ([AppCatalog.SCREENS]). */
+data class SettingsPage(val component: ComponentName, val action: String, val label: String, @DrawableRes val icon: Int)

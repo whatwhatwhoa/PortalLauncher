@@ -75,7 +75,7 @@ or scene, with or without a key.
 
 Press **−** for the music player (previous, play/pause, next, and a seek bar), brightness,
 volume, auto-brightness and Do not disturb, plus shortcuts to Wi-Fi, Bluetooth, battery, AYN's
-settings and Android's settings. **L1** and **R1** skip tracks while the panel is open.
+settings (*Controller settings*) and Android's settings. **L1** and **R1** skip tracks while the panel is open.
 The first time you use brightness, Do not disturb or the seek bar, Portal opens the Android page
 that lets it change them. Switch Portal on there once, then press **B** to come back. The seek
 bar needs *Notification access*, which Android asks for to show what is playing; Portal reads no
@@ -83,7 +83,8 @@ notifications.
 
 ## Make it yours
 
-**Launcher Settings** (the dock's gear, or **+ → Launcher settings…**) changes everything live:
+**Launcher Settings** (the dock's gear, or **+ → Launcher settings…**) changes everything live,
+sorted into categories (move through them on the left, **A** to go in, **B** to come back out):
 theme (light, dark or follow the system), accent color, backdrop, covers on tiles, glow
 and depth effects, the clock format, button hints, and what the Home button does.
 
@@ -108,6 +109,10 @@ and depth effects, the clock format, button hints, and what the Home button does
 - **Updates:** Launcher Settings → System → Updates says when a newer version is out; A
   downloads and installs it, keeping your setup. The first time, Android asks you to allow
   Portal to install apps.
+- **Your setup** (favorites, dock, categories, settings, art choices): updates keep it. Before
+  uninstalling, Launcher Settings → System → *Save setup* puts it in one file in Download;
+  *Restore setup* brings it back, then art downloads again. Your SteamGridDB key isn't in the
+  file: paste it again after a fresh install.
 - **Privacy:** Portal uses the internet only for art, SteamGridDB (with your key) and Steam's
   public store pages, and to ask GitHub for a newer version when you open Launcher Settings.
   Nothing else leaves your device, and there are no analytics.
@@ -126,5 +131,5 @@ and depth effects, the clock format, button hints, and what the Home button does
   the screenshots belongs to the games' makers.
 
 Portal Launcher is open source under the [MIT License](LICENSE). Building it yourself:
-see [docs/architecture.md](docs/architecture.md) (*Toolchain*) and run
+see [docs/device.md](docs/device.md) (*Toolchain*) and run
 `./gradlew assembleRelease` with JDK 21.

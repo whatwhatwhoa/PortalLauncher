@@ -154,7 +154,7 @@ private fun ColorSlider(name: String, focused: Boolean, position: Float, track: 
 }
 
 private val SWATCH = 40.dp
-private val SLIDER_LABEL = 80.dp
+private val SLIDER_LABEL = 96.dp
 private val TRACK = 8.dp
 private val THUMB = 9.dp
 private val RING = 2.dp

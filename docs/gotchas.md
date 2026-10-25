@@ -129,6 +129,12 @@ Console Launcher's dock and theme packs are WebP bitmaps scaled to the layout; a
 vector (Material Symbols), app icons are adaptive icons drawn at 1:1, and covers are fetched at
 or above the tile's pixel size (160 dp × 1.8 = 288 px, so fetch ≥ 600 px) and never upscaled.
 
+### A faded layer clips: keep drawing outside a node out of it
+A `graphicsLayer` with alpha under 1 is drawn offscreen at the node's own size, so anything the
+node draws outside its bounds (a shadow, a glow, the focus ring) is cut off at that box. Home's
+light shadow showed as grey square corners on every faded tile. Put the fade in its own layer
+after (inside) the modifiers that draw outside, or fade without one.
+
 ### A spring overshoots: clamp anything computed from it
 A spring with damping under 1 passes its target. Home's tile size did (192 dp → a bit more),
 and `padding(top = (192.dp - size) / 2)` went negative for a frame: Compose throws "Padding
@@ -140,3 +146,9 @@ must be non-negative" and the launcher stops. Clamp values derived from a spring
 default instance (Nunito Sans and Manrope: 200, Inter: 400) for every weight. Pass
 `variationSettings = FontVariation.Settings(FontVariation.weight(w))` with each `Font` (`Look.kt`).
 Check a new font's `fvar` defaults before blaming the font.
+
+### A new preferences file is missed by Save setup and the backup
+The setup file and Android's backup each list the preferences they carry: `Setup.PREFS` and
+`res/xml/data_extraction_rules.xml` (`launcher`, `art`, `picks`, `scenes`). A setting kept in a
+new `getSharedPreferences` name, or a new folder the owner fills, is silently left out of both
+until it is added to the two lists.

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android's backup and device-to-device transfer carry the setup (the same prefs as Setup.kt,
+     the SteamGridDB key with them; Google's backup is encrypted with the screen lock) and not the
+     downloaded art: past 25 MB a cloud backup isn't made at all. Restored art is fetched again. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="sharedpref" path="launcher.xml" />
+        <include domain="sharedpref" path="art.xml" />
+        <include domain="sharedpref" path="picks.xml" />
+        <include domain="sharedpref" path="scenes.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="sharedpref" path="launcher.xml" />
+        <include domain="sharedpref" path="art.xml" />
+        <include domain="sharedpref" path="picks.xml" />
+        <include domain="sharedpref" path="scenes.xml" />
+        <include domain="file" path="art/" />
+        <include domain="file" path="backdrops/" />
+    </device-transfer>
+</data-extraction-rules>

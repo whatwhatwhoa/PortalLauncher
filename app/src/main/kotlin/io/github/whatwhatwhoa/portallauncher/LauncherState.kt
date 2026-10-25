@@ -3,6 +3,7 @@ package io.github.whatwhatwhoa.portallauncher
 import android.content.Intent
 import android.graphics.Rect
 import android.net.Uri
+import android.util.Log
 import android.view.KeyEvent
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -11,9 +12,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -74,6 +77,10 @@ class LauncherState(
     private val updates: Updates? = null,
     /** The UI sounds; null plays none. */
     private val sounds: Sounds? = null,
+    /** The setup file in Download (Save setup, Restore setup); null leaves the rows doing nothing. */
+    private val setup: Setup? = null,
+    /** Opens Android's file picker for a setup file; the reply is the chosen file, or null. */
+    private val pickSetup: ((Uri?) -> Unit) -> Unit = {},
 ) {
     /** The quick panel (− on Home and All apps), over everything but the settings. */
     var quickOpen by mutableStateOf(false)
@@ -183,10 +190,19 @@ class LauncherState(
     var settingsOpen by mutableStateOf(false)
         private set
     private var settingsIndex by mutableIntStateOf(0)
-    val settingsFocus get() = settingsIndex.coerceIn(0, settings.lastIndex)
+    val settingsFocus get() = settingsIndex.coerceIn(0, groupSettings.lastIndex)
+    private var groupIndex by mutableIntStateOf(0)
+    val settingsGroupFocus get() = groupIndex.coerceIn(0, settingGroups.lastIndex)
+    /** Focus in the rows, or (false) in the categories at the left. */
+    var settingsInRows by mutableStateOf(false)
+        private set
 
     /** The panel's rows; the Art group only when there is art at all. */
     val settings = Setting.entries.filter { art != null || it.group != SettingGroup.Art }
+    val settingGroups = settings.map { it.group }.distinct()
+    val settingsGroup get() = settingGroups[settingsGroupFocus]
+    /** The chosen category's rows, the page beside the categories. */
+    val groupSettings get() = settings.filter { it.group == settingsGroup }
 
     /** Settings → Home, applied live as it changes. */
     var home by mutableStateOf(prefs.home)
@@ -214,6 +230,10 @@ class LauncherState(
         private set
     /** What the Updates row says: the check's answer, then the download and install. */
     var updateNote by mutableStateOf<String?>(null)
+        private set
+    var saveNote by mutableStateOf<String?>(null)
+        private set
+    var restoreNote by mutableStateOf<String?>(null)
         private set
     /** The newer release the last check found. */
     private var release: Release? = null
@@ -463,28 +483,69 @@ class LauncherState(
         sheetIndex = sheetFocus
     }
 
+    /**
+     * Two columns, as the Switch's settings: the categories, where moving shows each one's page at
+     * once, and A or right goes into its rows; there left and right change a value and B comes
+     * back out. L1 and R1 turn the category from either, + closes from anywhere.
+     */
     private fun onSettings(action: Action) {
         if (accentOpen) return onAccent(action)
-        val setting = settings[settingsFocus]
         if (action != Action.Open) armed = null
+        when (action) {
+            Action.PagePrev -> turnGroup(settingsGroupFocus - 1)
+            Action.PageNext -> turnGroup(settingsGroupFocus + 1)
+            Action.Options -> closeSettings()
+            else -> if (settingsInRows) onSettingRows(action) else onSettingGroups(action)
+        }
+        settingsIndex = settingsFocus
+    }
+
+    private fun onSettingGroups(action: Action) {
+        when (action) {
+            Action.Up -> turnGroup(settingsGroupFocus - 1)
+            Action.Down -> turnGroup(settingsGroupFocus + 1)
+            Action.First -> turnGroup(0)
+            Action.Last -> turnGroup(settingGroups.lastIndex)
+            Action.Right, Action.Open -> settingsInRows = true
+            Action.Back -> closeSettings()
+            else -> Unit
+        }
+    }
+
+    private fun onSettingRows(action: Action) {
+        val setting = groupSettings[settingsFocus]
         when (action) {
             Action.Up -> settingsIndex = settingsFocus - 1
             Action.Down -> settingsIndex = settingsFocus + 1
             Action.First -> settingsIndex = 0
-            Action.Last -> settingsIndex = settings.lastIndex
+            Action.Last -> settingsIndex = groupSettings.lastIndex
             Action.Left -> if (!setting.acts) change(setting, -1)
             Action.Right -> if (!setting.acts) change(setting, 1)
             Action.Open -> if (setting == Setting.Accent) openAccent() else if (setting.acts) act(setting) else change(setting, 1)
-            Action.Back, Action.Options -> closeSettings()
+            Action.Back -> settingsInRows = false
             else -> Unit
         }
-        settingsIndex = settingsFocus
+    }
+
+    /** Another category's page, its first row; focus stays in whichever column it was. */
+    private fun turnGroup(index: Int) {
+        val to = index.coerceIn(0, settingGroups.lastIndex)
+        if (to == settingsGroupFocus) return
+        groupIndex = to
+        settingsIndex = 0
+    }
+
+    fun tapGroup(index: Int) {
+        armed = null
+        turnGroup(index)
+        settingsInRows = false
     }
 
     fun tapSetting(index: Int) {
         if (index != settingsFocus) armed = null
         settingsIndex = index
-        val setting = settings[settingsFocus]
+        settingsInRows = true
+        val setting = groupSettings[settingsFocus]
         if (setting == Setting.Accent) openAccent() else if (setting.acts) act(setting) else change(setting, 1)
     }
 
@@ -581,10 +642,13 @@ class LauncherState(
                 // A new family or volume is heard at once, in itself.
                 if (setting != Setting.SoundsOn) sounds?.play(Sound.Select)
             }
-            else -> if (setting == Setting.FetchArt) {
+            SettingGroup.Art -> if (setting == Setting.FetchArt) {
                 fetchArt = !fetchArt
                 prefs.fetchArt = fetchArt
             }
+            // Every category named, no else: a new one with value rows must say where they go,
+            // or its rows quietly do nothing (B7.1).
+            SettingGroup.Apps, SettingGroup.System -> Unit
         }
     }
 
@@ -616,7 +680,37 @@ class LauncherState(
             Setting.HomeHold -> openSystem(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
             Setting.AndroidSettings -> openSystem(Intent(android.provider.Settings.ACTION_SETTINGS))
             Setting.Updates -> update()
+            Setting.SaveSetup -> saveSetup()
+            Setting.RestoreSetup -> restoreSetup()
             else -> Unit
+        }
+    }
+
+    private fun saveSetup() {
+        val setup = setup ?: return
+        saveNote = "Saving…"
+        scope.launch {
+            saveNote = try {
+                withContext(Dispatchers.IO) { setup.save() }
+                "In Download"
+            } catch (e: Exception) {
+                Log.w(Setup.TAG, "Saving the setup failed", e)
+                "Couldn't save"
+            }
+        }
+    }
+
+    // The launcher starts afresh after a restore, so the note only ever shows a refusal.
+    private fun restoreSetup() {
+        val setup = setup ?: return
+        restoreNote = null
+        pickSetup { uri ->
+            if (uri == null) return@pickSetup
+            restoreNote = "Restoring…"
+            scope.launch {
+                val refused = withContext(Dispatchers.IO) { setup.restore(uri) }
+                if (refused == null) setup.restart() else restoreNote = refused
+            }
         }
     }
 
@@ -624,9 +718,13 @@ class LauncherState(
     fun openSettings() {
         wallpapers = findWallpapers()
         closeSheet()
+        groupIndex = 0
         settingsIndex = 0
+        settingsInRows = false
         armed = null
         accentOpen = false
+        saveNote = null
+        restoreNote = null
         settingsOpen = true
         refreshSettings()
     }

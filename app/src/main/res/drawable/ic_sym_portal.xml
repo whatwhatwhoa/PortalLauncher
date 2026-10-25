@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The AYN Odin 2 Portal from the front: stick over d-pad, ABXY over stick, the grips dipping
+     in the middle. Drawn for this launcher; also the glyph of ic_app_controller_settings. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="64" android:viewportHeight="64">
+    <group android:translateX="-22" android:translateY="-22">
+        <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd" android:pathData="M34,39H74A11,11 0,0 1,85 50V58A11,11 0,0 1,74 69C67,69 62,66 54,66C46,66 41,69 34,69A11,11 0,0 1,23 58V50A11,11 0,0 1,34 39Z M39,43H69A2,2 0,0 1,71 45V60A2,2 0,0 1,69 62H39A2,2 0,0 1,37 60V45A2,2 0,0 1,39 43Z M26.4,47.5A3.6,3.6 0,1 0,33.6 47.5A3.6,3.6 0,1 0,26.4 47.5Z M74.4,58.5A3.6,3.6 0,1 0,81.6 58.5A3.6,3.6 0,1 0,74.4 58.5Z M28.7,55.2H31.3V57.9H34V60.5H31.3V63.2H28.7V60.5H26V57.9H28.7Z M76.5,44.4A1.5,1.5 0,1 0,79.5 44.4A1.5,1.5 0,1 0,76.5 44.4Z M76.5,50.6A1.5,1.5 0,1 0,79.5 50.6A1.5,1.5 0,1 0,76.5 50.6Z M73.4,47.5A1.5,1.5 0,1 0,76.4 47.5A1.5,1.5 0,1 0,73.4 47.5Z M79.6,47.5A1.5,1.5 0,1 0,82.6 47.5A1.5,1.5 0,1 0,79.6 47.5Z" />
+    </group>
+</vector>

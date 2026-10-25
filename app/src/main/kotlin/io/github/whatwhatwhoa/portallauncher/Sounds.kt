@@ -118,7 +118,8 @@ fun LauncherState.spot(): Spot {
         drawer = drawer,
         focus = listOf(
             zone, rowFocus, dockFocus, drawerFocus, sheetFocus, categoryFocus, categoryActionFocus,
-            settingsFocus, accentRow, accentColumn, quickFocus, quickColumn, category.id,
+            settingsGroupFocus, settingsInRows, settingsFocus, accentRow, accentColumn, quickFocus, quickColumn,
+            category.id,
         ),
         switches = listOf(
             look.covers, look.effects.gradient, look.effects.glow, look.effects.depth,
