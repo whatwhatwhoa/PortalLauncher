@@ -1,0 +1,16 @@
+# Gradle and build output
+.gradle/
+build/
+local.properties
+*.apk
+*.aab
+
+# Android Studio
+.idea/
+*.iml
+captures/
+.cxx/
+.kotlin/
+
+# Third-party APKs the owner drops in concepts/ for reference
+*.apk.*

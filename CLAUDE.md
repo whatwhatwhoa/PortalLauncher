@@ -1,0 +1,59 @@
+# PortalLauncher — agent rules (keep this file short; it loads every session)
+
+A clean, welcoming Android home launcher for the owner's AYN Odin 2 Portal: controller first,
+full Android underneath (every app, settings, notifications), far fewer features than Nova.
+Kotlin + Jetpack Compose, built from the command line on a Windows ARM laptop. Private.
+Why and where it is going: `docs/architecture.md`, *Goals*.
+
+## Read before working
+| Task | Read |
+|---|---|
+| Any | `docs/HANDOFF.md` (state, next, waiting on the owner) |
+| Pick or plan work | `docs/TASKS.md`: the first unchecked task under *Open*, or the owner's explicit ask |
+| Reviewing the owner's concepts | `concepts/README.md`, then the files in `concepts/` |
+| The look, layout, controller feel | `docs/architecture.md` *Goals*, *Look* |
+| Build, SDK, adb, the device | `docs/architecture.md` *Toolchain*, *The device*; `docs/gotchas.md` |
+| Why something is the way it is | `docs/decisions/INDEX.md`, then the one entry |
+| Hand-testing with the owner | `docs/VERIFY.md` |
+
+**Each fact has one home.** Rules here · state → `HANDOFF.md` · tasks → `TASKS.md` · how it
+works → `architecture.md` · why → `docs/decisions/` · traps → `gotchas.md` · built-not-clicked →
+`docs/VERIFY.md` · the owner's design input → `concepts/`. Link, don't copy.
+
+## Hard rules
+1. **The Portal is the owner's daily device.** Install, launch and read logs over adb freely;
+   change a device setting (`settings put`, `wm`, setting the default Home) only when the owner
+   asks, and write the undo command in the reply. Always keep Launcher3 installed as the fallback.
+2. **`concepts/` is the owner's.** Read it, never edit, rename or delete files in it; review notes
+   go in `docs/decisions/`.
+3. **Clean beats complete.** A feature earns its place by making the home screen calmer or more
+   welcoming; when in doubt, leave it out and add a line to *Later*.
+4. **Crisp at 1920×1080.** Vector or full-resolution assets only, real typography, no blurry
+   scaled bitmaps: the reason this project exists is that other launchers look off.
+5. **Commit wording**: "commit" = local only; "commit to github" = commit + push.
+6. **Small diffs.** One task per session unless the owner bundles several.
+
+## Commands
+- adb: `C:\Users\Jim\AppData\Local\Android\Sdk\platform-tools\adb.exe` (device `82ee7769`)
+- SDK packages: `...\Sdk\cmdline-tools\latest\bin\android.exe --no-metrics sdk list|install`
+  (replaces `sdkmanager`)
+- Build (Bash): `JAVA_HOME="C:/Users/Jim/AppData/Local/Android/jdk-21" ./gradlew assembleDebug lintDebug`
+  → `app/build/outputs/apk/debug/app-debug.apk`
+- Install + run: `adb install -r app/build/outputs/apk/debug/app-debug.apk`, then
+  `adb shell am start -n io.github.whatwhatwhoa.portallauncher/.MainActivity`
+- Log: `adb logcat --pid=$(adb shell pidof io.github.whatwhatwhoa.portallauncher)`;
+  screenshot: `adb exec-out screencap -p > shot.png`
+- GitHub: `whatwhatwhoa/PortalLauncher`, private
+- Notes audit: `py -I C:\Users\Jim\.claude\skills\notes-architecture\scripts\notes_audit.py .`
+
+## End of session
+1. Tick the task in `docs/TASKS.md` (date, one clause); its detail goes to a decision entry.
+2. New knowledge to its one home (table above); a finished feature is described in
+   `architecture.md` in present tense, no task IDs.
+3. Rewrite `docs/HANDOFF.md` from scratch: state ≤ 10 lines, next, waiting on the owner,
+   uncommitted.
+4. Build state goes in the commit message, not the notes.
+5. Run the notes audit; fix what it flags.
+
+## Style
+Kotlin, Jetpack Compose, one screen per file; comments explain why, not what.
