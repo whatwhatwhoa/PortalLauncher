@@ -18,8 +18,8 @@ scanning, phone layouts in portrait.
 ## Look
 
 Direction from the owner's concepts (`decisions/M1-design.md`) and answers
-(`decisions/M2-skeleton.md`). Numbers are the skeleton's values, tuned on the device; in code
-they live in `Look.kt` (`Space`, `Dimens`), so this section and that file change together.
+(`decisions/M2-skeleton.md`). Numbers are tuned on the device; in code they live in `Look.kt`
+(`Space`, `Dimens`), so this section and that file change together.
 What the owner can change is in *Settings*; this section describes the defaults.
 
 **Vector first.** Glyphs and our own icon are vectors (drawn in code or `VectorDrawable`), type
@@ -54,30 +54,31 @@ second input, never the only one.
    leaves it dim. The battery is a 40×20 dp rounded body with a small cap, the charge filling
    from the left (accent while charging), the percentage inside in bold caption type, knocked
    out where it crosses the fill.
-2. *Hero band*: an app with a **scene** (a 1920×1080 picture, *Art*) shows it over the whole
-   of Home instead, 1:1, under a heavy alpha vignette: brightest right of center above the
-   carousel, near gone at the left under the name and along the bottom under the dock and
-   hints; it crossfades like the hero. Otherwise the top 272 dp of the screen, with no edge line. In it, the row's current favorite's hero at full width, cropped evenly top and
-   bottom (490 of 620 px), decoded at the screen's width; it crossfades in 250 ms as focus
-   moves (the old one stays while the next decodes) and stays on the row's app while the dock
-   has focus. A vignette fades its alpha, so it melts into whatever backdrop is behind it:
-   fully at the bottom, 85% at the left edge (under the name), 50% along the top and the
-   right. No hero: the plain background. The name sits top-left, 48 dp in, Metro-style, in capitals:
-   lifted so they run 12 dp past the top edge (cap height taken as 0.72 of the size), with the
-   status drawn over it; display type (bold) at 40% opacity, accent while the row has focus and muted otherwise;
-   one line. A name too long for the screen scrolls while the row has focus: out past the left
-   edge at 90 dp/s and round again, a 2.5 s pause before each pass; muted, or with animations
-   off, it runs off the right edge instead.
+2. *Hero band*: the top 272 dp of the screen, with no edge line. In it, the row's focused app's
+   hero at full width, cropped evenly top and bottom (490 of 620 px), decoded at the screen's
+   width; it crossfades in 250 ms as focus moves (the old one stays while the next decodes) and
+   stays on the row's app while the dock has focus. A vignette fades its alpha, so it melts into
+   whatever backdrop is behind it: fully at the bottom, 85% at the left edge (under the name),
+   50% along the top and the right. No hero: the plain background. An app with a **scene** (a
+   1920×1080 picture, *Art*) shows that over the whole of Home instead, 1:1, under a heavy alpha
+   vignette: brightest right of center above the carousel, near gone at the left under the name
+   and along the bottom under the dock and hints; it crossfades like the hero.
+   The name sits top-left, 48 dp in, Metro-style, in capitals lifted so they run 12 dp past the
+   top edge (cap height taken as 0.72 of the size), with the status drawn over it; display type
+   (bold) at 40% opacity, accent while the row has focus and muted otherwise; one line. A name
+   too long for the screen scrolls while the row has focus: out past the left edge at 90 dp/s
+   and round again, a 2.5 s pause before each pass; muted, or with animations off, it runs off
+   the right edge instead.
 3. *Carousel*: the current category's apps in one row (*Categories*), named above the row on
-   the content margin in muted title type, 12 dp clear of the grown tile; its center line at 52% of the screen's height
-   (placed by that line, not by its neighbors) and over the band's lower part, 48 dp side margins.
+   the content margin in muted title type, 12 dp clear of the grown tile; its center line at 52%
+   of the screen's height (placed by that line, not by its neighbors) and over the band's lower
+   part, 48 dp side margins.
    The focused tile grows from 144 to 192 dp by layout on a spring, so its neighbors move aside;
    the others are drawn at 85% opacity. The row is 192 dp tall either way, so it doesn't shift
    when focus goes to the dock. The focused tile is always in the first slot, the last one too:
    each tile slides on its own no-bounce spring along a fractional slot number, and its x and
-   size come from that number in the layout phase, so the gaps stay even mid-slide (a scrolling
-   LazyRow fought the resizing and jumped). Dragging the row by touch moves focus a slot per
-   tile width.
+   size come from that number in the layout phase, so the gaps stay even mid-slide. Dragging
+   the row by touch moves focus a slot per tile width.
 4. *Bottom row*, 24 dp from the bottom, everything bottom-aligned. In the middle of the screen
    the dock: round 56 dp buttons, 24 dp apart: All apps first, then up to six apps the owner
    picks (+ → Add to dock), in their order, then a gear that opens Launcher Settings. Until the
@@ -101,10 +102,11 @@ video → Entertainment, social → Social, anything else or nothing → Utiliti
 moves it, stored as a move only, so moving it back forgets it. An app can be a favorite and in
 a category at once. **B on Home opens the categories layer**: the names stacked on the content
 margin, vertically centered, in heading type, the focused one in the text color and the rest
-muted. Behind it Home zooms out: its art and row at 18% opacity, drawn at 0.94, showing the
+muted (a 150 ms fade as focus moves). Behind it Home zooms out: its art and row at 18% opacity, drawn at 0.94, showing the
 focused category's row from its start, so it previews where A goes; the name, the dock and the
 hints fade out. The layer slides in 1/16 of the screen from the left and fades. A goes in, B goes
-back; a tap on a name goes in, a tap elsewhere goes back.
+back; a tap on a name goes in, a tap elsewhere goes back; a swipe up does nothing while it is
+open.
 
 **All apps.** A full-screen layer that slides up over Home: "All apps" and the count top-left,
 below the status band (as on Home), then an 8-column grid of 96 dp tiles (12 dp corners, 24 dp gaps), each
@@ -166,8 +168,8 @@ no game keeps these as its own (`o` in the `art` preferences): no lookup, shown 
 
 **Focus.** The focused tile or button scales to 1.08 on a spring (Home's carousel tile grows
 to 192 dp by layout instead), with a 3 dp accent ring 3 dp outside its edge whose alpha breathes
-between 100 and 55% over 1.8 s each way (the Switch's tell, at half its first speed; *Focus
-pulse* makes it 0.9 s or still). A carousel tile picked up to move lifts a further 1.14/1.08 by
+between 100 and 55% over 1.8 s each way (the Switch's tell; *Focus pulse* makes it 0.9 s or
+still). A carousel tile picked up to move lifts a further 1.14/1.08 by
 scale, its ring steady.
 
 **Type.** One bundled font, never the system default: **Selawik**, the owner's pick, standing
@@ -185,7 +187,8 @@ made much darker).
 **Backdrop**: *Black* (`#000000`, the whole palette's background, the OLED's off; the owner's
 pick). The others: *Dark* (`#141414`), *Hero glow* (the focused app's hero over the whole of
 Home, decoded at 480 px, blurred 40 dp and dimmed 50% with the background, crossfading with
-focus), and each image in the app's `files/backdrops`, cropped full screen and dimmed 35%. All
+focus), and each image in the app's `files/backdrops` (read again each time the settings
+open), cropped full screen and dimmed 35%. All
 apps keeps the plain background. Surface is the background mixed 8% toward the text; muted text
 is the text at 60%; the rule at 16%. The **accent** is one of eight presets or a custom color. *White* is the text color (so
 `#2D2D2D` in light mode; the owner's pick and the default). The other seven are a hue and chroma
@@ -313,8 +316,9 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
   system dialog and can pick Launcher3 back the same way.
 - **App catalog** (`AppCatalog.kt`). `LauncherApps` lists the launchable activities of every
   profile on a background thread and pushes add/remove/change callbacks, so the screens update
-  without a restart. An `AppEntry` is key (component + user serial), label, component, user and
-  icon. It also picks the dock's utility apps and launches through `startMainActivity`.
+  without a restart. An `AppEntry` is key (component + user serial), label, component, user,
+  whether it is part of the system image, its seed category and its icon. It also picks the
+  dock's utility apps and launches through `startMainActivity`.
 - **Input layer** (`Input.kt`). `dispatchKeyEvent` turns gamepad and keyboard keys into
   `Action`s and swallows both edges of a mapped key; only movement repeats when held. The stick
   and hat arrive as D-pad keys (Android synthesizes them from unhandled joystick motion).
@@ -359,8 +363,6 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
 buttons, the SteamGridDB key, quick settings, screenshots (`docs/screenshots/`, taken on the
 Portal with `adb exec-out screencap`, photos as JPEG 90). License MIT (`LICENSE`).
 
-Planned: the motion pass (`TASKS.md` T6.3).
-
 ## Toolchain
 
 - **Language and UI:** Kotlin 2.4.21, Jetpack Compose (BOM 2026.09.00), activity-compose 1.13.0.
@@ -381,8 +383,8 @@ Planned: the motion pass (`TASKS.md` T6.3).
 ## The device
 
 AYN Odin 2 Portal (`odin2portal`), Snapdragon 8 Gen 2, 7" OLED 1920×1080, running LineageOS on
-Android 17 (build `CP2A.260605.016`) with AYN's settings app (`org.lineageos.settings.ayn`);
-stock Launcher3 is the current Home and the fallback.
+Android 17 (build `CP2A.260605.016`) with AYN's settings app (`org.lineageos.settings.ayn`).
+Portal is its Home app; stock Launcher3 stays installed as the fallback.
 
 - **Natural orientation is landscape** (rotation 0 = 1920×1080); the panel itself is mounted
   portrait (`ro.surface_flinger.primary_display_orientation=ORIENTATION_90`).

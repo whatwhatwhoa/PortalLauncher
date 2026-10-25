@@ -71,6 +71,11 @@ Nothing planned yet: the owner picks a version, a theme and the cards from the f
 - **F16 Search on Y** (2026-10-25): search on Y.
 - **F17 Work-profile badges** (2026-10-25): work-profile badges on tiles.
 
+### Follow-ups
+Not scheduled; a line or two each; an F number when planned.
+- **Focused icons at their scaled size**: the 1.08 focus scale resamples the tile and dock icon,
+  a little soft on the dock (`decisions/M2-skeleton.md` *First device run*).
+
 ### Waiting for data
 - **Odin 3 Portal**: confirm panel size and density when it exists; `Dimens` should cover it.
 

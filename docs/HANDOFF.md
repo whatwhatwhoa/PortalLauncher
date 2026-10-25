@@ -4,21 +4,19 @@ Current state only. **Rewrite this file at the end of every session**: carry for
 open, delete what is resolved, never append history (git and `docs/decisions/` hold it).
 
 **State (2026-10-25):** The launcher **runs on the Portal and is its Home app** (Launcher3 still
-installed). M3–M6 built, M7's quick panel built. New from jim-f6: **eight accents and a
-hue/intensity picker** on A at Settings → Accent (B4.1), and the **motion pass** (T6.3). New
-from jim-7a: the **GitHub page** (T8.1). `README.md` is for users, with 8 screenshots and an
-MIT `LICENSE`. There is a **SteamGridDB key row** in Settings → Art (it reads the clipboard),
-release APKs carry no key, and release signing uses a keystore outside the repo. **The repo stays
-private** (owner). Latest debug build installed, with both; the owner's look: White, System,
-Black, effects on, Covers on tiles On (seen 11:34). No VERIFY walked.
+installed). The foundation (M1–M8) is built; **`TASKS.md` is now the owner's feature board**,
+and **0.1.0 — First public release** is under *Working on*: T8.2 (run the release APK), the
+VERIFY rounds, and the owner's new asks F9 (hero reflection), F10 (starting categories) and B5
+(the dock's settings icon). The decision files are settled (choice, why, status; the what in
+`architecture.md`). The repo stays private (owner). The owner's look: White, System, Black,
+effects on, Covers on tiles On. No VERIFY walked.
 
 ## Next
-1. The owner tries *V-artkey*, *V-accent*, *V-transit*, *V-b3*, *V-quick*, *V-settings-more*,
+1. The first open card or task under *Working on* (0.1.0), or the owner's explicit ask.
+2. The owner tries *V-artkey*, *V-accent*, *V-transit*, *V-b3*, *V-quick*, *V-settings-more*,
    *V-b2*; tune on their asks.
-2. T8.2 before going public: run the release APK once (it can't go over the debug install; see
+3. T8.2 before going public: run the release APK once (it can't go over the debug install; see
    `decisions/M8-release.md` *Left*), then the owner flips the repo public and publishes v0.1.0.
-3. `TASKS.md` is the feature board since 2026-10-25: 0.1.0 under *Working on* holds T8.2, the
-   VERIFY rounds (T2.3, T5.3, T6.5, T7.3), F9, F10 and B5.
 
 ## Waiting on the owner
 - Back up the release keystore `C:\Users\Jim\.android\portallauncher-release.jks` together with
@@ -34,17 +32,18 @@ Black, effects on, Covers on tiles On (seen 11:34). No VERIFY walked.
   (agents can't); until then the build command sets it inline.
 
 ## Uncommitted
-- Everything since e37f8bf: jim-f6's accent picker + motion pass and jim-7a's GitHub page + key
-  row. It builds and lints clean together; jim-f6 meant to commit and push it but ended first.
-  Commit message notes: release APKs carry no SteamGridDB key and are signed from a keystore
-  outside the repo; the release APK builds but has never run on a device.
+- The pre-session work of jim-f6 + jim-7a (git tree 823095d: accent picker, motion pass, GitHub
+  page, key row, release signing). Commit message notes: release APKs carry no SteamGridDB key
+  and are signed from a keystore outside the repo; the release APK builds but has never run.
+- This session's docs: the switch to the feature board, then the settle pass (each a docs-only
+  commit; their trees are in the session's scratchpad `trees.txt`).
+- This session's code: (the main session fills this in).
 
 ## Watch out (this week only)
 - IDs since the board: new cards F18 on (tasks T<n>.k, decisions D<n>.k), owner batches B6 next;
   D<n>.k up to M8 means the milestone.
-- Don't script key presses while the owner is holding the Portal: input mixes (it happened once).
-  `adb shell dumpsys input` *RecentQueue* shows recent input; one of its queues is stale (its
-  ages don't move between two reads), so compare two reads. After any tap, check before A.
+- Don't script key presses while the owner is holding the Portal (`gotchas.md` *Scripted keys
+  mix with the owner's input*). After any tap, check before A.
 - Clear all art and Reset the dock (Launcher Settings) wipe the owner's picks and dock: don't
   press A twice on them while testing.
 - The 2026-10-25 screenshot session left Home on Favorites; the owner had it on Entertainment.

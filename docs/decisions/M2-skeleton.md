@@ -1,19 +1,21 @@
 # M2 — Skeleton: owner's answers, toolchain, icons (2026-10-25)
 
 The owner's answers to the M1 questions, the build versions picked, and the choices made while
-building the first skeleton (carousel, All apps, dock). `architecture.md` holds the result.
+building the first skeleton (carousel, All apps, dock). How it works now: `architecture.md`
+*Look*, *Structure*, *Toolchain*.
+
+Status: accepted 2026-10-25; the skeleton's hand check (*V-skeleton*) is still open.
 
 ## The owner's answers
 - **Q-tile:** square, "because Android icons come in round/square".
 - **Q-abxy:** A is the bottom button (Xbox layout). Android reports it as `BUTTON_A`, so the
   key table maps it straight; a swap stays a one-table change.
 - **Q-accent:** "we can generate an accent palette procedurally, right? Make 3–4 to go through."
-  Done as a hue plus a per-theme OKLCH lightness (below); four hues to try on the device.
-- **Q-font:** asked back, not answered. All three candidates are bundled and the owner flips
-  through them on the device (X on Home); the loser fonts are dropped at sign-off.
-  Answered 2026-10-25: Selawik (`M3-home.md`); Inter, Nunito Sans and Manrope dropped, X went
-  to the backdrop trial.
-- **Q-sgdb:** not now; the scope is replacing the Android launcher. Covers move to *Later*.
+  Done as a hue plus a per-theme OKLCH lightness; the presets since: `M6-settings.md` *Accents*.
+- **Q-font:** asked back, not answered; the candidates went to an on-device trial.
+  Answered 2026-10-25: Selawik (`M3-home.md`); Inter, Nunito Sans and Manrope dropped.
+- **Q-sgdb:** not now; the scope is replacing the Android launcher. Covers move to *Later*
+  (since done: `M4-art.md`).
 - **Q-cocoon:** "the other launchers are ass"; not tried, not wanted.
 - **Q-commit:** commit and push to the owner's GitHub (`whatwhatwhoa`), private for now.
 - New asks: SVG (vector) for everything, raster only when unavoidable; spacing consistent on a
@@ -47,40 +49,30 @@ we can't regenerate them. What we control is how they are drawn:
   bounds after recording, so one drawable shared by two sizes would draw both at the last size.
 
 ## Other choices
-- **Accent from OKLCH.** An accent is a hue; lightness is 0.80 on dark, 0.60 on light, chroma
-  0.15 lowered until it fits sRGB. Same hue reads equally on both backgrounds, and the light
-  theme's title stays legible (a fixed `#19C3E6` is too pale on `#EBEBEB`). Hues: Cyan 215,
-  Coral 28, Lime 135, Violet 300.
+- **Accent from OKLCH.** An accent is a hue at a fixed lightness per theme, chroma lowered
+  until it fits sRGB: the same hue reads equally on both backgrounds, and the light theme's
+  title stays legible (a fixed `#19C3E6` is too pale on `#EBEBEB`). The trial's hues (Cyan 215,
+  Coral 28, Lime 135, Violet 300) and light lightness 0.60 were replaced (`M6-settings.md`).
 - **Spacing scale** 4/8/12/16/24/32/48 dp; every gap in the code is one of these.
 - **Dock = All apps + utility apps** (Settings, Files, Play Store, default browser, whichever
   exist), drawn as round icons. The earlier plan of system-function buttons (Notifications,
   Power) gives way to the owner's "bottom row of utilities/general apps".
-- **Favorites:** X in All apps toggles one; the carousel shows them in the order added. Until
-  the first favorite exists it shows every app not in the dock, so it is never empty.
-- **SharedPreferences, not DataStore**, for now: four small values read once at start; no
-  flows needed. Revisit if settings grow.
+- **Favorites:** X in All apps toggles one. The skeleton's fallback (every app not in the dock
+  until the first favorite exists) went with categories (`M5-categories.md` *Built*).
+- **SharedPreferences, not DataStore**: small values read once at start; no flows needed.
+  Revisit if settings grow.
 - **No motion handling for the stick.** Android turns unhandled joystick and hat motion into
   D-pad key events with repeat, so the key table covers both.
-- **Tuning keys are temporary:** − (Select) cycles the accent and X the font on Home, with the
-  current choice shown in the hint bar, until the owner picks.
 
 ## First device run (2026-10-25)
-Installed on the Portal over adb; it ran first time, no crash. The owner chose Portal in the
-Home-role dialog. The agent then drove it with `adb shell input keyevent` (keyboard-source
-keys, not the real controller) and 1:1 screenshots:
-- **Worked as built:** the dialog; the Home layout; row movement, L1 (five), L2 (start); down
-  to the dock with its label, up again; A opening a dock app and Home coming back with focus at
-  the row's start; Y into All apps, the 8-column grid, X marking favorites (accent dot, hint
-  turns to *Unfavorite*), B back to a carousel of only the favorites; − and X cycling accent
-  and font; favorites, accent and font surviving a reinstall. 21 apps on the device.
-- **Fixed:** every text style rendered at the font file's default weight. Two of the three
-  trial fonts default to 200, so Nunito Sans and Manrope looked thin and the trial was unfair
-  (`gotchas.md` *Variable fonts*).
+Ran first time on the Portal over adb, no crash; the owner chose Portal in the Home-role dialog.
+Driven with `adb shell input keyevent` (keyboard-source keys, not the real controller) and 1:1
+screenshots. What it found:
+- Every text style rendered at the font file's default weight (`gotchas.md` *Variable fonts*).
 - **Crispness:** unfocused tiles and dock buttons have one-pixel edges at 1:1. The focused
   tile and dock button are a little softer, because the 1.08 scale resamples them; it shows
-  most on the small dock buttons. To look at in tuning (drawing the focused icon at its scaled
+  most on the small dock buttons (a follow-up on the board: draw the focused icon at its scaled
   size instead of scaling the layer).
 - **Tuning seen, not changed:** at 1.08 plus the ring, the focused tile leaves only about 8 px
   to the next tile; in All apps the ring touches the label below; the previous tile peeks into
-  the 48 dp left margin. The first key after a tap was once dropped (not seen again).
-- The owner's state was put back afterwards: no favorites, Cyan, Inter.
+  the 48 dp left margin.

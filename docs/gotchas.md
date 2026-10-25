@@ -74,6 +74,14 @@ before the activity sees it), so `dispatchKeyEvent` can't catch it. Since 2026-1
 leaves touch mode as each touch ends (`requestFocusFromTouch`, `MainActivity.dispatchTouchEvent`),
 so the press counts; other apps (the photo picker, Android's settings) still swallow one.
 
+### Scripted keys mix with the owner's input
+The Portal is the owner's daily device and they often hold it while an agent works. Keys sent
+with `adb shell input` then land between theirs (it happened in two sessions on 2026-10-25: a
+move test, and a stray key that opened Crunchyroll). Before each scripted key, check that the
+input is quiet: `adb shell dumpsys input` *RecentQueue* lists recent events, and one of its
+queues is stale (its ages don't move between two reads), so compare two reads; the youngest
+event must be older than our own last key. Stop when it isn't.
+
 ### Pull app files with `adb exec-out`, not `adb shell`
 `adb shell run-as … cat` goes through a terminal that turns every LF into CRLF, so a preferences
 file pulled that way no longer matches; `adb exec-out run-as … cat` gives the bytes. To put one
