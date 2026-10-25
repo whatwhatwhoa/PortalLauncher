@@ -71,6 +71,18 @@
                 android:resource="@xml/home_hold_service" />
         </service>
 
+        <!-- The quick panel's seek bar (MediaListener); off until turned on in Android's
+             notification access. Bound only by the system. -->
+        <service
+            android:name=".MediaListener"
+            android:exported="true"
+            android:label="@string/media_listener_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <!-- The package installer's answer to an update (Updates.install). -->
         <receiver
             android:name=".UpdateReceiver"

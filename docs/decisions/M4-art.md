@@ -140,7 +140,7 @@ Status: built (*T4.3 Home layout v2*, *Backdrop and the dead space*).
   Portal in the app's `files/backdrops`.
 
 ## Art choices (owner, 2026-10-25)
-Status: as built 2026-10-25, owner to confirm (*V-art-choice*, *V-art-source*).
+Status: as built 2026-10-25, owner to confirm (*V-art-preview*; reached from the preview since D23.1, `0.3.0.md`).
 The owner wants every piece of art choosable, not only the game match.
 - **SteamGridDB grids (T4.6):** covers and heroes as a grid, not a strip: three square covers
   fit the 296 dp panel at about 93 dp, and a grid moves on all four directions like the drawer.

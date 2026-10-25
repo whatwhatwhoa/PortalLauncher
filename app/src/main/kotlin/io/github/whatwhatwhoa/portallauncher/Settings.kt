@@ -52,7 +52,6 @@ enum class Setting(val group: SettingGroup, val label: String, val acts: Boolean
     Theme(SettingGroup.Look, "Theme"),
     Accent(SettingGroup.Look, "Accent"),
     Backdrop(SettingGroup.Look, "Backdrop"),
-    Scenes(SettingGroup.Look, "Scenes"),
     Covers(SettingGroup.Look, "Covers on tiles"),
     Gradient(SettingGroup.Look, "Background gradient"),
     Glow(SettingGroup.Look, "Focus glow"),
@@ -86,7 +85,6 @@ fun LookSettings.step(setting: Setting, by: Int, backdrops: List<Backdrop>): Loo
         val i = backdrops.indexOfFirst { it.id == backdrop }.coerceAtLeast(0)
         copy(backdrop = backdrops[Math.floorMod(i + by, backdrops.size)].id)
     }
-    Setting.Scenes -> copy(scenes = !scenes)
     Setting.Covers -> copy(covers = !covers)
     Setting.Gradient -> copy(effects = effects.copy(gradient = !effects.gradient))
     Setting.Glow -> copy(effects = effects.copy(glow = !effects.glow))
@@ -118,7 +116,6 @@ private fun LauncherState.shown(setting: Setting): String {
         Setting.Theme -> look.theme.label
         Setting.Accent -> look.accent.label
         Setting.Backdrop -> backdrop.label
-        Setting.Scenes -> onOff(look.scenes)
         Setting.Covers -> onOff(look.covers)
         Setting.Gradient -> onOff(look.effects.gradient)
         Setting.Glow -> onOff(look.effects.glow)

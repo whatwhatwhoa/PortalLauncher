@@ -94,7 +94,10 @@ object Dimens {
     val sheetTop = Space.xxxl + Space.xxl
     val sheetIcon = 64.dp
     val sheetRow = 48.dp
-    val artPreview = 96.dp
+    // Art… widens the panel to about half the screen (owner: "feel free to expand"), so the
+    // preview and the grids are big enough to judge art by.
+    val artSheet = 600.dp
+    val artPreview = 120.dp
 
     // The effects (each can be switched off in Settings). The focus glow: a blur this wide outside
     // the ring, at this share of the accent, breathing with it.
@@ -227,7 +230,6 @@ data class LookSettings(
     val accent: Accent = Accent.White,
     /** A [Backdrop.id]; a wallpaper whose file has gone falls back to Black. */
     val backdrop: String = Backdrop.Black.id,
-    val scenes: Boolean = true,
     val covers: Boolean = true,
     val effects: Effects = Effects(),
     val pulse: Pulse = Pulse.Slow,

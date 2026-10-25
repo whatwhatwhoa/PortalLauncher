@@ -223,7 +223,6 @@ class Prefs(context: Context) {
                 theme = named("look.theme", d.theme),
                 accent = Accent.of(sp.getString("look.accent", null)) ?: d.accent,
                 backdrop = sp.getString("look.backdrop", null) ?: d.backdrop,
-                scenes = sp.getBoolean("look.scenes", d.scenes),
                 covers = sp.getBoolean("look.covers", d.covers),
                 effects = Effects(
                     gradient = sp.getBoolean("look.gradient", d.effects.gradient),
@@ -238,7 +237,6 @@ class Prefs(context: Context) {
             putString("look.theme", value.theme.name)
             putString("look.accent", value.accent.id)
             putString("look.backdrop", value.backdrop)
-            putBoolean("look.scenes", value.scenes)
             putBoolean("look.covers", value.covers)
             putBoolean("look.gradient", value.effects.gradient)
             putBoolean("look.glow", value.effects.glow)

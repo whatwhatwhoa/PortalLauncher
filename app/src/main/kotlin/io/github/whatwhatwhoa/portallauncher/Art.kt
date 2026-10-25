@@ -67,8 +67,9 @@ enum class ArtKind(val suffix: String) { Cover("cover"), Hero("hero"), Scene("sc
  * app's files and never upscaled (only sizes at least as big as they are shown are asked for).
  * Favorites and apps Android marks as games are looked up by their label and taken only on a
  * close match; anything else waits for the owner (+ → Art…). A matched game also gets a scene
- * from Steam when it is sold there; anything else keeps the hero band. Lookups need the owner's
- * own SteamGridDB [key] (Launcher Settings → Art); without one, only gallery images work.
+ * from Steam when it is sold there, which Home shows only once the owner chooses it. Lookups
+ * need the owner's own SteamGridDB [key] (Launcher Settings → Art); without one, only gallery
+ * images work.
  */
 class Art(context: Context, private val scope: CoroutineScope, key: String) {
     var key by mutableStateOf(key)
@@ -173,7 +174,7 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
             if (before != match.gameId) {
                 sceneFile(pkg).delete()
                 scenes.edit { remove(pkg); remove("$pkg.url") }
-                picks.edit { remove(pickKey(pkg, ArtKind.Scene)) }
+                picks.edit { remove(pickKey(pkg, ArtKind.Scene)); remove(wideKey(pkg)) }
                 // A new game (or the same one again after Use the app's icon) is looked for afresh,
                 // even if this start already looked for the old one.
                 sceneLooked.remove(pkg)
@@ -192,7 +193,7 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
     fun useIcon(pkg: String) {
         ArtKind.entries.forEach { File(dir, "$pkg.${it.suffix}").delete() }
         scenes.edit { remove(pkg); remove("$pkg.url") }
-        picks.edit { ArtKind.entries.forEach { remove(pickKey(pkg, it)) } }
+        picks.edit { ArtKind.entries.forEach { remove(pickKey(pkg, it)) }; remove(wideKey(pkg)) }
         save(pkg, ArtRecord.Icon)
     }
 
@@ -305,6 +306,25 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
     private class TooSmall(val w: Int, val h: Int) : RuntimeException()
 
     /**
+     * What fills Home behind [pkg]: its scene or its hero, never both (owner, F24). A scene only when
+     * the owner chose it in Art…, or when there is no hero (a game SteamGridDB has none for, a scene
+     * from the gallery); otherwise SteamGridDB's first hero (owner, 0.3.0).
+     */
+    fun wide(pkg: String): ArtKind {
+        revision(pkg)
+        val hasScene = file(pkg, ArtKind.Scene) != null
+        val sceneChosen = picks.getString(wideKey(pkg), null) == ArtKind.Scene.suffix
+        val hasHero = file(pkg, ArtKind.Hero) != null
+        return if (hasScene && (sceneChosen || !hasHero)) ArtKind.Scene else ArtKind.Hero
+    }
+
+    /** Makes [kind] (the hero or the scene) what fills Home behind [pkg]. */
+    fun useWide(pkg: String, kind: ArtKind) {
+        picks.edit { putString(wideKey(pkg), kind.suffix) }
+        revisions[pkg] = revision(pkg) + 1
+    }
+
+    /**
      * The url of the image picked for [pkg]'s [kind] slot; null when it is the automatic one. Reads
      * the revision first, so a composable showing the pick redraws when it changes.
      */
@@ -328,6 +348,7 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
     }
 
     private fun pickKey(pkg: String, kind: ArtKind) = "$pkg.${kind.suffix}"
+    private fun wideKey(pkg: String) = "$pkg.wide"
 
     private fun sceneFile(pkg: String) = File(dir, "$pkg.${ArtKind.Scene.suffix}")
 

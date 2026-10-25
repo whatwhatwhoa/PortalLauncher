@@ -3,7 +3,7 @@
 One line per entry, newest at the bottom. The entry holds the why; `architecture.md` holds the
 what. IDs: D<n>.k is milestone n up to M8, card F<n> from F9 on (`TASKS.md`, the feature board,
 since 2026-10-25); a big card's file is `F<n>-<slug>.md`, a release's small ones go in
-`<version>.md`. Owner batches are B<n>, B6 next. Every entry carries a `Status:` line; settled
+`<version>.md`. Owner batches are B<n>, B7 next. Every entry carries a `Status:` line; settled
 2026-10-25 (the stories cut back to choice and why, the what moved to `architecture.md`).
 
 - `M1-design.md` (2026-10-25) — concept review: Switch 2 mock-up anatomy, flat Switch theme for
@@ -48,3 +48,9 @@ since 2026-10-25); a big card's file is `F<n>-<slug>.md`, a release's small ones
   (consistency, ours to ship), 12 sounds in one key, three families (Soft the default), on at
   Low, silent in Do Not Disturb (D22.1); all families loaded, media stream, sounds read from
   state before and after each action (D22.2).
+- `0.3.0.md` (2026-10-25) — 0.3.0's small cards: art chosen from the Art… page's preview
+  (D23.1: Up selects it, the menu rows gone, gallery as a grid tile, the focused thumbnail shown
+  in place, the panel wider, Hero/Scene tabs between bumper glyphs; not yet tried); hero or
+  scene per app (D24.1: the Scenes setting gone, the glow no longer behind a scene; not yet tried;
+  the hero by default, B6.1); the quick panel's player row (D21.1: L1/R1 skip, a seek bar on notification access; the seek
+  bar not yet tried).

@@ -81,24 +81,32 @@ Network is allowed for the launcher, and the favorites' art is downloaded.
 - [ ] Light mode: the vignette fades to the light background, the name still reads.
 - [ ] Animations off: the hero, tile growth and lift all snap.
 
-## V-art-choice (built 2026-10-25)
-The agent drove NTE's grids over adb once and put its first cover back; needs the owner's eye.
-- [ ] + → Art… on NTE: *Choose the cover…* and *Choose the hero…* above the matches; A on
-      either opens a grid of thumbnails with "n of N" above and a dot on the one in use.
-- [ ] Move with the D-pad; A on another cover: "Fetching…", then the preview and the Home tile
-      change; B goes back to the rows, B again to the options.
-- [ ] After a restart the pick is still dotted. Thumbnails look clean enough to choose from.
-- [ ] Choosing another game (or the icon) and back starts from that game's own first images.
-
-## V-art-source (built 2026-10-25)
-The agent drove these over adb with two pushed test images (removed after); needs the owner.
-- [ ] + → Art… on NTE: *Choose the scene…* shows Steam screenshots two across; A on one fills
-      Home behind the sheet with it; the shot in use has the dot.
-- [ ] *Cover from the gallery…* on an app with no art (Browser): Android's photo picker opens
-      and the controller can drive it; the chosen photo becomes the tile, cropped square.
-- [ ] *Scene from the gallery…*: a wide photo fills Home behind that app, cropped 16:9, crisp.
+## V-art-preview (F23, F24, built 2026-10-25; replaces the grid checks of 2026-10-25)
+Installed, not driven over adb (the owner was using the Portal). The choice and gallery code
+underneath is the one checked over adb before; what is new is how it is reached.
+- [ ] + → Art… on NTE: the matches start focused; Up from the first one rings the cover in the
+      preview; Right moves the ring to the wide strip, Left back, Down back to the matches.
+- [ ] A on the cover: a grid, *Gallery…* first, "n of N" above, a dot on the one in use, focus
+      on it. Moving shows each thumbnail in the preview's cover; its ring stays still.
+- [ ] A on another cover: "Fetching…", then the preview and the Home tile keep it; B goes back
+      to the preview (cover still ringed), B again to the options.
+- [ ] The panel slides out to about half the screen on Art… and back on B; the preview and
+      grids read big enough (covers four across, scenes three, heroes two).
+- [ ] A on the strip: tabs *Hero* and *Scene* between drawn L1 and R1 bumpers, the one Home
+      shows dotted and open; R1/L1 turn tabs and the preview's strip takes that shape.
+- [ ] F24: A on a hero: Home behind NTE turns to the hero band with its reflection, no scene,
+      and Hero glow (if the backdrop) shows; A on a scene: the scene, no reflection, no glow.
+      A on the already-dotted image of the other tab switches without a download.
+- [ ] Launcher Settings → Look has no *Scenes* row any more.
+- [ ] B6.1: a game newly matched (Art… → another match, or *Use the app's icon* then the game
+      again) shows its hero on Home, not its scene; the strip opens on the *Hero* tab.
+- [ ] *Gallery…* on Browser's cover (no game): caption "No game matched…", the photo picker
+      opens, the chosen photo becomes the tile, cropped square; the same on the strip for a scene.
 - [ ] A small image (a screenshot crop, an icon) is refused with "Too small: …" and nothing
       changes; *Use the app's icon* clears both.
+- [ ] Touch: a tap on the cover or the strip opens its grid; a tap on a thumbnail takes it.
+- [ ] After a restart the pick is still dotted. Choosing another game (or the icon) and back
+      starts from that game's own first images.
 
 ## V-categories (built 2026-10-25)
 The agent drove these over adb once (layer, Category… move and back, Home key both ways); they
@@ -131,7 +139,7 @@ All three are on; + → Launcher settings… switches each off and on to compare
       list scrolls to Focus pulse and back, its ring never cut off.
 - [ ] Each accent recolors ring, glow, name and battery fill at once; Theme Light/Dark
       overrides Android's; Backdrop cycles Black, Dark, Hero glow, then the trial wallpapers.
-- [ ] Scenes off: Home shows the hero band instead; Covers off: icons on the Home tiles.
+- [ ] Covers off: icons on the Home tiles.
 - [ ] Focus pulse Off: the ring holds still; Normal: twice as fast.
 - [ ] Android Settings → Apps → Default apps → Home app: the gear beside Portal opens the panel.
 - [ ] Restart the launcher (or the Portal): every choice is kept.
@@ -152,6 +160,21 @@ All three are on; + → Launcher settings… switches each off and on to compare
       is the utility apps again (skip if you like your dock).
 - [ ] Home app reads Portal; A opens Default apps (B back). Android settings opens Settings.
 
+## V-quick-media (F21, built 2026-10-25)
+Seen on the Portal (2026-10-25): the one line with the grant on and music playing, "Endless
+Night · Dreamcatcher" over 0:43 / 3:18, focus on Brightness. Keys not driven over adb.
+- [ ] − opens the panel on Brightness; a faint line above it; the player on one line at the top:
+      L1 ⏮ ⏯ ⏭ R1 and a small *Enable seek* at the right end. Up reaches ⏮; the line below
+      names the focused one. The toggles row is two buttons now.
+- [ ] Right to *Enable seek*, A: Android's notification access for Portal; switch it on, B back:
+      with music playing, title · artist over the time in, the bar moving and the length. Left/Right on the bar seek 10 s (held repeats), Down leaves it, a
+      tap on the bar jumps there.
+- [ ] With music playing in an app (YouTube, a player): A on ⏭ skips, ⏮ goes back; A on ⏯
+      pauses and the button empties, again plays and it fills with the pause icon.
+- [ ] With focus on Brightness or Volume, R1 skips and L1 goes back; focus stays put; a soft
+      select sound each time (sounds on).
+- [ ] *Button hints* off in Launcher Settings: the bumpers are gone, L1/R1 still skip.
+
 ## V-quick (built 2026-10-25)
 - [ ] − (the square) on Home and in All apps drops the panel from the top; B or − closes it, a
       tap outside too, the Home key too.
@@ -163,7 +186,6 @@ All three are on; + → Launcher settings… switches each off and on to compare
       shows next time the panel opens.
 - [ ] Auto brightness toggles (filled when on). Do not disturb: the first A opens *Do Not
       Disturb access*; after granting, A toggles it (the status bar's DND icon agrees).
-- [ ] Play / pause: with music paused in an app, A plays it and the button fills; A again pauses.
 - [ ] Wi-Fi, Bluetooth, Battery, AYN and Android settings each open their page; B comes back to
       the panel still open.
 
@@ -217,7 +239,7 @@ All three are on; + → Launcher settings… switches each off and on to compare
 - [ ] The darker reflection (about 40% instead of 62%): dark enough now, still visible?
 
 ## V-gap (F20, built 2026-10-25)
-On Home, focus an app with a hero but no scene (Covers or Scenes off, or a game without a scene).
+On Home, focus an app with a hero but no scene (set to Hero in Art…, or a game without a scene).
 - [ ] A clear gap between the hero's foot and the reflection, like the sketch; the reflection's
       top is soft, not a hard line; it is gone before the dock.
 

@@ -110,7 +110,7 @@ fun HomeScreen(state: LauncherState) {
             },
         ) {
             BackdropLayer(state.backdrop, state.art, current)
-            Hero(state.art, current, scenes = state.look.scenes)
+            Hero(state.art, current)
             Carousel(state, Modifier.offset(y = rowTop))
         }
         Column(Modifier.fillMaxSize().graphicsLayer { alpha = 1f - ghost }) {
@@ -181,7 +181,9 @@ private fun BackdropLayer(backdrop: Backdrop, art: Art?, app: AppEntry?) {
         },
     ) {
         val image = when (backdrop) {
-            Backdrop.Glow -> app?.let { rememberArt(art, it.component.packageName, ArtKind.Hero, GLOW_PX) }
+            // Under an app that shows its scene there is no hero to glow: one image per app.
+            Backdrop.Glow -> app?.component?.packageName?.takeIf { art?.wide(it) == ArtKind.Hero }
+                ?.let { rememberArt(art, it, ArtKind.Hero, GLOW_PX) }
             is Backdrop.Wallpaper -> rememberImage(backdrop.file, constraints.maxWidth)
             else -> null
         }
@@ -204,17 +206,18 @@ private fun BackdropLayer(backdrop: Backdrop, art: Art?, app: AppEntry?) {
 
 /**
  * The row's current app's art behind Home: its scene over the whole screen under a heavy
- * vignette if it has one (and [scenes] are on), else its hero in the top band under a soft one.
- * Stays on the row's app while the dock has focus; neither leaves the backdrop.
+ * vignette, or its hero in the top band under a soft one, whichever the app uses (Art.wide);
+ * never both, so the hero's reflection never lies under a scene. Stays on the row's app while
+ * the dock has focus; neither leaves the backdrop.
  */
 @Composable
-private fun Hero(art: Art?, app: AppEntry?, scenes: Boolean) {
+private fun Hero(art: Art?, app: AppEntry?) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // rememberArt keeps the last image while the next decodes, so the crossfade has no gap.
         val pkg = app?.component?.packageName
-        val scene = pkg?.takeIf { scenes }?.let { rememberArt(art, it, ArtKind.Scene, constraints.maxWidth) }
-        val hero = pkg?.let { rememberArt(art, it, ArtKind.Hero, constraints.maxWidth) }
-        val shown = scene?.let { Shown(it, full = true) } ?: hero?.let { Shown(it, full = false) }
+        val kind = pkg?.let { art?.wide(it) }
+        val image = kind?.let { rememberArt(art, pkg, it, constraints.maxWidth) }
+        val shown = image?.let { Shown(it, full = kind == ArtKind.Scene) }
         Crossfade(shown, animationSpec = if (LocalMotion.current) tween(HERO_FADE) else snap(), label = "hero") {
             when {
                 it == null -> Unit

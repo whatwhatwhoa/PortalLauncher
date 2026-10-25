@@ -54,5 +54,9 @@ How it works: `architecture.md` *Sounds*. The choices, against the plan above:
   is about perfect, but the moving through the UI is tiny soft, so another 30%": move and
   edge 2.3 dB more (-24.2), the rest unchanged. "It just doesn't feel louder, try doubling
   it": twice that again, 6 dB (-18.2), as loud as select.
+- **The families share every level change**: `EVENTS` sets one loudness per sound and each
+  family is mastered to it, so Glass and Crisp got the move/edge raises too; measured on the
+  shipped WAVs 2026-10-25 (owner asked): every sound within 0.8 dB across the three. Trimming
+  to Soft alone was offered if the others ever needed separate tuning; they don't.
 - **Left out for now**: touch taps (only a launch sounds), typing, coming back from an app.
   Asked of the owner.

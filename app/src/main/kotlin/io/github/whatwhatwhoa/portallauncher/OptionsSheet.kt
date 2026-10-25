@@ -5,6 +5,8 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +29,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,13 +41,19 @@ import androidx.compose.ui.text.style.TextOverflow
 
 /**
  * What + opens on a tile: a panel from the right edge over a dimmed screen, the app at the top
- * and its options below. Up and down move, A chooses, B or + closes; a tap outside closes too.
+ * and its options below; Art… widens it to about half the screen. Up and down move, A chooses, B or + closes; a tap outside closes too.
  */
 @Composable
 fun AnimatedVisibilityScope.OptionsSheet(state: LauncherState, sheet: Sheet) {
     val p = LocalPalette.current
     val t = LocalType.current
     val corner = RoundedCornerShape(Space.m)
+    // Art… widens the panel leftward; the options keep their narrow one.
+    val width by animateDpAsState(
+        if (state.picker != null) Dimens.artSheet else Dimens.sheet,
+        if (LocalMotion.current) Transit.enter() else snap(),
+        label = "sheetWidth",
+    )
     Box(
         Modifier.fillMaxSize()
             .background(p.background.copy(alpha = SCRIM))
@@ -57,7 +66,7 @@ fun AnimatedVisibilityScope.OptionsSheet(state: LauncherState, sheet: Sheet) {
                     exit = if (LocalMotion.current) slideOutHorizontally(Transit.exit()) { it / 8 } else ExitTransition.None,
                 )
                 .fillMaxHeight()
-                .width(Dimens.sheet)
+                .width(width)
                 .background(p.surface)
                 // Taps on the panel itself must not reach the scrim behind it.
                 .clickable(interactionSource = null, indication = null) {}
@@ -67,7 +76,7 @@ fun AnimatedVisibilityScope.OptionsSheet(state: LauncherState, sheet: Sheet) {
             if (picker != null && state.art != null) {
                 BasicText(sheet.app.label, style = t.title.copy(color = p.text), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(Space.m))
-                ArtPreview(sheet.app, state.art)
+                ArtPreview(picker, state.art)
                 Spacer(Modifier.height(Space.xl))
                 ArtPage(picker)
                 Spacer(Modifier.height(Space.l))

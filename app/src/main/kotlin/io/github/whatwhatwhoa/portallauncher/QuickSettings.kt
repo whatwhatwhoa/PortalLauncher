@@ -5,6 +5,10 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
+import android.media.MediaMetadata
+import android.media.session.MediaController
+import android.media.session.MediaSessionManager
+import android.media.session.PlaybackState
 import android.os.SystemClock
 import android.provider.Settings
 import android.view.KeyEvent
@@ -32,6 +36,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -44,20 +49,40 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import kotlinx.coroutines.delay
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
+/** What a player says it is playing, read with notification access (F21). */
+data class NowPlaying(
+    val title: String?,
+    val artist: String?,
+    val positionMs: Long,
+    val durationMs: Long,
+    val seekable: Boolean,
+) {
+    val fraction get() = if (durationMs > 0) positionMs.toFloat() / durationMs else 0f
+}
+
 /**
  * The device's everyday controls, read from and written to Android (`decisions/M7-quick-settings.md`).
- * Brightness and Do not disturb need a one-time grant each, asked for from the panel when first
- * used; volume and the media key need none.
+ * Brightness, Do not disturb and the seek bar need a one-time grant each, asked for from the panel
+ * when first used; volume and the media keys need none.
  */
 class DeviceControls(private val context: Context) {
     private val audio = context.getSystemService(AudioManager::class.java)
     private val notifications = context.getSystemService(NotificationManager::class.java)
     private val resolver = context.contentResolver
+    private val sessions = context.getSystemService(MediaSessionManager::class.java)
+    private val listener = ComponentName(context, MediaListener::class.java)
 
     /** The brightness slider, 0..1: the raw 0..255 through [GAMMA], so each step looks alike. */
     var brightness by mutableFloatStateOf(0f)
@@ -76,6 +101,11 @@ class DeviceControls(private val context: Context) {
         private set
     var canQuiet by mutableStateOf(false)
         private set
+    /** Notification access, which the seek bar needs (MediaListener). */
+    var canSeeMedia by mutableStateOf(false)
+        private set
+    var nowPlaying by mutableStateOf<NowPlaying?>(null)
+        private set
 
     /** Everything again: the values change outside the launcher (the pull-down, the volume keys). */
     fun read() {
@@ -88,6 +118,57 @@ class DeviceControls(private val context: Context) {
         playing = audio.isMusicActive
         canWrite = Settings.System.canWrite(context)
         canQuiet = notifications.isNotificationPolicyAccessGranted
+        readMedia()
+    }
+
+    /** The track and how far in: often, while the panel is open, as it plays on. */
+    fun readMedia() {
+        canSeeMedia = notifications.isNotificationListenerAccessGranted(listener)
+        val player = player()
+        val state = player?.playbackState
+        val duration = player?.metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
+        nowPlaying = state?.let {
+            // A player reports where it was at a moment, not where it is now.
+            val running = if (it.state == PlaybackState.STATE_PLAYING) {
+                ((SystemClock.elapsedRealtime() - it.lastPositionUpdateTime) * it.playbackSpeed).toLong()
+            } else {
+                0L
+            }
+            NowPlaying(
+                title = player.metadata?.getString(MediaMetadata.METADATA_KEY_TITLE),
+                artist = player.metadata?.let { m ->
+                    m.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: m.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
+                },
+                positionMs = (it.position + running).coerceIn(0L, duration.coerceAtLeast(0L)),
+                durationMs = duration,
+                seekable = duration > 0 && it.actions and PlaybackState.ACTION_SEEK_TO != 0L,
+            )
+        }
+        if (state != null) playing = state.state == PlaybackState.STATE_PLAYING
+    }
+
+    /** One step of the seek bar, [by] milliseconds; shown at once, the player catches up. */
+    fun seekBy(by: Long) {
+        val now = nowPlaying ?: return
+        seekTo((now.positionMs + by).toFloat() / now.durationMs.coerceAtLeast(1))
+    }
+
+    fun seekTo(fraction: Float) {
+        val now = nowPlaying?.takeIf { it.seekable } ?: return
+        val to = (now.durationMs * fraction.coerceIn(0f, 1f)).toLong()
+        val player = player() ?: return
+        player.transportControls.seekTo(to)
+        nowPlaying = now.copy(positionMs = to)
+    }
+
+    // The most recently active session that says where it is; none without notification access.
+    private fun player(): MediaController? {
+        if (!canSeeMedia) return null
+        return try {
+            sessions.getActiveSessions(listener).firstOrNull { it.playbackState != null }
+        } catch (e: SecurityException) {
+            null
+        }
     }
 
     /** One step of the slider; moving it by hand turns auto-brightness off, as the pull-down does. */
@@ -125,11 +206,14 @@ class DeviceControls(private val context: Context) {
         read()
     }
 
-    /** Play/pause to whatever app last played; whether it plays now shows a moment later. */
-    fun playPause() {
+    /**
+     * [media]'s key to whatever app last played, as a headset's buttons do; whether it plays now
+     * shows a moment later.
+     */
+    fun press(media: QuickMedia) {
         val now = SystemClock.uptimeMillis()
-        audio.dispatchMediaKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0))
-        audio.dispatchMediaKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, 0))
+        audio.dispatchMediaKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, media.key, 0))
+        audio.dispatchMediaKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, media.key, 0))
     }
 
     private companion object {
@@ -139,13 +223,25 @@ class DeviceControls(private val context: Context) {
     }
 }
 
-/** The panel's rows, top to bottom; the last two are rows of buttons. */
-enum class QuickRow { Brightness, Volume, Toggles, Links }
+/**
+ * The panel's rows, top to bottom: the player on one line (its buttons, then the seek bar as the
+ * row's last stop), a hairline, then the settings. It opens on Brightness.
+ */
+enum class QuickRow { Media, Brightness, Volume, Toggles, Links }
+
+/** The player row's column for the seek bar, after its buttons. */
+val SEEK_COLUMN = QuickMedia.entries.size
+
+/** The player's buttons (owner, F21); L1 and R1 skip from anywhere in the panel. */
+enum class QuickMedia(val label: String, @DrawableRes val icon: Int, val key: Int) {
+    Previous("Previous track", R.drawable.ic_sym_skip_previous, KeyEvent.KEYCODE_MEDIA_PREVIOUS),
+    PlayPause("Play / pause", R.drawable.ic_sym_play, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE),
+    Next("Next track", R.drawable.ic_sym_skip_next, KeyEvent.KEYCODE_MEDIA_NEXT),
+}
 
 enum class QuickToggle(val label: String, @DrawableRes val icon: Int) {
     AutoBrightness("Auto brightness", R.drawable.ic_sym_auto_brightness),
     Quiet("Do not disturb", R.drawable.ic_sym_dnd),
-    Media("Play / pause", R.drawable.ic_sym_play),
 }
 
 /** Shortcuts to the system's own pages, for what a launcher may not change itself. */
@@ -165,12 +261,19 @@ fun writeSettingsGrant() = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, "packag
 
 fun quietGrant() = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
 
+/** The launcher's own switch in Android's notification access, for the seek bar. */
+fun mediaGrant() = Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS).putExtra(
+    Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME,
+    ComponentName(BuildConfig.APPLICATION_ID, MediaListener::class.java.name).flattenToString(),
+)
+
 /**
  * The quick panel, from the top like the pull-down, over Home dimmed as the options sheet dims
- * it: brightness and volume sliders, then toggles, then shortcuts, each an icon as in Android's
- * own panel (owner, 2026-10-25); the focused one is named on the line below. Up and down move
- * between rows, left and right change a slider or move along a row, A toggles or opens, B or −
- * closes.
+ * it: the player on one line at its top edge (buttons, then the seek bar), a hairline, then
+ * brightness and volume sliders, toggles and shortcuts, each an icon as in Android's own panel
+ * (owner, 2026-10-25); the focused one is named on the line below. Up and down move between rows,
+ * left and right change a slider or move along a row (on the seek bar they seek), A toggles or
+ * opens, L1 and R1 skip tracks, B or − closes.
  */
 @Composable
 fun AnimatedVisibilityScope.QuickPanel(state: LauncherState) {
@@ -178,6 +281,12 @@ fun AnimatedVisibilityScope.QuickPanel(state: LauncherState) {
     val t = LocalType.current
     val motion = LocalMotion.current
     val controls = state.controls
+    LaunchedEffect(Unit) {
+        while (true) {
+            controls.readMedia()
+            delay(MEDIA_TICK)
+        }
+    }
     Box(
         Modifier.fillMaxSize()
             .background(p.background.copy(alpha = SCRIM))
@@ -192,10 +301,37 @@ fun AnimatedVisibilityScope.QuickPanel(state: LauncherState) {
                 .width(QUICK_WIDTH)
                 .background(p.surface, RoundedCornerShape(bottomStart = Space.xl, bottomEnd = Space.xl))
                 .clickable(interactionSource = null, indication = null) {}
-                .padding(start = Space.xxl, end = Space.xxl, top = Dimens.sheetTop, bottom = Space.xxl),
+                // The player sits at the top edge, between the status corners, so no sheetTop here.
+                .padding(start = Space.xxl, end = Space.xxl, top = Space.l, bottom = Space.xxl),
             verticalArrangement = Arrangement.spacedBy(Space.m),
         ) {
             val focusedRow = state.quickFocus
+            // The bumpers drawn either side, as the Art… tabs have them: L1 and R1 skip too.
+            val hints = LocalHome.current.hints
+            // All of the player on one line (owner, F21): the seek bar takes what the buttons leave.
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.l)) {
+                if (hints) BumperGlyph(left = true)
+                QuickMedia.entries.forEachIndexed { i, media ->
+                    val on = media == QuickMedia.PlayPause && controls.playing
+                    // Play shows pause while something plays, as a player's own button does.
+                    val icon = if (on) R.drawable.ic_sym_pause else media.icon
+                    IconChip(icon, on, focused = focusedRow == QuickRow.Media && i == state.quickColumn) {
+                        state.tapQuick(QuickRow.Media, i)
+                    }
+                }
+                if (hints) BumperGlyph(left = false)
+                SeekBar(
+                    controls.nowPlaying,
+                    Modifier.weight(1f),
+                    missing = !controls.canSeeMedia,
+                    focused = focusedRow == QuickRow.Media && state.quickColumn == SEEK_COLUMN,
+                    onTap = { state.tapQuickSlider(QuickRow.Media, it) },
+                )
+            }
+            // A faint line between the player and the settings (owner, F21).
+            Canvas(Modifier.fillMaxWidth().height(Space.xs)) {
+                drawLine(p.rule, Offset(0f, size.height / 2), Offset(size.width, size.height / 2), strokeWidth = 1f)
+            }
             SliderRow(
                 R.drawable.ic_sym_brightness,
                 controls.brightness,
@@ -217,11 +353,8 @@ fun AnimatedVisibilityScope.QuickPanel(state: LauncherState) {
                     val on = when (toggle) {
                         QuickToggle.AutoBrightness -> controls.autoBrightness
                         QuickToggle.Quiet -> controls.quiet
-                        QuickToggle.Media -> controls.playing
                     }
-                    // Play shows pause while something plays, as a player's own button does.
-                    val icon = if (toggle == QuickToggle.Media && on) R.drawable.ic_sym_pause else toggle.icon
-                    IconChip(icon, on, focused = focusedRow == QuickRow.Toggles && i == state.quickColumn) {
+                    IconChip(toggle.icon, on, focused = focusedRow == QuickRow.Toggles && i == state.quickColumn) {
                         state.tapQuick(QuickRow.Toggles, i)
                     }
                 }
@@ -260,22 +393,93 @@ private fun SliderRow(@DrawableRes icon: Int, value: Float, shown: String, missi
             BasicText("A: let the launcher change it", Modifier.weight(1f), style = t.body.copy(color = p.muted), maxLines = 1)
             return@Row
         }
-        Canvas(
-            Modifier.weight(1f).height(Space.xl).pointerInput(Unit) {
-                detectTapGestures { onTap(it.x / size.width) }
-            },
-        ) {
-            val h = TRACK.toPx()
-            val top = (size.height - h) / 2
-            val radius = CornerRadius(h / 2)
-            drawRoundRect(p.rule, topLeft = Offset(0f, top), size = Size(size.width, h), cornerRadius = radius)
-            val filled = size.width * value.coerceIn(0f, 1f)
-            if (filled > 0f) {
-                drawRoundRect(p.accent, topLeft = Offset(0f, top), size = Size(filled, h), cornerRadius = radius)
-            }
-        }
+        Track(value, Modifier.weight(1f), onTap)
         BasicText(shown, Modifier.width(SLIDER_VALUE), style = t.body.copy(color = if (focused) p.text else p.muted), maxLines = 1)
     }
+}
+
+/**
+ * The seek bar, as a player draws it: the title and artist above (owner, F21), then the time in,
+ * the track, the length. Without notification access only a small *Enable seek* at the line's
+ * right end (the line below says what it needs); with nothing playing, or a player that can't
+ * seek, the track is bare.
+ */
+@Composable
+private fun SeekBar(now: NowPlaying?, modifier: Modifier, missing: Boolean, focused: Boolean, onTap: (Float) -> Unit) {
+    val p = LocalPalette.current
+    val t = LocalType.current
+    if (missing) {
+        Box(modifier, contentAlignment = Alignment.CenterEnd) {
+            BasicText(
+                "Enable seek",
+                Modifier.focusRing(focused, Space.l)
+                    .background(p.rule, RoundedCornerShape(Space.l))
+                    .clickable(interactionSource = null, indication = null) { onTap(0f) }
+                    .padding(horizontal = Space.m, vertical = Space.xs),
+                style = t.caption.copy(color = if (focused) p.text else p.muted),
+                maxLines = 1,
+            )
+        }
+        return
+    }
+    val time = t.caption.copy(color = if (focused) p.text else p.muted)
+    Column(
+        modifier
+            .height(Dimens.dockButton)
+            .focusRing(focused, Space.m)
+            .background(if (focused) p.rule else Color.Transparent, RoundedCornerShape(Space.m))
+            .padding(horizontal = Space.m),
+        verticalArrangement = Arrangement.Center,
+    ) {
+        // Title, then the artist muted, one line that ellipsizes, as a player's notification has it.
+        val info = buildAnnotatedString {
+            val title = now?.title
+            if (title == null) {
+                withStyle(SpanStyle(color = p.muted)) { append("Nothing playing") }
+            } else {
+                append(title)
+                now.artist?.let { withStyle(SpanStyle(color = p.muted, fontWeight = FontWeight.Normal)) { append(" · $it") } }
+            }
+        }
+        BasicText(info, style = t.caption.copy(color = p.text), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+            val shown = now?.takeIf { it.seekable }
+            BasicText(shown?.let { clock(it.positionMs) }.orEmpty(), Modifier.width(SEEK_TIME), style = time, maxLines = 1)
+            Track(shown?.fraction ?: 0f, Modifier.weight(1f), onTap)
+            BasicText(
+                shown?.let { clock(it.durationMs) }.orEmpty(),
+                Modifier.width(SEEK_TIME),
+                style = time.copy(textAlign = TextAlign.End),
+                maxLines = 1,
+            )
+        }
+    }
+}
+
+/** A drawn track filled to [value] with the accent; a tap reports where along it, 0..1. */
+@Composable
+private fun Track(value: Float, modifier: Modifier, onTap: (Float) -> Unit) {
+    val p = LocalPalette.current
+    Canvas(
+        modifier.height(Space.xl).pointerInput(Unit) {
+            detectTapGestures { onTap(it.x / size.width) }
+        },
+    ) {
+        val h = TRACK.toPx()
+        val top = (size.height - h) / 2
+        val radius = CornerRadius(h / 2)
+        drawRoundRect(p.rule, topLeft = Offset(0f, top), size = Size(size.width, h), cornerRadius = radius)
+        val filled = size.width * value.coerceIn(0f, 1f)
+        if (filled > 0f) {
+            drawRoundRect(p.accent, topLeft = Offset(0f, top), size = Size(filled, h), cornerRadius = radius)
+        }
+    }
+}
+
+/** 3:07, or 1:02:07 past an hour. */
+private fun clock(ms: Long): String {
+    val s = ms / 1000
+    return if (s >= 3600) "%d:%02d:%02d".format(s / 3600, s / 60 % 60, s % 60) else "%d:%02d".format(s / 60, s % 60)
 }
 
 /** A round icon button, the dock's size; [on] fills it, as Android's tiles fill when on. */
@@ -295,5 +499,7 @@ private fun IconChip(@DrawableRes icon: Int, on: Boolean, focused: Boolean, onCl
 
 private val QUICK_WIDTH = 760.dp
 private val SLIDER_VALUE = 56.dp
+private val SEEK_TIME = 40.dp
+private const val MEDIA_TICK = 500L
 private val TRACK = 6.dp
 private const val SCRIM = 0.6f

@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -277,6 +278,35 @@ fun ButtonGlyph(button: String) {
         }
     }
 }
+
+/**
+ * A shoulder button, L1 or R1: the bumper's own outline (flat along the bottom, its top swept
+ * round toward the outer edge, as the Portal's are) filled, with its name knocked out, a pair
+ * with [ButtonGlyph]. Drawn only where the button does something.
+ */
+@Composable
+fun BumperGlyph(left: Boolean) {
+    val p = LocalPalette.current
+    val sweep = Dimens.glyph / 2
+    val tight = Dimens.glyph / 5
+    val shape = if (left) {
+        RoundedCornerShape(topStart = sweep, topEnd = tight, bottomEnd = tight, bottomStart = tight)
+    } else {
+        RoundedCornerShape(topStart = tight, topEnd = sweep, bottomEnd = tight, bottomStart = tight)
+    }
+    Box(
+        Modifier.size(Dimens.glyph * BUMPER_WIDTH, Dimens.glyph).background(p.text, shape),
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicText(
+            if (left) "L1" else "R1",
+            style = LocalType.current.caption.copy(color = p.background, fontWeight = FontWeight.Bold),
+            maxLines = 1,
+        )
+    }
+}
+
+private const val BUMPER_WIDTH = 1.7f
 
 /**
  * A menu button's mark, drawn as a path so it stays crisp at any scale. The triangle's corners

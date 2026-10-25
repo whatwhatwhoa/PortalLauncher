@@ -73,15 +73,18 @@ or scene, with or without a key.
 
 ## Quick settings
 
-Press **−** for brightness, volume, auto-brightness, Do not disturb and play/pause, plus
-shortcuts to Wi-Fi, Bluetooth, battery, AYN's settings and Android's settings.
-The first time you use brightness or Do not disturb, Portal opens the Android page that lets
-it change them. Switch Portal on there once, then press **B** to come back.
+Press **−** for the music player (previous, play/pause, next, and a seek bar), brightness,
+volume, auto-brightness and Do not disturb, plus shortcuts to Wi-Fi, Bluetooth, battery, AYN's
+settings and Android's settings. **L1** and **R1** skip tracks while the panel is open.
+The first time you use brightness, Do not disturb or the seek bar, Portal opens the Android page
+that lets it change them. Switch Portal on there once, then press **B** to come back. The seek
+bar needs *Notification access*, which Android asks for to show what is playing; Portal reads no
+notifications.
 
 ## Make it yours
 
 **Launcher Settings** (the dock's gear, or **+ → Launcher settings…**) changes everything live:
-theme (light, dark or follow the system), accent color, backdrop, scenes, covers on tiles, glow
+theme (light, dark or follow the system), accent color, backdrop, covers on tiles, glow
 and depth effects, the clock format, button hints, and what the Home button does.
 
 ## Screenshots

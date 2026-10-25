@@ -64,8 +64,9 @@ second input, never the only one.
    top faded in over its first 8%; blurred 3 dp across and 10 dp down, darkened to about 40% and cooled toward blue (light themes:
    only desaturated), at 55% fading out by 400 dp, behind the carousel. It sways sideways in a
    slow 9 s ripple that grows away from the line (an Android 13 runtime shader; still with
-   animations off). No hero: the plain background. An app with a **scene** (a
-   1920×1080 picture, *Art*) shows that over the whole of Home instead, 1:1, under a heavy alpha
+   animations off). No hero: the plain background. An app set to its **scene** (a
+   1920×1080 picture, *Art*; each app shows its hero or its scene, never both) shows that over
+   the whole of Home instead, with no reflection, 1:1, under a heavy alpha
    vignette: brightest right of center above the carousel, near gone at the left under the name
    and along the bottom under the dock and hints; it crossfades like the hero.
    The name sits top-left, 48 dp in, Metro-style, in capitals lifted so they run 12 dp past the
@@ -144,7 +145,7 @@ Hidden apps are left out (the count says how many); *Show hidden apps* in the op
 brings them back faded to 40% until it is turned off or the launcher restarts.
 
 **Options sheet.** + (or a long press) on a carousel tile, a dock app or an All apps tile opens a
-360 dp panel from the right over the screen dimmed to 60%: the app's icon and name, then its
+360 dp panel from the right over the screen dimmed to 60% (600 dp on the Art… page, sliding wider): the app's icon and name, then its
 options as 48 dp rows (the focused row filled with the rule color and ringed); no hints (A and B
 are known). Options depend on where it was opened: Move (favorites on the Favorites row, and
 the dock), Favorite or Unfavorite (not from the dock), Add to or Remove from dock, Category…
@@ -166,28 +167,38 @@ upscales it. The dock and All apps keep the icons.
 **Art.** Square covers and 1920×620 heroes from SteamGridDB, downloaded once per app and never
 upscaled (`decisions/M4-art.md`). The owner's favorites and the Games category are
 looked up by label when they appear and take art only on a close match; any other app keeps its
-icon until the owner picks. *Art…* in the options sheet turns the panel into a picker: the cover
-and the hero strip in use at the top (96 dp cover), then the matches for the label, *Search*
-(the keyboard; B ends typing) and *Use the app's icon*; the one in use has an accent dot. A
-match is downloaded when chosen and the page stays open; B goes back to the options. Once a
-game is matched, *Choose the cover…* and *Choose the hero…* head the list and open its still
-images as a thumbnail grid (covers three across, heroes one, "2 of 3" above); A downloads the
-focused one into the slot and the grid stays open, B goes back to the rows. The dot marks the
-owner's pick, else the image the automatic choice took; picks are kept per slot by url (`picks`
-preferences) until another game or the icon is chosen. With art,
+icon until the owner picks. *Art…* in the options sheet turns the panel into a picker: a
+preview of the art in use at the top (the 120 dp cover, beside it as tall the strip: the hero or
+the scene, whichever fills Home behind the app), then the matches for the label, *Search* (the keyboard; B ends
+typing) and *Use the app's icon*; the one in use has an accent dot. A match is downloaded when
+chosen and the page stays open; B goes back to the options. Up from the first row selects the
+preview itself, so art is changed where it is seen: left and right between the cover and the
+strip, down back to the rows. A opens that slot as a thumbnail grid (covers four across, scenes
+three, heroes two, "2 of 3" above), the cover and scene grids led by a *Gallery…* tile (*Own
+images*); the focused thumbnail stands in the preview, whose ring holds still while the grid's
+pulses. A downloads it into the slot and the grid stays open; B goes back to the preview. The
+strip's grid has two tabs, *Hero* and *Scene*, drawn between the L1 and R1 bumper glyphs (hidden
+with *Button hints* off): the one browsed underlined in the accent, a dot on the one Home shows.
+It opens on that one; L1/R1 or a tap turn the tab. Taking an image in a tab makes that kind the
+app's (`<package>.wide` in `picks`; without one, the hero, or the scene when there is no hero);
+A on the other tab's dotted image only switches; the icon or another game drops the choice. A
+tap on the preview opens its grid. The dot marks the owner's pick, else the automatic one;
+picks are kept per slot by url (`picks`) until another game or the icon is chosen. With art,
 the sheet's header and the Home tiles show the cover instead of the icon, and the hero fills
-Home's band. A matched game also gets a **scene** (`<package>.scene` beside the cover and hero):
+Home's band. A matched game also gets a **scene** (`<package>.scene` beside the cover and hero,
+shown only once chosen):
 one of its Steam store screenshots, found by the SteamGridDB name in Steam's store search (no
 key), only 16:9 shots at least 1920 wide (the size is in the file name). The shot is picked from
 the 600 px copies sampled at 64×36: mean saturation less twice the distance of mean luma from 73
 (0–255), so rich and mid-dark, and text reads on it. Looked for once; "not on Steam" is
 remembered (`scenes` preferences), a network failure retries next start. *Use the app's icon*
-deletes it; a match with another game replaces it; the same game keeps it. *Choose the scene…*
-lists the game's qualifying Steam shots (two across) and a pick replaces the scored one; the
-scored shot's url is kept (`<package>.url` in `scenes`) so the grid can dot it.
+deletes it; a match with another game replaces it; the same game keeps it. The scene grid
+lists the game's qualifying Steam shots and a pick replaces the scored one; the scored shot's
+url is kept (`<package>.url` in `scenes`) so the grid can dot it.
 
-**Own images.** *Cover from the gallery…* and *Scene from the gallery…* open Android's photo
-picker (no storage permission; only the chosen image is shared) for any app, matched or not.
+**Own images.** The *Gallery…* tile at the head of the cover and scene grids opens Android's
+photo picker (no storage permission; only the chosen image is shared) for any app, matched or
+not; an app with no game gets a grid with that tile alone.
 The image is cropped to its largest centered square or 16:9, scaled down to 512 px or 1920×1080
 and saved as the app's cover or scene (JPEG 92). A crop smaller than the slot is shown (346 px,
 the focused tile; 1920 wide for a scene) is refused with its size, never upscaled. An app with
@@ -213,7 +224,7 @@ made much darker).
 
 **Backdrop**: *Black* (`#000000`, the whole palette's background, the OLED's off; the owner's
 pick). The others: *Dark* (`#141414`), *Hero glow* (the focused app's hero over the whole of
-Home, decoded at 480 px, blurred 40 dp and dimmed 50% with the background, crossfading with
+Home, none under an app set to its scene, decoded at 480 px, blurred 40 dp and dimmed 50% with the background, crossfading with
 focus), and each image in the app's `files/backdrops` (read again each time the settings
 open), cropped full screen and dimmed 35%. All
 apps keeps the plain background. Surface is the background mixed 8% toward the text; muted text
@@ -249,7 +260,7 @@ list scrolls to keep the focused row, its ring and its heading in view, and the 
 the last row), B or + closes, a tap outside closes, a tap on a row acts as A. Every change
 applies at once and is kept (`look.*`, `home.*`, `art.fetch` in the `launcher` preferences).
 - *Look*: Theme (System, Light, Dark), Accent (left and right step through the presets; A opens
-  the accent picker), Backdrop, Scenes (off: the hero band instead),
+  the accent picker), Backdrop,
   Covers on tiles (off: icons on Home, whatever art is picked), Background gradient, Focus
   glow, Tile depth, Hero reflection, Focus pulse (Off, Slow, Normal).
 - *Home*: Clock (System, 12-hour, 24-hour), Battery percent (off: only the fill), Button hints,
@@ -288,26 +299,33 @@ app is silent.
 **Quick panel.** − (the square, Select) on Home or All apps, the pull-down's everyday controls
 from the controller (`decisions/M7-quick-settings.md`). A 760 dp panel drops from the top
 (a quarter of its height, fading) over the screen dimmed to 60%, its bottom corners rounded:
-- *Brightness* and *Volume* sliders, 48 dp rows like the settings rows: a sun or speaker icon, a 6 dp
-  track filled with the accent, the value in percent. Left and right step them (5% of the
-  slider for brightness, one step of media volume), held repeats; a tap on the track sets it
-  there. Brightness goes through a 2.2 curve over Android's 0–255 value, so each step looks
+- The player, one line 16 dp under the top edge: Previous, Play / pause, Next as round 56 dp
+  buttons (the dock's size, 16 dp apart; media keys to the last player) between drawn L1 and R1
+  bumpers (gone with *Button hints* off); Play / pause fills and shows pause while music plays.
+  L1 and R1 skip from any row. Then the seek bar, the row's last stop: title · artist (muted)
+  over the time in, a track and the length, from the most recent media session, read every
+  0.5 s; left and right seek 10 s, up or down leave, a tap jumps. Without notification access
+  (*Grants*) it is a small *Enable seek* pill at the right end.
+- A faint 1 px line in the rule color, then the settings; the panel opens on Brightness.
+- *Brightness* and *Volume* sliders, 48 dp rows like the settings': a sun or speaker icon, a 6 dp
+  accent track, the percent. Left and right step them (5% for brightness, one media-volume
+  step), held repeats; a tap on the track sets it. Brightness goes through a 2.2 curve over Android's 0–255 value, so each step looks
   alike; moving it turns auto-brightness off, as the pull-down does.
-- Toggles, round 56 dp icon buttons (the dock's size, 16 dp apart) filled in the text color
-  when on: Auto brightness, Do not disturb (priority only while on), Play / pause (the media
-  key to the last player; on while music plays, read again 0.4 s after; shows pause then).
-- Shortcuts to the system's pages, the same buttons, for what a launcher may not change: Wi-Fi,
-  Bluetooth, Battery, AYN settings (a gamepad; its settings activity, which has no launcher
-  entry), Android settings (a gear).
-- A muted line at the bottom says what the focused control still needs, or else names the
-  focused button.
+- Toggles, the same buttons filled in the text color when on: Auto brightness, Do not disturb
+  (priority only while on).
+- Shortcuts, the same buttons, to system pages for what a launcher may not change: Wi-Fi,
+  Bluetooth, Battery, AYN settings (a gamepad; its settings activity, no launcher entry),
+  Android settings (a gear).
+- A muted line at the bottom: what the focused control still needs, else its name.
 The icons are Material Symbols (Rounded, filled; Google, Apache 2.0) as vector drawables
 (`res/drawable/ic_sym_*`), the family Android's own panel uses, tinted from the palette.
-Up and down move between the four rows, left and right along a row, A toggles or opens, B or −
+Up and down move between the five rows, left and right along a row, A toggles or opens, B or −
 closes, a tap outside closes. **Grants:** brightness and auto-brightness need Android's *Modify
 system settings* for the launcher, Do not disturb its *Do Not Disturb access*; until granted the
 slider row reads "A: let the launcher change it" and A (on the row or the toggle) opens that
-page. Nothing is asked for on install. Values are read when it opens, after every change and
+page. The seek bar needs *Notification access* (Android shares media sessions only with a
+notification listener; `MediaListener` reads nothing); A on *Enable seek* opens its switch.
+Nothing is asked for on install. Values are read on opening, after every change and
 when the launcher comes back to the front. Home and All apps only, not over a game.
 
 **Accent picker.** A on *Accent* turns the settings column into the picker, titled *Accent*: the

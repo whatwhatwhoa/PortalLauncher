@@ -78,12 +78,14 @@ class LauncherState(
     /** The quick panel (− on Home and All apps), over everything but the settings. */
     var quickOpen by mutableStateOf(false)
         private set
-    private var quickRowIndex by mutableIntStateOf(0)
+    // Brightness from the very first opening (owner, F21); openQuick sets it again each time.
+    private var quickRowIndex by mutableIntStateOf(QuickRow.Brightness.ordinal)
     private var quickColumnIndex by mutableIntStateOf(0)
     val quickFocus get() = QuickRow.entries[quickRowIndex.coerceIn(0, QuickRow.entries.lastIndex)]
     val quickColumn get() = quickColumnIndex.coerceIn(0, maxOf(0, quickColumns(quickFocus) - 1))
 
     private fun quickColumns(row: QuickRow) = when (row) {
+        QuickRow.Media -> QuickMedia.entries.size + 1
         QuickRow.Toggles -> QuickToggle.entries.size
         QuickRow.Links -> QuickLink.entries.size
         else -> 1
@@ -98,6 +100,10 @@ class LauncherState(
                 "Auto brightness needs Android's “Modify system settings” for the launcher, once"
             quickFocus == QuickRow.Toggles && quickColumn == QuickToggle.Quiet.ordinal && !controls.canQuiet ->
                 "Do not disturb needs Android's “Do Not Disturb access” for the launcher, once"
+            quickFocus == QuickRow.Media && quickColumn == SEEK_COLUMN && !controls.canSeeMedia ->
+                "The seek bar needs Android's “Notification access” for the launcher, once"
+            quickFocus == QuickRow.Media && quickColumn == SEEK_COLUMN -> "Seek"
+            quickFocus == QuickRow.Media -> QuickMedia.entries[quickColumn].label
             quickFocus == QuickRow.Toggles -> QuickToggle.entries[quickColumn].label
             quickFocus == QuickRow.Links -> QuickLink.entries[quickColumn].label
             else -> ""
@@ -721,7 +727,8 @@ class LauncherState(
 
     private fun openQuick() {
         controls.read()
-        quickRowIndex = 0
+        // Brightness first, always: the player's row above it is a press of Up away (owner, F21).
+        quickRowIndex = QuickRow.Brightness.ordinal
         quickColumnIndex = 0
         quickOpen = true
     }
@@ -738,6 +745,8 @@ class LauncherState(
             Action.Left -> quickStep(row, -1)
             Action.Right -> quickStep(row, 1)
             Action.Open -> quickOpenFocused(row, quickColumn)
+            Action.PagePrev -> skip(QuickMedia.Previous)
+            Action.PageNext -> skip(QuickMedia.Next)
             Action.Back, Action.Select -> closeQuick()
             else -> Unit
         }
@@ -748,25 +757,38 @@ class LauncherState(
         when (row) {
             QuickRow.Brightness -> controls.stepBrightness(by)
             QuickRow.Volume -> controls.stepVolume(by)
+            // On the seek bar, left and right seek; Up or Down leave it, as on a TV player.
+            QuickRow.Media -> if (quickColumn == SEEK_COLUMN) controls.seekBy(by * SEEK_STEP) else quickColumnIndex = quickColumn + by
             else -> quickColumnIndex = quickColumn + by
+        }
+    }
+
+    /** L1 or R1: a skip from any row, focus left where it is; it chimes, since nothing on screen moves. */
+    private fun skip(media: QuickMedia) {
+        press(media)
+        sounds?.play(Sound.Select)
+    }
+
+    private fun press(media: QuickMedia) {
+        controls.press(media)
+        scope.launch {
+            delay(MEDIA_SETTLE)
+            controls.read()
         }
     }
 
     /** A on a control: a toggle flips, a link opens; one missing its grant opens the grant page. */
     private fun quickOpenFocused(row: QuickRow, column: Int) {
         when (row) {
+            QuickRow.Media -> when {
+                column < SEEK_COLUMN -> press(QuickMedia.entries[column])
+                !controls.canSeeMedia -> openSystem(mediaGrant())
+            }
             QuickRow.Brightness -> if (!controls.canWrite) openSystem(writeSettingsGrant())
             QuickRow.Volume -> Unit
             QuickRow.Toggles -> when (QuickToggle.entries[column]) {
                 QuickToggle.AutoBrightness -> if (controls.canWrite) controls.toggleAutoBrightness() else openSystem(writeSettingsGrant())
                 QuickToggle.Quiet -> if (controls.canQuiet) controls.toggleQuiet() else openSystem(quietGrant())
-                QuickToggle.Media -> {
-                    controls.playPause()
-                    scope.launch {
-                        delay(MEDIA_SETTLE)
-                        controls.read()
-                    }
-                }
             }
             QuickRow.Links -> openSystem(QuickLink.entries[column].intent())
         }
@@ -781,9 +803,11 @@ class LauncherState(
     /** A tap on a slider's track sets it there. */
     fun tapQuickSlider(row: QuickRow, fraction: Float) {
         quickRowIndex = row.ordinal
+        if (row == QuickRow.Media) quickColumnIndex = SEEK_COLUMN
         when (row) {
             QuickRow.Brightness -> controls.moveBrightnessTo(fraction)
             QuickRow.Volume -> controls.moveVolumeTo((fraction * controls.volumeMax).roundToInt())
+            QuickRow.Media -> if (controls.canSeeMedia) controls.seekTo(fraction) else openSystem(mediaGrant())
             else -> Unit
         }
     }
@@ -1278,6 +1302,8 @@ class LauncherState(
         const val DOCK_MAX = 6
         // How long a player takes to start or stop after the media key, before reading it again.
         const val MEDIA_SETTLE = 400L
+        // One Left or Right on the seek bar, as a player's own skip-ahead.
+        const val SEEK_STEP = 10_000L
         const val WAKE_PRESSES = 4
         const val WAKE_WINDOW = 2_000L
         // The owner's "0.5 or so seconds", plus the fades.

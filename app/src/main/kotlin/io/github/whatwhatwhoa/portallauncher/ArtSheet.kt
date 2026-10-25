@@ -11,6 +11,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -60,10 +63,6 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 sealed interface ArtRow {
-    /** Opens the matched game's images for one slot. */
-    class Slot(val kind: ArtKind) : ArtRow
-    /** Opens Android's photo picker for one slot. */
-    class Gallery(val kind: ArtKind) : ArtRow
     class Result(val match: ArtMatch) : ArtRow
     data object Search : ArtRow
     data object UseIcon : ArtRow
@@ -71,11 +70,17 @@ sealed interface ArtRow {
 
 /**
  * The options sheet's Art… page: SteamGridDB's matches for the app's label, a search for other
- * words, and the app's own icon. Choosing a match fetches it and shows it at the top, and the
- * page stays open so another can be tried; B goes back to the options. Once a game is matched,
- * a cover, a hero and a scene row open its images (the scene's from Steam) as a grid of
- * thumbnails: A takes one, B goes back to the rows. Any app can take a cover or a scene from the
- * gallery; [pickImage] opens the photo picker and hands back the image, or null.
+ * words, and the app's own icon. Choosing a match fetches it and shows it in the preview at the
+ * top, and the page stays open so another can be tried; B goes back to the options. Up from the
+ * first row selects the preview itself: the cover, or right of it the wide strip, which is what
+ * fills Home behind the app: its hero or its scene, never both (Art.wide). A there opens that
+ * slot's images as a grid of thumbnails (the matched game's, a scene's from Steam), the focused
+ * one standing in the preview so it is seen in place before A takes it; the strip's grid has two
+ * tabs, Hero and Scene, that L1/R1 turn between, and taking an image from one makes that kind the
+ * app's (A on the one already dotted only switches). B goes back to the preview. The cover and
+ * scene grids start with a gallery tile, for any app, matched or not; [pickImage] opens the photo
+ * picker and hands back the image, or null. All of an app's art is set here; Launcher Settings
+ * keeps only what is global (the key, fetching, clearing).
  */
 class ArtPicker(
     val app: AppEntry,
@@ -111,15 +116,40 @@ class ArtPicker(
     var picking by mutableStateOf<String?>(null)
         private set
     private var imageIndex by mutableIntStateOf(0)
-    val imageFocus get() = imageIndex.coerceIn(0, (images.size - 1).coerceAtLeast(0))
+    /** The grid's focused tile; with a gallery tile that is tile 0 and the images follow it. */
+    val imageFocus get() = imageIndex.coerceIn(0, (tiles - 1).coerceAtLeast(0))
+    /** The cover and scene grids start with a tile that opens the gallery. */
+    val galleryTile get() = browsing in GALLERY
+    private val offset get() = if (galleryTile) 1 else 0
+    private val tiles get() = images.size + offset
+    fun imageAt(tile: Int): ArtImage? = images.getOrNull(tile - offset)
+    /** The focused thumbnail, standing in the preview for the slot being browsed. */
+    val candidate get() = browsing?.let { imageAt(imageFocus) }
+
+    /** True while the preview has focus (Up from the first row); [previewWide] picks its strip. */
+    var previewing by mutableStateOf(false)
+        private set
+    var previewWide by mutableStateOf(false)
+        private set
 
     private val matched get() = (art.record(pkg) as? ArtRecord.Matched)?.match
-    private val slots get() = if (matched != null) SLOTS.map { ArtRow.Slot(it) } else emptyList()
-    /** Without a SteamGridDB key the page has only the gallery and the icon. */
+    val hasMatch get() = matched != null
+    /**
+     * What the preview's strip shows and opens: the tab being browsed, else what fills Home behind
+     * the app. Without a game only a scene from the gallery can go there.
+     */
+    val wideKind: ArtKind
+        get() {
+            browsing?.takeIf { it != ArtKind.Cover }?.let { return it }
+            return if (matched == null) ArtKind.Scene else art.wide(pkg)
+        }
+    /** The kind Home shows behind the app, for the tab's dot. */
+    val wideInUse get() = art.wide(pkg)
+    /** Without a SteamGridDB key the page has only the icon; the preview still takes gallery images. */
     val hasKey get() = art.hasKey
     private val searchRows get() = if (hasKey) results.map { ArtRow.Result(it) } + ArtRow.Search else emptyList()
     val rows: List<ArtRow>
-        get() = slots + searchRows + GALLERY.map { ArtRow.Gallery(it) } + ArtRow.UseIcon
+        get() = searchRows + ArtRow.UseIcon
     val focus get() = index.coerceIn(0, rows.lastIndex)
 
     init {
@@ -132,8 +162,19 @@ class ArtPicker(
             onBrowse(action)
             return true
         }
+        if (previewing) {
+            when (action) {
+                Action.Left -> previewWide = false
+                Action.Right -> previewWide = true
+                Action.Down -> previewing = false
+                Action.Open -> browse(if (previewWide) wideKind else ArtKind.Cover)
+                Action.Back -> return false
+                else -> Unit
+            }
+            return true
+        }
         when (action) {
-            Action.Up -> index = focus - 1
+            Action.Up -> if (focus == 0) previewing = true else index = focus - 1
             Action.Down -> index = focus + 1
             Action.First -> index = 0
             Action.Last -> index = rows.lastIndex
@@ -146,42 +187,71 @@ class ArtPicker(
     }
 
     fun tap(i: Int) {
+        previewing = false
         index = i
         choose(i)
     }
 
-    fun tapImage(i: Int) {
-        imageIndex = i
-        images.getOrNull(i)?.let(::pick)
+    fun tapPreview(wide: Boolean) {
+        previewing = true
+        previewWide = wide
+        browse(if (wide) wideKind else ArtKind.Cover)
     }
 
+    fun tapTab(kind: ArtKind) {
+        if (kind != browsing && matched != null) browse(kind)
+    }
+
+    fun tapImage(i: Int) {
+        imageIndex = i
+        takeTile(i)
+    }
+
+    /** Back to the preview, which keeps focus on the slot that was browsed. */
     fun stopBrowsing() {
         browsing = null
         images = emptyList()
+        job?.cancel()
+        loadingImages = false
     }
 
     private fun onBrowse(action: Action) {
-        val columns = columns(browsing ?: return)
+        val kind = browsing ?: return
+        val columns = columns(kind)
         when (action) {
             Action.Left -> imageIndex = imageFocus - 1
             Action.Right -> imageIndex = imageFocus + 1
             Action.Up -> imageIndex = imageFocus - columns
             Action.Down -> imageIndex = imageFocus + columns
             Action.First -> imageIndex = 0
-            Action.Last -> imageIndex = images.lastIndex
-            Action.Open -> images.getOrNull(imageFocus)?.let(::pick)
+            Action.Last -> imageIndex = tiles - 1
+            Action.PagePrev -> if (kind == ArtKind.Scene && matched != null) browse(ArtKind.Hero)
+            Action.PageNext -> if (kind == ArtKind.Hero) browse(ArtKind.Scene)
+            Action.Open -> takeTile(imageFocus)
             Action.Back -> stopBrowsing()
             else -> Unit
         }
         imageIndex = imageFocus
     }
 
+    private fun takeTile(tile: Int) {
+        val kind = browsing ?: return
+        if (galleryTile && tile == 0) {
+            if (picking == null) fromGallery(kind)
+        } else {
+            imageAt(tile)?.let(::pick)
+        }
+    }
+
+    /** Opens [kind]'s grid on the image in use, or on the gallery tile when none of them is. */
     private fun browse(kind: ArtKind) {
-        if (matched == null) return
         browsing = kind
         images = emptyList()
+        imageIndex = 0
         failed = null
         job?.cancel()
+        // Without a game there are no images to look up: the grid is the gallery tile alone.
+        if (matched == null) return
         job = scope.launch {
             loadingImages = true
             images = try {
@@ -191,19 +261,30 @@ class ArtPicker(
                 emptyList()
             }
             loadingImages = false
-            imageIndex = images.indexOfFirst { isPicked(kind, it) }.coerceAtLeast(0)
+            val at = images.indexOfFirst { isPicked(kind, it) }
+            imageIndex = if (at >= 0) at + offset else 0
         }
     }
 
     private fun pick(image: ArtImage) {
         val kind = browsing ?: return
-        if (picking != null || isPicked(kind, image)) return
+        if (picking != null) return
+        if (isPicked(kind, image)) {
+            // Already downloaded: taking it again only makes its kind the one Home shows.
+            if (kind != ArtKind.Cover && art.wide(pkg) != kind) art.useWide(pkg, kind)
+            return
+        }
         scope.launch {
             picking = image.url
-            failed = if (art.pick(pkg, kind, image)) null else "Couldn't fetch that image"
+            val ok = art.pick(pkg, kind, image)
+            failed = if (ok) null else "Couldn't fetch that image"
+            if (ok && kind != ArtKind.Cover) art.useWide(pkg, kind)
             picking = null
         }
     }
+
+    /** The image Home shows: picked, and for the strip, of the kind the app uses. */
+    fun inUse(kind: ArtKind, image: ArtImage) = isPicked(kind, image) && (kind == ArtKind.Cover || art.wide(pkg) == kind)
 
     /**
      * The one in use: the owner's pick, else the image the automatic choice takes (the first at
@@ -236,15 +317,12 @@ class ArtPicker(
             }
             searching = false
             // Start on the match in use, if it is among the results.
-            val at = results.indexOfFirst { it.gameId == matched?.gameId }
-            index = if (at >= 0) slots.size + at else 0
+            index = results.indexOfFirst { it.gameId == matched?.gameId }.coerceAtLeast(0)
         }
     }
 
     private fun choose(i: Int) {
         when (val row = rows.getOrNull(i)) {
-            is ArtRow.Slot -> browse(row.kind)
-            is ArtRow.Gallery -> if (picking == null) fromGallery(row.kind)
             is ArtRow.Result -> if (fetching == null && !isCurrent(row.match)) fetch(row.match)
             ArtRow.Search -> typing = true
             ArtRow.UseIcon -> art.useIcon(pkg)
@@ -257,6 +335,7 @@ class ArtPicker(
             scope.launch {
                 picking = uri.toString()
                 failed = art.useImage(pkg, kind, uri)
+                if (failed == null && kind == ArtKind.Scene) art.useWide(pkg, kind)
                 picking = null
             }
         }
@@ -272,14 +351,13 @@ class ArtPicker(
     val usingIcon get() = art.record(pkg) == ArtRecord.Icon
 
     companion object {
-        val SLOTS = listOf(ArtKind.Cover, ArtKind.Hero, ArtKind.Scene)
         val GALLERY = listOf(ArtKind.Cover, ArtKind.Scene)
 
-        /** Thumbnails across the panel: square covers three to a row, 16:9 scenes two, heroes one. */
+        /** Thumbnails across the wide panel: square covers four to a row, 16:9 scenes three, heroes two. */
         fun columns(kind: ArtKind) = when (kind) {
-            ArtKind.Cover -> 3
-            ArtKind.Scene -> 2
-            ArtKind.Hero -> 1
+            ArtKind.Cover -> 4
+            ArtKind.Scene -> 3
+            ArtKind.Hero -> 2
         }
 
         fun preferredWidth(kind: ArtKind) = if (kind == ArtKind.Cover) 512 else 1920
@@ -325,7 +403,7 @@ fun ColumnScope.ArtPage(picker: ArtPicker) {
         verticalArrangement = Arrangement.spacedBy(Space.xs),
     ) {
         itemsIndexed(picker.rows) { i, row ->
-            val focused = i == focus && !picker.typing
+            val focused = i == focus && !picker.typing && !picker.previewing
             Box(
                 Modifier.fillMaxWidth()
                     .height(Dimens.sheetRow)
@@ -336,8 +414,6 @@ fun ColumnScope.ArtPage(picker: ArtPicker) {
                 contentAlignment = Alignment.CenterStart,
             ) {
                 when (row) {
-                    is ArtRow.Slot -> Choice("Choose the ${row.kind.suffix}…", picked = false)
-                    is ArtRow.Gallery -> Choice("${row.kind.suffix.replaceFirstChar { it.uppercase() }} from the gallery…", picked = false)
                     is ArtRow.Result -> Choice(
                         when (row.match.gameId) {
                             picker.fetching -> "Fetching…"
@@ -353,7 +429,10 @@ fun ColumnScope.ArtPage(picker: ArtPicker) {
     }
 }
 
-/** One slot's images for the matched game; the one in use has the accent dot. */
+/**
+ * One slot's images for the matched game, after the gallery tile for a cover or a scene; the one
+ * in use has the accent dot. The strip's grid sits under its two tabs ([WideTabs]).
+ */
 @Composable
 private fun ColumnScope.ImageGrid(picker: ArtPicker, kind: ArtKind) {
     val p = LocalPalette.current
@@ -372,15 +451,22 @@ private fun ColumnScope.ImageGrid(picker: ArtPicker, kind: ArtKind) {
     val name = when (kind) {
         ArtKind.Cover -> "Covers"
         ArtKind.Hero -> "Heroes"
-        ArtKind.Scene -> "Steam screenshots"
+        ArtKind.Scene -> "Scenes"
+    }
+    val gallery = picker.galleryTile
+    if (kind != ArtKind.Cover && picker.hasMatch) {
+        WideTabs(picker, kind)
+        Spacer(Modifier.height(Space.m))
     }
     BasicText(
         when {
             picker.loadingImages -> "Loading ${name.lowercase()}…"
-            picker.picking != null -> "Fetching…"
+            picker.picking != null -> if (gallery && focus == 0) "Saving…" else "Fetching…"
             picker.failed != null -> picker.failed!!
+            !picker.hasMatch -> "No game matched: choose one below, or from the gallery"
             picker.images.isEmpty() -> "No ${if (kind == ArtKind.Scene) "Steam screenshots" else name.lowercase()} for this game"
-            else -> "$name · ${focus + 1} of ${picker.images.size}"
+            gallery && focus == 0 -> "$name · from the gallery"
+            else -> "$name · ${focus + 1 - (if (gallery) 1 else 0)} of ${picker.images.size}"
         },
         style = t.caption.copy(color = p.muted),
         maxLines = 1,
@@ -400,7 +486,24 @@ private fun ColumnScope.ImageGrid(picker: ArtPicker, kind: ArtKind) {
         horizontalArrangement = Arrangement.spacedBy(Space.s),
         verticalArrangement = Arrangement.spacedBy(Space.s),
     ) {
-        gridItemsIndexed(picker.images, key = { _, image -> image.url }) { i, image ->
+        if (gallery) {
+            item(key = "gallery") {
+                Box(
+                    Modifier.fillMaxWidth()
+                        .aspectRatio(1f / aspect)
+                        .focusRing(focus == 0, Space.s)
+                        .clip(corner)
+                        .background(p.rule)
+                        .clickable(interactionSource = null, indication = null) { picker.tapImage(0) }
+                        .padding(Space.s),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BasicText("Gallery…", style = t.caption.copy(color = p.text), maxLines = 1)
+                }
+            }
+        }
+        gridItemsIndexed(picker.images, key = { _, image -> image.url }) { at, image ->
+            val i = at + if (gallery) 1 else 0
             BoxWithConstraints(
                 Modifier.fillMaxWidth()
                     .aspectRatio(1f / aspect)
@@ -412,11 +515,49 @@ private fun ColumnScope.ImageGrid(picker: ArtPicker, kind: ArtKind) {
                 val px = constraints.maxWidth
                 val thumb by produceState<ImageBitmap?>(null, image.thumb, px) { value = picker.thumbnail(image.thumb, px) }
                 thumb?.let { Image(it, null, Modifier.matchParentSize(), contentScale = ContentScale.Crop) }
-                if (picker.isPicked(kind, image)) {
+                if (picker.inUse(kind, image)) {
                     Box(Modifier.align(Alignment.TopEnd).padding(Space.xs).size(Space.m).background(p.accent, CircleShape))
                 }
             }
         }
+    }
+}
+
+/**
+ * The strip's two kinds as tabs, Hero on L1 and Scene on R1 (the bumpers drawn, as the hints
+ * are): the one browsed lit and underlined, a dot on the one Home shows. A tap turns to one too.
+ */
+@Composable
+private fun WideTabs(picker: ArtPicker, kind: ArtKind) {
+    val hints = LocalHome.current.hints
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.xl)) {
+        if (hints) BumperGlyph(left = true)
+        listOf(ArtKind.Hero to "Hero", ArtKind.Scene to "Scene").forEach { (tab, label) ->
+            Tab(label, on = tab == kind, used = picker.wideInUse == tab) { picker.tapTab(tab) }
+        }
+        if (hints) BumperGlyph(left = false)
+    }
+}
+
+@Composable
+private fun Tab(label: String, on: Boolean, used: Boolean, onTap: () -> Unit) {
+    val p = LocalPalette.current
+    Column(
+        Modifier.width(IntrinsicSize.Max).clickable(interactionSource = null, indication = null, onClick = onTap),
+        verticalArrangement = Arrangement.spacedBy(Space.xs),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.xs)) {
+            BasicText(
+                label,
+                style = LocalType.current.body.copy(
+                    color = if (on) p.text else p.muted,
+                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                ),
+                maxLines = 1,
+            )
+            if (used) Box(Modifier.size(Space.s).background(p.accent, CircleShape))
+        }
+        Box(Modifier.fillMaxWidth().height(Dimens.ring).background(if (on) p.accent else Color.Transparent, CircleShape))
     }
 }
 
@@ -479,31 +620,56 @@ private fun SearchField(picker: ArtPicker) {
 }
 
 /**
- * The art in use, for checking a match: the square cover beside what fills Home behind it, the
- * scene at 16:9 when there is one, else the hero's wide strip. Falls back to the icon when there
- * is no cover; an empty strip when there is neither.
+ * The art in use, for checking a match and for changing it in place: the square cover beside what
+ * fills Home behind it, the scene at 16:9 when there is one, else the hero's wide strip. Falls
+ * back to the icon when there is no cover; an empty strip when there is neither. While a slot is
+ * browsed its focused thumbnail stands in for it and its ring holds still, the grid's pulsing.
  */
 @Composable
-fun ArtPreview(app: AppEntry, art: Art) {
-    val pkg = app.component.packageName
+fun ArtPreview(picker: ArtPicker, art: Art) {
+    val app = picker.app
+    val pkg = picker.pkg
     val p = LocalPalette.current
     val corner = RoundedCornerShape(Space.s)
+    val browsing = picker.browsing
+    val steady = browsing != null
     Row(horizontalArrangement = Arrangement.spacedBy(Space.m)) {
         val size = Dimens.artPreview
-        val cover = rememberArt(art, pkg, ArtKind.Cover, size.px())
+        val coverMod = Modifier.size(size)
+            .focusRing(picker.previewing && !picker.previewWide, Space.s, steady)
+            .clip(corner)
+            .clickable(interactionSource = null, indication = null) { picker.tapPreview(wide = false) }
+        val cover = candidate(picker, ArtKind.Cover, size.px()) ?: rememberArt(art, pkg, ArtKind.Cover, size.px())
         if (cover != null) {
-            Image(cover, null, Modifier.size(size).clip(corner), contentScale = ContentScale.Crop)
+            Image(cover, null, coverMod, contentScale = ContentScale.Crop)
         } else {
-            AppIcon(app, corner, Modifier.size(size))
+            AppIcon(app, corner, coverMod)
         }
-        val heroWidth = Dimens.sheet - Space.xxl * 2 - size - Space.m
-        val scene = rememberArt(art, pkg, ArtKind.Scene, heroWidth.px())
-        val hero = rememberArt(art, pkg, ArtKind.Hero, heroWidth.px())
-        val wide = scene ?: hero
-        Box(Modifier.size(heroWidth, heroWidth * if (scene != null) SCENE_ASPECT else HERO_ASPECT).clip(corner).background(p.rule)) {
+        // As tall as the cover, as wide as its kind is (a hero is wider than a scene), within the
+        // room left; sized from the panel's final width, so its opening slide decodes nothing twice.
+        val kind = picker.wideKind
+        val aspect = if (kind == ArtKind.Scene) SCENE_ASPECT else HERO_ASPECT
+        val room = Dimens.artSheet - Space.xxl * 2 - size - Space.m
+        val width = minOf(room, size / aspect)
+        val wide = candidate(picker, kind, width.px()) ?: rememberArt(art, pkg, kind, width.px())
+        Box(
+            Modifier.size(width, width * aspect)
+                .focusRing(picker.previewing && picker.previewWide, Space.s, steady)
+                .clip(corner)
+                .background(p.rule)
+                .clickable(interactionSource = null, indication = null) { picker.tapPreview(wide = true) },
+        ) {
             if (wide != null) Image(wide, null, Modifier.matchParentSize(), contentScale = ContentScale.Crop)
         }
     }
+}
+
+/** The focused thumbnail while [kind] is browsed, null otherwise (or while it loads). */
+@Composable
+private fun candidate(picker: ArtPicker, kind: ArtKind, px: Int): ImageBitmap? {
+    val url = picker.candidate?.thumb?.takeIf { picker.browsing == kind }
+    val thumb by produceState<ImageBitmap?>(null, url, px) { value = url?.let { picker.thumbnail(it, px) } }
+    return thumb.takeIf { url != null }
 }
 
 // SteamGridDB heroes are 1920×620; scenes 16:9.

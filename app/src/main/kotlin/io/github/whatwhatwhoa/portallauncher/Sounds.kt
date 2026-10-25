@@ -121,11 +121,15 @@ fun LauncherState.spot(): Spot {
             settingsFocus, accentRow, accentColumn, quickFocus, quickColumn, category.id,
         ),
         switches = listOf(
-            look.scenes, look.covers, look.effects.gradient, look.effects.glow, look.effects.depth,
+            look.covers, look.effects.gradient, look.effects.glow, look.effects.depth,
             look.effects.reflection, home.batteryPercent, home.hints, home.wraps, fetchArt, sound.on,
             controls.autoBrightness, controls.quiet,
         ),
-        levels = listOf(controls.brightness, controls.volume.toFloat() / controls.volumeMax.coerceAtLeast(1)),
+        levels = listOf(
+            controls.brightness,
+            controls.volume.toFloat() / controls.volumeMax.coerceAtLeast(1),
+            controls.nowPlaying?.fraction ?: 0f,
+        ),
         values = listOf(look, home, sound, armed, deleteArmed),
         focusKnown = artPicker == null,
     )
