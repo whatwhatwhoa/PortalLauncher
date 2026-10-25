@@ -4,30 +4,27 @@ Current state only. **Rewrite this file at the end of every session**: carry for
 open, delete what is resolved, never append history (git and `docs/decisions/` hold it).
 
 **State (2026-10-25):** The launcher **runs on the Portal and is its Home app** (Launcher3 still
-installed). The foundation (M1–M8) is built; **`TASKS.md` is now the owner's feature board**,
-and **0.1.0 — First public release** is under *Working on*. Built and installed this session,
-not yet seen by the owner: **F9** the hero's reflection under the band, **F10** starting
-categories (new installs go to All apps only), **B5** the dock's settings button as the
-launcher's icon with a gear badge (`decisions/0.1.0.md`). Left in 0.1.0: T8.2 and the VERIFY
-rounds. The decision files are settled. The repo stays private (owner). The owner's look:
-White, System, Black, effects on, Covers on tiles On. No VERIFY walked.
+installed). `TASKS.md` is the owner's **feature board**; the owner moves cards in the
+FeatureBoard app and a session works the first open card or task under *Working on*.
+**0.1.0 — First public release** is in progress: F9 (hero reflection), F10 (starting
+categories) and B5 are done and accepted; left are T8.2 (run the release APK) and the VERIFY
+rounds. Every decision so far is settled (`decisions/`, *Status* lines). `concepts/` is gone and
+gitignored. Everything is committed and pushed. The repo stays private (owner).
 
 ## Next
-1. The first open card or task under *Working on* (0.1.0), or the owner's explicit ask.
-2. The owner tries *V-reflection*, *V-starting*, *V-b5* first (the reflection was never seen
-   running: no scene-less app was focused), then *V-artkey*, *V-accent*, *V-transit*, *V-b3*,
-   *V-quick*, *V-settings-more*, *V-b2*; tune on their asks.
-3. T8.2 before going public: run the release APK once (it can't go over the debug install; see
-   `decisions/M8-release.md` *Left*), then the owner flips the repo public and publishes v0.1.0.
+1. T8.2: a side-by-side `releaseCheck` build type (`initWith(release)`, package suffix `.check`)
+   so the R8 build runs on the Portal without touching the debug install; walk Home, All apps,
+   the layers, the key row, art search and a gallery pick; keep rules for what breaks. It is a
+   second Home app, so its first start shows the Home-role dialog: back out without choosing,
+   and uninstall the check build at the end. Then the owner makes the repo public (see below).
+2. The owner tries *V-reflection* (the darker build) and *V-starting* first, then the older
+   VERIFY sections; tune on their asks.
 
 ## Waiting on the owner
 - Back up the release keystore `C:\Users\Jim\.android\portallauncher-release.jks` together with
   its password (in `local.properties`). If it is lost, users can't update.
-- How to test the release APK: a second device, or move the Portal to release builds (that
-  means uninstalling the debug one and losing favorites, dock and art once).
-- When to make the repo public.
-- D10.1 *Open* (a)–(c): unknown apps at the first run in Utilities; table apps installed later
-  in All apps only; Chrome now in Utilities.
+- When to make the repo public. Before that: the deleted `concepts/` files (test wallpapers, mock-up
+  images) are still in the git history; purge them with a history rewrite if they mustn't be public.
 - Quick panel: a swipe down from the top by touch too?
 - The VERIFY checks.
 - Q-reboot: after a Portal restart, does it still stay landscape and does the rotation app work?
@@ -36,22 +33,16 @@ White, System, Black, effects on, Covers on tiles On. No VERIFY walked.
   (agents can't); until then the build command sets it inline.
 
 ## Uncommitted
-- The pre-session work of jim-f6 + jim-7a (git tree 823095d: accent picker, motion pass, GitHub
-  page, key row, release signing). Commit message notes: release APKs carry no SteamGridDB key
-  and are signed from a keystore outside the repo; the release APK builds but has never run.
-- This session's docs: the switch to the feature board, then the settle pass (each a docs-only
-  commit; their trees are in the session's scratchpad `trees.txt`).
-- This session's code: F9, F10, B5.1 and this session's notes on them (`0.1.0.md`, VERIFY,
-  ticks); builds and lints clean.
+- Nothing.
 
 ## Watch out (this week only)
-- IDs since the board: new cards F18 on (tasks T<n>.k, decisions D<n>.k), owner batches B6 next;
-  D<n>.k up to M8 means the milestone.
+- IDs since the board: new cards F20 on (tasks T<n>.k, decisions D<n>.k), owner batches B6 next;
+  D<n>.k up to M8 means the milestone. Cards the owner adds in FeatureBoard come without an ID:
+  give one the next F number when it is planned or settled.
 - Don't script key presses while the owner is holding the Portal (`gotchas.md` *Scripted keys
   mix with the owner's input*). After any tap, check before A.
 - Clear all art and Reset the dock (Launcher Settings) wipe the owner's picks and dock: don't
   press A twice on them while testing.
-- The 2026-10-25 screenshot session left Home on Favorites; the owner had it on Entertainment.
 - Crunchyroll was opened by a stray scripted key (2026-10-25) and sits at its first-run consent
   screen; GameNative was left open after a test. Nothing was accepted in either.
 - The Portal's animator duration scale is 0.5 (the owner's setting); put it back to that after

@@ -10,7 +10,7 @@ Rules:
 - **Work** on the first open card or task under *Working on*, or the owner's explicit ask; one
   per session unless the owner bundles several.
 - **IDs never change when a card moves.** A new card is **F<n>**, numbered on from the last
-  milestone M8 (F9 first; next free F18), so its tasks are T<n>.1, T<n>.2 … and its decision
+  milestone M8 (F9 first; next free F20), so its tasks are T<n>.1, T<n>.2 … and its decision
   entries D<n>.1 …, clashing with no milestone's. A card that came out of a milestone keeps its
   task IDs. Owner bug and tweak batches stay **B<n>** (B6 next). A follow-up gets an F number
   when it is planned.
@@ -42,25 +42,25 @@ Also in it, done since the start: M1–M7, B1–B4 (history under *Released*).
   - [ ] T5.3 VERIFY round: ghost opacity, type size (`VERIFY.md` *V-categories*).
   - [ ] T7.3 VERIFY round on the device (`VERIFY.md` *V-quick*).
   - [ ] T6.5 VERIFY round on the device (`VERIFY.md` *V-transit*, *V-accent*).
-- **F9 Hero reflection** (owner, 2026-10-25): below the hero band, the hero mirrored, blurred
+- [x] **F9 Hero reflection** (owner, 2026-10-25): below the hero band, the hero mirrored, blurred
   and darkened, a soft rippling "windy moonlight" reflection; the band's gradient stays.
   `decisions/0.1.0.md` D9.1.
   - [x] T9.1 Build it on Home's hero band — 2026-10-25: mirrored, blurred, darkened, rippling;
     a *Hero reflection* switch (D9.1).
-- **F10 Starting categories** (owner, 2026-10-25): a bundled table puts popular apps in their
+- [x] **F10 Starting categories** (owner, 2026-10-25): a bundled table puts popular apps in their
   usual category on the launcher's first run; apps installed after that go to All apps only, not
   Home, until placed. `decisions/0.1.0.md` D10.1.
   - [x] T10.1 Table, first-run cutoff, an All-apps-only place on Category… — 2026-10-25: 117
     packages, cut by first install time (D10.1).
-- **B5** (owner, 2026-10-25): `decisions/0.1.0.md`.
+- [x] **B5** (owner, 2026-10-25): `decisions/0.1.0.md`.
   - [x] B5.1 The dock's Launcher Settings button: the launcher's own icon with a small gear badge, not a third plain gear — 2026-10-25: built as asked.
 
 ## Planned
 
 ### Candidates
 Nothing planned yet: the owner picks a version, a theme and the cards from the feature list.
-- **Github Update**: Able to update via Github
-- **Long press home button to lock screen**: Allow long press home button to lock screen. When single click, a hint comes up and displays for 0.5 or so seconds
+- **F18 Github Update**: Able to update via Github
+- **F19 Long press home button to lock screen**: Allow long press home button to lock screen. When single click, a hint comes up and displays for 0.5 or so seconds
 - **F12 Renaming or adding categories** (2026-10-25): the fixed five first (`decisions/M5-categories.md`).
 
 ## Feature list
