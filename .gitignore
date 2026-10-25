@@ -12,5 +12,6 @@ captures/
 .cxx/
 .kotlin/
 
-# Third-party APKs the owner drops in concepts/ for reference
+# The owner's design drops: read in place, never synced (owner, 2026-10-25)
+concepts/
 *.apk.*

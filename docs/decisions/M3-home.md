@@ -35,7 +35,7 @@ would upscale it 1.5× (soft, against rule 4). The fix is art (M4), not the rend
 
 ## Owner answers (2026-10-25)
 - **Odinlite APK:** an old launcher with a few tools; kept in `concepts/` only in case we need
-  something from it later. No review.
+  something from it later. No review. Deleted with `concepts/` (owner, 2026-10-25).
 - **Hero band height:** the dock moves down into the bottom row with the button hints, all
   bottom-aligned, rather than cropping the hero hard or shrinking the tiles (T4.3).
 

@@ -1,7 +1,8 @@
 # M1 — Design direction: concept review (2026-10-25)
 
-What the owner dropped in `concepts/`, what each gets right or wrong for a 7" 1920×1080 OLED,
-and what we take. The resulting direction is in `architecture.md` *Look*; this entry is the why.
+What the owner dropped in `concepts/` (deleted and untracked 2026-10-25, owner), what each gets
+right or wrong for a 7" 1920×1080 OLED, and what we take. The resulting direction is in
+`architecture.md` *Look*; this entry is the why.
 
 Status: accepted 2026-10-25 (the owner's answers: `M2-skeleton.md`). Since overtaken, as the
 owner asked: the dock holds utility apps, not system functions (point 4, `M2-skeleton.md`);

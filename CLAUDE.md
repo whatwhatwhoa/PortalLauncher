@@ -11,7 +11,7 @@ board: `docs/TASKS.md`.
 |---|---|
 | Any | `docs/HANDOFF.md` (state, next, waiting on the owner) |
 | Pick or plan work | `docs/TASKS.md`: the first open card or task under *Working on*, or the owner's explicit ask |
-| Reviewing the owner's concepts | `concepts/README.md`, then the files in `concepts/` |
+| Reviewing the owner's design input | the files they point at; earlier reviews: `docs/decisions/M1-design.md` |
 | The look, layout, controller feel | `docs/architecture.md` *Goals*, *Look* |
 | Build, SDK, adb, the device | `docs/architecture.md` *Toolchain*, *The device*; `docs/gotchas.md` |
 | Why something is the way it is | `docs/decisions/INDEX.md`, then the one entry |
@@ -19,14 +19,15 @@ board: `docs/TASKS.md`.
 
 **Each fact has one home.** Rules here · state → `HANDOFF.md` · tasks → `TASKS.md` · how it
 works → `architecture.md` · why → `docs/decisions/` · traps → `gotchas.md` · built-not-clicked →
-`docs/VERIFY.md` · the owner's design input → `concepts/`. Link, don't copy.
+`docs/VERIFY.md` · reviews of the owner's design input → `docs/decisions/`. Link, don't copy.
 
 ## Hard rules
 1. **The Portal is the owner's daily device.** Install, launch and read logs over adb freely;
    change a device setting (`settings put`, `wm`, setting the default Home) only when the owner
    asks, and write the undo command in the reply. Always keep Launcher3 installed as the fallback.
-2. **`concepts/` is the owner's.** Read it, never edit, rename or delete files in it; review notes
-   go in `docs/decisions/`.
+2. **The owner's design input stays out of the repo.** Mock-ups, wallpapers and third-party APKs
+   are read where the owner put them, never committed (`concepts/` is gitignored, owner
+   2026-10-25); review notes go in `docs/decisions/`.
 3. **Clean beats complete.** A feature earns its place by making the home screen calmer or more
    welcoming; when in doubt, leave it out and add a line to the board's *Feature list*.
 4. **Crisp at 1920×1080.** Vector or full-resolution assets only, real typography, no blurry

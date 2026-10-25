@@ -135,8 +135,9 @@ Status: built (*T4.3 Home layout v2*, *Backdrop and the dead space*).
 - **Hero vignette:** "a bit of vignetting feel" on the hero art: a soft darkening toward the
   band's edges and into the background, not a hard frame.
 - **Backdrop trial:** cycle background colors and wallpapers on the device to judge the look,
-  like the font and accent trials. The owner's test wallpapers are in `concepts/` (abstract,
-  black and white, cyberpunk, a game, nature).
+  like the font and accent trials. The owner's test wallpapers (abstract, black and white,
+  cyberpunk, a game, nature) were in `concepts/`, deleted 2026-10-25; copies stay on the
+  Portal in the app's `files/backdrops`.
 
 ## Art choices (owner, 2026-10-25)
 Status: as built 2026-10-25, owner to confirm (*V-art-choice*, *V-art-source*).
