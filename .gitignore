@@ -15,3 +15,6 @@ captures/
 # The owner's design drops: read in place, never synced (owner, 2026-10-25)
 concepts/
 *.apk.*
+
+# Python bytecode from tools/
+__pycache__/

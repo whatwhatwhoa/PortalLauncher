@@ -3,12 +3,30 @@
 Built but not yet clicked on the device. Each check is one line: what to do, what should
 happen. Ticked checks leave this file (their result goes in the commit or a decision entry).
 
+## V-0.4.0 (F30–F34, F28, built 2026-10-25)
+- [ ] The dock is full (six apps): + on an undocked tile shows *Add to dock (full)* grayed; A on
+      it bumps and the sheet stays. + on a docked app from the row or All apps: *Move in dock*
+      goes Home with that dock button lifted; left/right shift it, A puts it down.
+- [ ] Home, L1/R1: the category before or after (Favorites → Games …), row from its start; at
+      the ends a bump. Works from the dock too.
+- [ ] Launcher Settings → Home → *Home screen play controls* On, music playing: L1/R1 skip
+      tracks, R3 pauses and plays again; Off: bumpers back to categories, R3 does nothing.
+- [ ] Standby (hold Home), one press of any button: "Press the same button 4 times to wake" fades
+      in under the rings; wait 2 s: it fades out with the rings. Button hints off: no line.
+- [ ] Launcher Settings → Look → Big name: Fitted (the Portal is on it now). Home's name is as
+      written, lighter, fully on screen under the clock; a long title shrinks to fit. Metro: as before.
+- [ ] Is Fitted's size, weight and 60% opacity right? Try a long game title.
+- [ ] The + options, Launcher Settings and the quick panel sit on dark gray (#242424), not black;
+      the dock buttons stay as they were. Gray right, or lighter/darker?
+- [ ] F28: on Home with nothing open, the back gesture (swipe in from the side) does nothing: no
+      flash, focus and category stay. B on Home still opens the categories.
+
 ## V-skeleton (built 2026-10-25; first run 2026-10-25)
 Install: `CLAUDE.md` *Commands*. Launcher3 stays installed throughout. Portal is already the
 Home app (the owner chose it in the first-run dialog). The agent drove the rest over adb with
 injected keys (`decisions/M2-skeleton.md` *First device run*); these need the owner's hands.
 - [ ] Real controller: left stick and D-pad move along the row and into the dock; A opens; Y
-      opens All apps and B closes it; L1/R1 jump five; L2/R2 go to the ends; X and −
+      opens All apps and B closes it; L1/R1 turn the category; L2/R2 go to the ends; X and −
       do nothing on Home; Home returns to the start of the row. Holding a direction repeats.
 - [ ] The focus feel: the 1.08 grow and the ring's slow pulse read as calm, not jumpy.
 - [ ] Touch: tap a tile opens it; drag scrolls the row; swipe up opens All apps; Back closes it.
@@ -74,7 +92,7 @@ Network is allowed for the launcher, and the favorites' art is downloaded.
       jump at the end; holding a direction glides; the others are 144 and a touch see-through.
       Dragging the row by touch moves focus along it. Going quickly never stops the launcher.
 - [ ] The vignette: soft, the name reads over the art, the clock and battery read along the top.
-- [ ] The focused tile grows and its neighbors slide aside smoothly; L1/R1 and L2/R2 too.
+- [ ] The focused tile grows and its neighbors slide aside smoothly; L2/R2 too.
 - [ ] Down to the dock: the row's tiles all shrink to 144, the row doesn't jump, the name goes
       muted, the dock's label is clear of the tiles. Up again: back to accent and 192.
 - [ ] + → Move on a carousel tile: it lifts a little more, moves, A puts it down.

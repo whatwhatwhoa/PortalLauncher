@@ -1,6 +1,8 @@
 package io.github.whatwhatwhoa.portallauncher
 
 import android.text.format.DateFormat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
@@ -37,7 +40,8 @@ import kotlin.random.Random
  * soft with the date and battery under it; MainActivity keeps the screen on meanwhile. The block
  * moves to a new spot each minute so the OLED never holds one picture. Four presses of the same
  * button leave it (touches, sticks and triggers don't count); the dots under it fill as they
- * come, so a press that seems lost isn't.
+ * come, so a press that seems lost isn't. Once a press counts, a line under the dots says how to
+ * wake (F30); it stays out of sight otherwise, and with *Button hints* off.
  */
 @Composable
 fun StandbyScreen(state: LauncherState) {
@@ -71,6 +75,16 @@ fun StandbyScreen(state: LauncherState) {
             }
             Spacer(Modifier.height(Space.xl))
             WakeDots(state.wakePresses, state.wakePressesNeeded)
+            if (LocalHome.current.hints) {
+                // Faded in place rather than added, so the block doesn't jump when it appears.
+                val shown by animateFloatAsState(if (state.wakePresses > 0) 1f else 0f, tween(FADE_MS), label = "wakeHint")
+                Spacer(Modifier.height(Space.m))
+                BasicText(
+                    "Press the same button ${state.wakePressesNeeded} times to wake",
+                    Modifier.alpha(shown),
+                    style = t.caption.copy(color = DIM),
+                )
+            }
         }
     }
 }
@@ -109,3 +123,4 @@ private const val MINUTE = 60_000L
 private val DRIFT_X = 160.dp
 private val DRIFT_Y = 64.dp
 private val DOT = 10.dp
+private const val FADE_MS = 200

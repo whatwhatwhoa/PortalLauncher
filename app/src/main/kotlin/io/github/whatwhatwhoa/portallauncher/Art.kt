@@ -580,6 +580,15 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
 }
 
 /**
+ * Android's, Google's and LineageOS's own apps: never games, but their one-word names are
+ * ("Chrome" and "Calculator: The Game" both matched), so a favorite from these isn't looked up
+ * without asking.
+ */
+fun isPlatformApp(pkg: String) = PLATFORM_PREFIXES.any { pkg.startsWith(it) }
+
+private val PLATFORM_PREFIXES = listOf("com.android.", "com.google.", "org.lineageos.")
+
+/**
  * An app's art decoded at no more than [maxPx] on its longer side (only ever scaled down), or
  * null while it loads or when there is none. Decoded again when the art changes.
  */

@@ -220,6 +220,13 @@ enum class Theme(val label: String) { System("System"), Light("Light"), Dark("Da
 /** The focus ring's breath, each way; Slow is the default since the owner halved it. */
 enum class Pulse(val label: String, val millis: Int?) { Off("Off", null), Slow("Slow", 1800), Normal("Normal", 900) }
 
+/**
+ * How Home's big name is drawn (F31): Metro is the bold capitals running off the top edge;
+ * Fitted is the name as written, lighter and a little more opaque, wholly on screen and sized
+ * down so most game titles fit on one line.
+ */
+enum class NameStyle(val label: String) { Metro("Metro"), Fitted("Fitted") }
+
 /** The overlay effects, each switchable so the owner can judge it against its absence. */
 data class Effects(
     val gradient: Boolean = true,
@@ -237,6 +244,7 @@ data class LookSettings(
     val covers: Boolean = true,
     val effects: Effects = Effects(),
     val pulse: Pulse = Pulse.Slow,
+    val name: NameStyle = NameStyle.Metro,
 )
 
 /** The status clock: Android's own 12/24-hour setting unless the owner fixes it. */
@@ -256,6 +264,8 @@ data class HomeSettings(
     val hints: Boolean = true,
     val wraps: Boolean = false,
     val start: StartOn = StartOn.Favorites,
+    /** L1/R1 skip tracks and R3 plays or pauses on Home; off, the bumpers change the category. */
+    val playControls: Boolean = false,
 )
 
 private fun text(dark: Boolean) = if (dark) Color.White else Color(0xFF2D2D2D)
@@ -277,6 +287,8 @@ data class Palette(
     val background: Color,
     val text: Color,
     val surface: Color,
+    /** The menus' panels (options, Launcher Settings, quick settings). */
+    val panel: Color,
     val muted: Color,
     val rule: Color,
     val accent: Color,
@@ -305,12 +317,17 @@ fun palette(dark: Boolean, accent: Accent, black: Boolean = false): Palette {
         background = background,
         text = text,
         surface = lerp(background, text, 0.08f),
+        // In the dark a fixed dark gray, whatever the backdrop: on Black the surface (#141414)
+        // read as black, and the owner wanted the menus to stand out a little (F32).
+        panel = if (dark) PANEL_DARK else lerp(background, text, 0.08f),
         muted = text.copy(alpha = 0.6f),
         rule = text.copy(alpha = 0.16f),
         accent = accentColor,
         lift = lift,
     )
 }
+
+private val PANEL_DARK = Color(0xFF242424)
 
 val LocalPalette = staticCompositionLocalOf { palette(true, Accent.White) }
 val LocalType = staticCompositionLocalOf { Type(selawik, FONT_SCALE) }

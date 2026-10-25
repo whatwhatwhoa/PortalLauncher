@@ -55,7 +55,9 @@ class AppEntry(
 
 /** Every launchable activity in every profile, kept current by LauncherApps callbacks. */
 class AppCatalog(private val context: Context, private val scope: CoroutineScope) {
-    private val launcherApps = context.getSystemService(LauncherApps::class.java)
+    // From the application: Android keeps the callback's binder alive after unregistering, and
+    // through it the context the service came from; an activity's held every old activity (F28).
+    private val launcherApps = context.applicationContext.getSystemService(LauncherApps::class.java)
     private val userManager = context.getSystemService(UserManager::class.java)
     private var job: Job? = null
 
@@ -276,6 +278,7 @@ class Prefs(context: Context) {
                     reflection = sp.getBoolean("look.reflection", d.effects.reflection),
                 ),
                 pulse = named("look.pulse", d.pulse),
+                name = named("look.name", d.name),
             )
         }
         set(value) = sp.edit {
@@ -288,6 +291,7 @@ class Prefs(context: Context) {
             putBoolean("look.depth", value.effects.depth)
             putBoolean("look.reflection", value.effects.reflection)
             putString("look.pulse", value.pulse.name)
+            putString("look.name", value.name.name)
         }
 
     /** Settings → Home, stored the same way as [look]. */
@@ -300,6 +304,7 @@ class Prefs(context: Context) {
                 hints = sp.getBoolean("home.hints", d.hints),
                 wraps = sp.getBoolean("home.wraps", d.wraps),
                 start = named("home.start", d.start),
+                playControls = sp.getBoolean("home.playControls", d.playControls),
             )
         }
         set(value) = sp.edit {
@@ -308,6 +313,7 @@ class Prefs(context: Context) {
             putBoolean("home.hints", value.hints)
             putBoolean("home.wraps", value.wraps)
             putString("home.start", value.start.name)
+            putBoolean("home.playControls", value.playControls)
         }
 
     /** The id of the category Home was last on, for Start on → Where you left after a restart. */

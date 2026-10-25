@@ -123,7 +123,7 @@ fun LauncherState.spot(): Spot {
         ),
         switches = listOf(
             look.covers, look.effects.gradient, look.effects.glow, look.effects.depth,
-            look.effects.reflection, home.batteryPercent, home.hints, home.wraps, fetchArt, sound.on,
+            look.effects.reflection, home.batteryPercent, home.hints, home.wraps, home.playControls, fetchArt, sound.on,
             controls.autoBrightness, controls.quiet,
         ),
         levels = listOf(

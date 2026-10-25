@@ -10,9 +10,9 @@ Rules:
 - **Work** on the first open card or task under *Working on*, or the owner's explicit ask; one
   per session unless the owner bundles several.
 - **IDs never change when a card moves.** A new card is **F<n>**, numbered on from the last
-  milestone M8 (F9 first; next free F34), so its tasks are T<n>.1, T<n>.2 … and its decision
+  milestone M8 (F9 first; next free F35), so its tasks are T<n>.1, T<n>.2 … and its decision
   entries D<n>.1 …, clashing with no milestone's. A card that came out of a milestone keeps its
-  task IDs. Owner bug and tweak batches stay **B<n>** (B9 next). A follow-up gets an F number
+  task IDs. Owner bug and tweak batches stay **B<n>** (B10 next). A follow-up gets an F number
   when it is planned.
 - **A card is a line or two**: what, why, a pointer to its spec. A long spec is a decision entry
   marked "planned" (`decisions/F<n>-<slug>.md` for a big feature, `decisions/<version>.md` for
@@ -31,26 +31,18 @@ Rules:
 
 ## Working on
 
-### 0.4.0 — Stress Test and Prepare for release candidate
-The beta (owner, 2026-10-25): already polished; this release hunts bugs and readies the release candidate.
-- **F28 Stress Test Script**: a bug hunt the agent scripts and runs (owner, 2026-10-25): load the
-  systems, press every button, try to break it; what breaks becomes a fix or a card.
-- **F29 Updated GitHub home page**: Updated instructions on must current features
-- **F30 Text on standby screen to unlock**: Only appearings after registering a press, Press same button 4 times to unlock. Disabling helper text also disables this.
-- **F31 Big Font Look**: A setting that makes the big font normal and fits most game titles and less of a metro UI. Doesn't get cutoff, is a bit more opague and less weight.
-- **F32 Change Menu background color**: Currently menu background is black, make it dark gray. Enough to stand out, but subdued to look crisp
-- **F33 Add reorganize dock icon options** Also update the options to when dock is full, the "add to dock" is greyed out with (full)
-- **VERIFY rounds** (owner, 2026-10-25; carried from 0.1.0, 0.2.0 and 0.3.0): the milestones' hand checks on the Portal (`VERIFY.md`).
+Nothing in progress: 0.4.0 shipped 2026-10-25. The owner moves the next release here from *Planned*.
+
+## Planned
+
+### Candidates
+No release planned yet: the owner picks a version, a theme and the cards from the feature list.
+- **VERIFY rounds** (owner, 2026-10-25; carried from 0.1.0–0.4.0, into the next release): the milestones' hand checks on the Portal (`VERIFY.md`).
   - [ ] T2.3 Device session: install, run `docs/VERIFY.md` *V-skeleton*, fix what breaks; the
     owner sets it as Home and goes back to Launcher3 once, to prove the way back.
   - [ ] T5.3 VERIFY round: ghost opacity, type size (`VERIFY.md` *V-categories*).
   - [ ] T7.3 VERIFY round on the device (`VERIFY.md` *V-quick*).
   - [ ] T6.5 VERIFY round on the device (`VERIFY.md` *V-transit*, *V-accent*).
-
-## Planned
-
-### Candidates
-Nothing planned yet: the owner picks a version, a theme and the cards from the feature list.
 
 ## Feature list
 
@@ -77,6 +69,9 @@ One line each, and the milestones before the board. The full task lines:
 `archive/tasks-<version>.md` and `archive/tasks-M1-M7.md`; the why: `decisions/`.
 
 ### Releases
+- **0.4.0** (2026-10-25, Stress Test and Prepare for release candidate): F28–F34, B9; the first
+  public release (repo public, GitHub release v0.4.0 with `PortalLauncher-0.4.0.apk`); its VERIFY
+  rounds carried to *Candidates*; versionCode 4. `archive/tasks-0.4.0.md`, `decisions/0.4.0.md`.
 - **0.3.0** (2026-10-25, Sounds and effects): F22, F23, F24, F21, F25, F26, F27, B6–B8; its VERIFY
   rounds carried into 0.4.0; versionCode 3, release APK `PortalLauncher-0.3.0.apk`. `archive/tasks-0.3.0.md`,
   `decisions/0.3.0.md`, `F22-sounds.md`, `F25-settings.md`, `F26-setup.md`.

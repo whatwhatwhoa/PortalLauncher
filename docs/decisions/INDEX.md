@@ -3,7 +3,7 @@
 One line per entry, newest at the bottom. The entry holds the why; `architecture.md` holds the
 what. IDs: D<n>.k is milestone n up to M8, card F<n> from F9 on (`TASKS.md`, the feature board,
 since 2026-10-25); a big card's file is `F<n>-<slug>.md`, a release's small ones go in
-`<version>.md`. Owner batches are B<n>, B9 next. Every entry carries a `Status:` line; settled
+`<version>.md`. Owner batches are B<n>, B10 next. Every entry carries a `Status:` line; settled
 2026-10-25 (the stories cut back to choice and why, the what moved to `architecture.md`).
 
 - `M1-design.md` (2026-10-25) — concept review: Switch 2 mock-up anatomy, flat Switch theme for
@@ -65,3 +65,12 @@ since 2026-10-25); a big card's file is `F<n>-<slug>.md`, a release's small ones
   or new signing key doesn't; a setup file in Download saved by hand (no key, gallery art and
   wallpapers inside, downloaded art fetched again), restored through the picker; Android's
   backup limited to the setup prefs (the art pushed it toward the 25 MB limit).
+- `0.4.0.md` (2026-10-25) — 0.4.0's small cards: the wake line on standby after a press (D30.1),
+  the Fitted big name (D31.1: as written, lighter, sized to fit, one measure), the menus on
+  dark gray, a panel color of their own (D32.1), Move in dock from any sheet and a grayed
+  *Add to dock (full)* (D33.1), bumpers turn the category, *Home screen play controls* (D34.1),
+  the README brought up to date (D29.1), the owner's batch B9 (no art lookups for Android's own
+  apps, the smallest-width tip), the stress test (D28.1: the script and how it stays off the rest
+  of the device; back at home finished the launcher, every old activity leaked through
+  LauncherApps; both fixed; a clean run on the R8 build), the release (versionCode 4, the
+  history purged of `concepts/`, the repo public, GitHub release v0.4.0).

@@ -54,7 +54,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -322,7 +321,7 @@ private fun LauncherRoot(state: LauncherState, motion: Boolean) {
     val palette = remember(dark, look.accent, black) { palette(dark, look.accent, black) }
     val type = remember { Type(selawik, FONT_SCALE) }
     BoxWithConstraints(Modifier.fillMaxSize().background(palette.background)) {
-        val density = canvasDensity(LocalDensity.current, maxWidth, maxHeight)
+        val density = canvasDensity(LocalDensity.current, constraints.maxWidth, constraints.maxHeight)
         CompositionLocalProvider(
             LocalDensity provides density,
             LocalPalette provides palette,
@@ -335,18 +334,25 @@ private fun LauncherRoot(state: LauncherState, motion: Boolean) {
             Layers(state, motion)
         }
     }
-    BackHandler(enabled = state.backHandled) { state.back() }
+    // Always on: with nothing to close, Android's own back finishes a Home activity (it isn't a
+    // launcher task), and Home is rebuilt in a new task. Back at home does nothing, as Launcher3.
+    BackHandler { if (state.backHandled) state.back() }
 }
 
 /**
- * The layout is drawn on a 600 dp tall canvas. Another screen gets it scaled to fit (0.75–1.5,
+ * The layout is drawn on a 600 dp tall canvas. Another screen gets it scaled to fit (0.5–1.5,
  * narrowed if the screen is too narrow for the canvas), and the system font scale is held to
  * 0.9–1.15 so big text can't break the layout. The factor is rounded to hundredths so the
  * Portal, whose window is the canvas, lands on exactly 1 and icons stay 1:1.
+ * Measured in pixels against the current density: after a live density change (Display size,
+ * Smallest width) BoxWithConstraints' maxWidth/maxHeight still used the old one, so the layout
+ * drew ~1.25× too big until a restart.
  */
-private fun canvasDensity(system: Density, width: Dp, height: Dp): Density {
-    val fit = minOf(height / Dimens.canvasHeight, width / Dimens.canvasMinWidth)
-    val factor = ((fit * 100).roundToInt() / 100f).coerceIn(0.75f, 1.5f)
+private fun canvasDensity(system: Density, widthPx: Int, heightPx: Int): Density {
+    val width = widthPx / system.density
+    val height = heightPx / system.density
+    val fit = minOf(height / Dimens.canvasHeight.value, width / Dimens.canvasMinWidth.value)
+    val factor = ((fit * 100).roundToInt() / 100f).coerceIn(0.5f, 1.5f)
     return Density(system.density * factor, system.fontScale.coerceIn(0.9f, 1.15f))
 }
 

@@ -18,7 +18,7 @@ scanning, phone layouts in portrait.
 ## Look
 
 Direction from the owner's concepts (`decisions/M1-design.md`) and answers
-(`decisions/M2-skeleton.md`). Numbers are tuned on the device; in code they live in `Look.kt`
+(`decisions/M2-skeleton.md`). In code the numbers live in `Look.kt`
 (`Space`, `Dimens`), so this section and that file change together.
 What the owner can change is in *Settings*; this section describes the defaults.
 
@@ -77,7 +77,9 @@ second input, never the only one.
    (bold) at 40% opacity, accent while the row has focus and muted otherwise; one line. A name
    too long for the screen scrolls while the row has focus: out past the left edge at 90 dp/s
    and round again, a 2.5 s pause before each pass; muted, or with animations off, it runs off
-   the right edge instead.
+   the right edge instead. *Big name* Fitted draws it as written instead, semibold at 60%,
+   48 dp from the top between the margins, at 36% of the display size shrunk with the name's
+   width to 20% at least; longer still, it scrolls the same way or ends in an ellipsis.
 3. *Carousel*: the current category's apps in one row (*Categories*), named above the row on
    the content margin in muted title type, 12 dp clear of the grown tile; its center line at 52%
    of the screen's height (placed by that line, not by its neighbors) and over the band's lower
@@ -151,7 +153,9 @@ brings them back faded to 40% until it is turned off or the launcher restarts.
 360 dp panel from the right over the screen dimmed to 60% (600 dp on the Art… page, sliding wider): the app's icon and name, then its
 options as 48 dp rows (the focused row filled with the rule color and ringed); no hints (A and B
 are known). Options depend on where it was opened: Move (favorites on the Favorites row, and
-the dock), Favorite or Unfavorite (not from the dock), Add to or Remove from dock, Category…
+the dock), Favorite or Unfavorite (not from the dock), Add to dock (grayed "(full)" at six; A
+only bumps), or for a docked app Move in dock (not from the dock: Home, the dock button
+picked up) and Remove from dock, Category…
 (a page of every category but Favorites and All apps only, scrolling when long, each the app is
 in dotted; A puts it in or takes it out and stays, B goes back), Hide
 or Unhide (not from the dock), Art…,
@@ -169,7 +173,8 @@ upscales it. The dock and All apps keep the icons.
 
 **Art.** Square covers and 1920×620 heroes from SteamGridDB, downloaded once per app and never
 upscaled (`decisions/M4-art.md`). The owner's favorites and the Games category are
-looked up by label when they appear and take art only on a close match; any other app keeps its
+looked up by label when they appear (Android's own apps, by package, only in Games) and take
+art only on a close match; any other app keeps its
 icon until the owner picks. *Art…* in the options sheet turns the panel into a picker: a
 preview of the art in use at the top (the 120 dp cover, beside it as tall the strip: the hero or
 the scene, whichever fills Home behind the app), then the matches for the label, *Search* (the keyboard; B ends
@@ -222,15 +227,15 @@ The system font scale is honored within 0.9–1.15, so large text can't break th
 that depends on a line height reads it through the font scale (`asDp`).
 
 **Color.** Two themes following the system dark/light setting (or fixed by *Theme*): light
-background `#EBEBEB` with `#2D2D2D` text, dark `#141414` with white text (the Switch's two, dark
-made much darker).
+background `#EBEBEB` with `#2D2D2D` text, dark `#141414` with white text.
 
 **Backdrop**: *Black* (`#000000`, the whole palette's background, the OLED's off; the owner's
 pick). The others: *Dark* (`#141414`), *Hero glow* (the focused app's hero over the whole of
 Home, none under an app set to its scene, decoded at 480 px, blurred 40 dp and dimmed 50% with the background, crossfading with
 focus), and each image in the app's `files/backdrops` (read again each time the settings
 open), cropped full screen and dimmed 35%. All
-apps keeps the plain background. Surface is the background mixed 8% toward the text; muted text
+apps keeps the plain background. Surface is the background mixed 8% toward the text; the menus (options, Launcher Settings,
+quick panel) sit on *panel*, `#242424` in the dark, the surface in the light; muted text
 is the text at 60%; the rule at 16%. The **accent** is one of eight presets or a custom color. *White* is the text color (so
 `#2D2D2D` in light mode; the owner's pick and the default). The other seven are a hue and chroma
 made into OKLCH color at lightness 0.80 (dark) or 0.55 (light), fitted to sRGB, in hue order:
@@ -266,12 +271,12 @@ A. Every change applies at once and is kept (`look.*`, `home.*`, `art.fetch` in 
 preferences).
 - *Look*: Theme (System, Light, Dark), Accent (left and right step through the presets; A opens
   the accent picker in the page's place), Backdrop, Covers on tiles (off: icons on Home,
-  whatever art is picked), then the effects: Background gradient, Focus glow, Tile depth, Hero
+  whatever art is picked), Big name (Metro, Fitted), then the effects: Background gradient, Focus glow, Tile depth, Hero
   reflection, Focus pulse (Off, Slow, Normal); the page scrolls.
 - *Home*: Clock (System, 12-hour, 24-hour), Battery percent (off: only the fill), Button hints,
   Carousel wraps (off by default: the row stops at its ends), Home key goes to (Favorites, the
   first category's start; or Where you left, which also reopens the last category after a restart),
-  Hold Home for standby (On or Off: whether *Standby*'s service is on; A opens Android's
+  Home screen play controls (off by default; see *Controller map*), Hold Home for standby (On or Off: whether *Standby*'s service is on; A opens Android's
   accessibility settings, where it is switched).
 - *Sound*: Sounds (on by default), Family (Soft, Glass, Crisp; Soft by default), Volume (Quiet,
   Low, Medium, Loud; Low by default). A new family or volume plays Select in itself (`sound.*`).
@@ -357,7 +362,9 @@ restart.
 
 **Controller map.** Keys become actions once, at the activity (`Input.kt`), so an ABXY swap is
 one table. A is the bottom button (Xbox layout, `BUTTON_A`). Home: D-pad or left stick moves
-along the row, down to the dock and back up; A opens; Y opens All apps; L1/R1 jump five tiles;
+along the row, down to the dock and back up; A opens; Y opens All apps; L1/R1 turn to the
+category before or after, its row from the start, stopping at the ends (with *Home screen play
+controls* on they skip tracks instead and R3 plays or pauses, media keys to the last player);
 L2/R2 jump to the ends; + opens the options sheet; B opens the categories layer (up and down,
 L2/R2 to the ends, A in, B back, + edit mode); − opens the quick panel; X does nothing. Carousel wraps on,
 left and right go round the row's ends. All apps: D-pad
@@ -367,7 +374,7 @@ The Home key closes every layer; pressed while already home it also returns to t
 category's start (unless *Home key goes to* is Where you left), while on
 the way back from an app it keeps the category and focus (the window has focus and the intent
 doesn't bring Home to the front, Launcher3's test). Touch: tap opens, long press opens options, drag
-scrolls, swipe up opens All apps, back closes the top layer.
+scrolls, swipe up opens All apps, back closes the top layer (if any).
 
 **Standby.** Holding Home opens standby, from anywhere, a game included: a rest that doesn't
 lock, like an always-on display, over whatever was showing. Black; the clock large (the display
@@ -375,22 +382,22 @@ type at 30%) in white at 72%, the date and the battery under it at 52%, and four
 window keeps the screen on at the owner's brightness. The block moves to a random spot within
 160 × 64 dp of the center each minute, for the OLED. Four presses of the same button within
 2 s of the first leave it (a D-pad push counts as its direction); each fills a ring, and another
-button starts the count again at one. Touches, the back gesture, the sticks and the triggers are
-swallowed without counting (stick motion before Android turns it into D-pad keys; the Portal
-sends each trigger as both an axis and an L2/R2 button, both swallowed); volume keys still set
-the volume. It also ends when the launcher goes out of view (the screen turned
+button starts the count again at one; while a count runs, "Press the same button 4 times to
+wake" shows under the rings (faded, none with *Button hints* off). Touches, the back gesture,
+the sticks and the triggers (axis and L2/R2 button both) are swallowed without counting; volume
+keys still set the volume. It also ends when the launcher goes out of view (the screen turned
 off, an app over it). Holding Home needs the launcher's accessibility service (`HomeHoldService`),
-which the owner turns on once: Android keeps the Home key from apps and spends a hold on its
-own (Circle to Search), and the service is the one place an app sees the key first, on stock
-Android and LineageOS alike. It takes every Home press: a hold (Android's long-press time) opens
+which the owner turns on once (why: `decisions/0.2.0.md` D19.1). It takes every Home press: a hold (Android's long-press time) opens
 standby, a shorter one is handed back as Android's Home. It reads no screen content. While it is
 on, each Home press shows "Hold Home for standby" in a pill at the top for 0.6 s.
 
 **Scaling (bonus, not a goal).** The layout is drawn on a 600 dp tall canvas at least 1032 dp
 wide (the All apps grid). On another screen the root scales the density so the canvas fits:
-the smaller of height / 600 and width / 1032, rounded to hundredths, clamped to 0.75–1.5. Every
+the smaller of height / 600 and width / 1032, rounded to hundredths, clamped to 0.5–1.5. Every
 size scales with it, literals included. The Portal's window is the canvas, so its factor is
-exactly 1 and icons stay 1:1. Portrait and phones are unsupported.
+exactly 1 and icons stay 1:1, at any *Display size* (360 gives 0.8: 288's pixels). A change
+applies live: the window is measured in pixels over the current density. Portrait and phones
+are unsupported.
 
 ## Structure
 
@@ -476,5 +483,6 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
   release APK is unsigned.
 
 **The public page.** `README.md` is written for users, not developers: download, install,
-buttons, the SteamGridDB key, quick settings, screenshots (`docs/screenshots/`, taken on the
-Portal with `adb exec-out screencap`, photos as JPEG 90). License MIT (`LICENSE`).
+smallest width 600, buttons, the SteamGridDB key, quick settings, standby, the settings pages,
+screenshots (`docs/screenshots/`, taken on the Portal with `adb exec-out screencap`, anything
+with a photo in it as JPEG 90). License MIT (`LICENSE`).

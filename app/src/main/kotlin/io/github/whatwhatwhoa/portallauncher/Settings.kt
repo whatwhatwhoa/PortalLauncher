@@ -57,6 +57,7 @@ enum class Setting(val group: SettingGroup, val label: String, val acts: Boolean
     Accent(SettingGroup.Look, "Accent"),
     Backdrop(SettingGroup.Look, "Backdrop"),
     Covers(SettingGroup.Look, "Covers on tiles"),
+    Name(SettingGroup.Look, "Big name"),
     Gradient(SettingGroup.Look, "Background gradient"),
     Glow(SettingGroup.Look, "Focus glow"),
     Depth(SettingGroup.Look, "Tile depth"),
@@ -67,6 +68,7 @@ enum class Setting(val group: SettingGroup, val label: String, val acts: Boolean
     Hints(SettingGroup.Home, "Button hints"),
     Wraps(SettingGroup.Home, "Carousel wraps"),
     Start(SettingGroup.Home, "Home key goes to"),
+    PlayControls(SettingGroup.Home, "Home screen play controls"),
     HomeHold(SettingGroup.Home, "Hold Home for standby", acts = true),
     SoundsOn(SettingGroup.Sound, "Sounds"),
     SoundSet(SettingGroup.Sound, "Family"),
@@ -92,6 +94,7 @@ fun LookSettings.step(setting: Setting, by: Int, backdrops: List<Backdrop>): Loo
         copy(backdrop = backdrops[Math.floorMod(i + by, backdrops.size)].id)
     }
     Setting.Covers -> copy(covers = !covers)
+    Setting.Name -> copy(name = name.cycled(by))
     Setting.Gradient -> copy(effects = effects.copy(gradient = !effects.gradient))
     Setting.Glow -> copy(effects = effects.copy(glow = !effects.glow))
     Setting.Depth -> copy(effects = effects.copy(depth = !effects.depth))
@@ -107,6 +110,7 @@ fun HomeSettings.step(setting: Setting, by: Int): HomeSettings = when (setting) 
     Setting.Hints -> copy(hints = !hints)
     Setting.Wraps -> copy(wraps = !wraps)
     Setting.Start -> copy(start = start.cycled(by))
+    Setting.PlayControls -> copy(playControls = !playControls)
     else -> this
 }
 
@@ -123,6 +127,7 @@ private fun LauncherState.shown(setting: Setting): String {
         Setting.Accent -> look.accent.label
         Setting.Backdrop -> backdrop.label
         Setting.Covers -> onOff(look.covers)
+        Setting.Name -> look.name.label
         Setting.Gradient -> onOff(look.effects.gradient)
         Setting.Glow -> onOff(look.effects.glow)
         Setting.Depth -> onOff(look.effects.depth)
@@ -133,6 +138,7 @@ private fun LauncherState.shown(setting: Setting): String {
         Setting.Hints -> onOff(home.hints)
         Setting.Wraps -> onOff(home.wraps)
         Setting.Start -> home.start.label
+        Setting.PlayControls -> onOff(home.playControls)
         Setting.HomeHold -> onOff(homeHold)
         Setting.SoundsOn -> onOff(sound.on)
         Setting.SoundSet -> sound.family.label
@@ -175,7 +181,7 @@ fun AnimatedVisibilityScope.SettingsPanel(state: LauncherState) {
                 )
                 .fillMaxHeight()
                 .width(Dimens.settingsSheet)
-                .background(p.surface)
+                .background(p.panel)
                 .clickable(interactionSource = null, indication = null) {}
                 .padding(start = Space.xxl, end = Space.xxl, top = Dimens.sheetTop, bottom = Space.xl),
         ) {

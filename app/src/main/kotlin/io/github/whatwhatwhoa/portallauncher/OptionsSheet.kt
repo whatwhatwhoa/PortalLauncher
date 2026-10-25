@@ -67,7 +67,7 @@ fun AnimatedVisibilityScope.OptionsSheet(state: LauncherState, sheet: Sheet) {
                 )
                 .fillMaxHeight()
                 .width(width)
-                .background(p.surface)
+                .background(p.panel)
                 // Taps on the panel itself must not reach the scrim behind it.
                 .clickable(interactionSource = null, indication = null) {}
                 .padding(start = Space.xxl, end = Space.xxl, top = Dimens.sheetTop, bottom = Space.xl),
@@ -100,7 +100,8 @@ fun AnimatedVisibilityScope.OptionsSheet(state: LauncherState, sheet: Sheet) {
                     }
                 } else {
                     Rows(state, sheet.options.size, corner) { i ->
-                        BasicText(sheet.options[i].label, style = t.body.copy(color = p.text), maxLines = 1)
+                        val option = sheet.options[i]
+                        BasicText(option.label, style = t.body.copy(color = if (option.enabled) p.text else p.muted), maxLines = 1)
                     }
                 }
                 Spacer(Modifier.weight(1f))

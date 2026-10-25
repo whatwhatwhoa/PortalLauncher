@@ -2,7 +2,7 @@
 
 A clean, welcoming Android home launcher for the owner's AYN Odin 2 Portal: controller first,
 full Android underneath (every app, settings, notifications), far fewer features than Nova.
-Kotlin + Jetpack Compose, built from the command line on a Windows ARM laptop. Private.
+Kotlin + Jetpack Compose, built from the command line on a Windows ARM laptop. Public on GitHub (MIT).
 Why and where it is going: `docs/architecture.md`, *Goals*. The work is the owner's feature
 board: `docs/TASKS.md`.
 
@@ -36,7 +36,7 @@ works → `architecture.md` (build and device: `device.md`) · why → `docs/dec
 6. **Small diffs.** One task per session unless the owner bundles several.
 7. **Secrets stay in `local.properties`** (gitignored), e.g. `steamgriddb.apiKey` and the
    `release.*` signing lines. Never copy a key or password into code, notes, a commit or a reply;
-   the repo may be made public. The release keystore lives outside the repo (`decisions/M8-release.md`).
+   the repo is public. The release keystore lives outside the repo (`decisions/M8-release.md`).
 
 ## Commands
 - adb: `C:\Users\Jim\AppData\Local\Android\Sdk\platform-tools\adb.exe` (device `82ee7769`)
@@ -49,7 +49,7 @@ works → `architecture.md` (build and device: `device.md`) · why → `docs/dec
   `adb shell am start -n io.github.whatwhatwhoa.portallauncher/.MainActivity`
 - Log: `adb logcat --pid=$(adb shell pidof io.github.whatwhatwhoa.portallauncher)`;
   screenshot: `adb exec-out screencap -p > shot.png`
-- GitHub: `whatwhatwhoa/PortalLauncher`, private
+- GitHub: `whatwhatwhoa/PortalLauncher`, public; a release is tag `v<version>` + `PortalLauncher-<version>.apk`
 - Notes audit: `py -I C:\Users\Jim\.claude\skills\notes-architecture\scripts\notes_audit.py .`
 
 ## End of session

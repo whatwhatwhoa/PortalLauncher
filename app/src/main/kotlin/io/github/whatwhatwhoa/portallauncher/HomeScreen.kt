@@ -69,6 +69,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.FirstBaseline
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -115,7 +118,12 @@ fun HomeScreen(state: LauncherState) {
         }
         Column(Modifier.fillMaxSize().graphicsLayer { alpha = 1f - ghost }) {
             Box(Modifier.fillMaxWidth().height(Dimens.band)) {
-                if (current != null) Name(current.label, inFocus = state.zone == Zone.Row)
+                if (current != null) {
+                    when (state.look.name) {
+                        NameStyle.Metro -> Name(current.label, inFocus = state.zone == Zone.Row)
+                        NameStyle.Fitted -> FittedName(current.label, inFocus = state.zone == Zone.Row)
+                    }
+                }
             }
             Spacer(Modifier.weight(1f))
             BottomRow(state)
@@ -430,6 +438,58 @@ private fun Name(label: String, inFocus: Boolean) {
         )
     }
 }
+
+/**
+ * The big name in the Fitted style (F31): as written, semibold, wholly on screen under the
+ * status. It starts at [FITTED_MAX] of the display size and shrinks with the name's width, down
+ * to [FITTED_MIN], so most game titles fit on one line; a longer one scrolls like the Metro name
+ * (or ends in an ellipsis while muted or with animations off).
+ */
+@Composable
+private fun FittedName(label: String, inFocus: Boolean) {
+    val p = LocalPalette.current
+    val t = LocalType.current
+    val color = if (inFocus) p.accent else p.muted
+    val scrolls = inFocus && LocalMotion.current
+    val measurer = rememberTextMeasurer()
+    BoxWithConstraints(Modifier.fillMaxWidth().padding(start = Dimens.edge, end = Dimens.edge, top = FITTED_TOP)) {
+        val room = constraints.maxWidth
+        val base = t.display.copy(fontWeight = FontWeight.SemiBold, fontSize = t.display.fontSize * FITTED_MAX)
+        // Text width grows with its size, so one measure at the largest size gives the scale.
+        val style = remember(label, room, base) {
+            val wide = measurer.measure(label, base, softWrap = false, maxLines = 1).size.width
+            val scale = if (wide <= room) 1f else (room.toFloat() / wide).coerceAtLeast(FITTED_MIN / FITTED_MAX)
+            base.copy(fontSize = base.fontSize * scale, lineHeight = base.fontSize * scale * FITTED_LINE)
+        }
+        key(label) {
+            BasicText(
+                label,
+                modifier = if (scrolls) {
+                    Modifier.basicMarquee(
+                        iterations = Int.MAX_VALUE,
+                        initialDelayMillis = NAME_SCROLL_PAUSE,
+                        repeatDelayMillis = NAME_SCROLL_PAUSE,
+                        velocity = NAME_SCROLL_SPEED,
+                    )
+                } else {
+                    Modifier
+                },
+                style = style.copy(color = color.copy(alpha = color.alpha * FITTED_ALPHA)),
+                softWrap = false,
+                maxLines = 1,
+                overflow = if (scrolls) TextOverflow.Clip else TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+// Under the status, clear of it; the largest line (about 110 dp) ends above the category name.
+private val FITTED_TOP = Space.xxxl
+private const val FITTED_MAX = 0.36f
+private const val FITTED_MIN = 0.2f
+private const val FITTED_LINE = 1.2f
+// A little more opaque than the Metro name's 0.4 (owner's ask).
+private const val FITTED_ALPHA = 0.6f
 
 private const val NAME_SCROLL_PAUSE = 2_500
 private val NAME_SCROLL_SPEED = 90.dp

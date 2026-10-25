@@ -28,11 +28,14 @@ enum class Zone { Row, Dock }
 /** Where an options sheet was opened from; it decides which options make sense. */
 enum class Origin { Row, Dock, Drawer }
 
-enum class Option(val label: String) {
+/** [enabled] false is shown grayed and does nothing, so the owner sees why it can't be done. */
+enum class Option(val label: String, val enabled: Boolean = true) {
     Move("Move"),
     Favorite("Favorite"),
     Unfavorite("Unfavorite"),
     AddToDock("Add to dock"),
+    DockFull("Add to dock (full)", enabled = false),
+    MoveInDock("Move in dock"),
     RemoveFromDock("Remove from dock"),
     ChangeCategory("Category…"),
     Hide("Hide"),
@@ -278,10 +281,12 @@ class LauncherState(
 
     /**
      * Apps whose art is looked up without asking: the owner's favorites and the Games category,
-     * whatever it is called now; once deleted, favorites only.
+     * whatever it is called now; once deleted, favorites only. A favorite that is one of
+     * Android's own apps waits for Art… unless it is in Games.
      */
     val artWanted: List<AppEntry> by derivedStateOf {
-        favorites.mapNotNull { byKey[it] } + byId(Category.GAMES)?.let(::appsIn).orEmpty()
+        favorites.mapNotNull { byKey[it] }.filterNot { isPlatformApp(it.component.packageName) } +
+            byId(Category.GAMES)?.let(::appsIn).orEmpty()
     }
 
     /** The owner's dock once they have changed it; until then the default utilities. */
@@ -389,8 +394,10 @@ class LauncherState(
             Action.Right -> if (zone == Zone.Row) rowIndex = rowStep(1) else dockIndex = dockFocus + 1
             Action.Down -> zone = Zone.Dock
             Action.Up -> zone = Zone.Row
-            Action.PagePrev -> if (zone == Zone.Row) rowIndex = rowFocus - PAGE
-            Action.PageNext -> if (zone == Zone.Row) rowIndex = rowFocus + PAGE
+            // Bumpers: the categories, or with Home play controls the tracks (owner, F34).
+            Action.PagePrev -> if (home.playControls) skip(QuickMedia.Previous.key) else turnCategory(-1)
+            Action.PageNext -> if (home.playControls) skip(QuickMedia.Next.key) else turnCategory(1)
+            Action.R3 -> if (home.playControls) skip(QuickMedia.PlayPause.key)
             Action.First -> if (zone == Zone.Row) rowIndex = 0
             Action.Last -> if (zone == Zone.Row) rowIndex = row.lastIndex
             Action.Open -> openFocused()
@@ -463,6 +470,7 @@ class LauncherState(
             Action.Options -> optionsForFocused()
             Action.Back, Action.Y -> closeDrawer()
             Action.Select -> openQuick()
+            Action.R3 -> Unit
         }
         drawerIndex = drawerFocus
     }
@@ -843,8 +851,8 @@ class LauncherState(
             Action.Left -> quickStep(row, -1)
             Action.Right -> quickStep(row, 1)
             Action.Open -> quickOpenFocused(row, quickColumn)
-            Action.PagePrev -> skip(QuickMedia.Previous)
-            Action.PageNext -> skip(QuickMedia.Next)
+            Action.PagePrev -> skip(QuickMedia.Previous.key)
+            Action.PageNext -> skip(QuickMedia.Next.key)
             Action.Back, Action.Select -> closeQuick()
             else -> Unit
         }
@@ -861,14 +869,19 @@ class LauncherState(
         }
     }
 
-    /** L1 or R1: a skip from any row, focus left where it is; it chimes, since nothing on screen moves. */
-    private fun skip(media: QuickMedia) {
-        press(media)
+    /**
+     * L1 or R1 (and R3 on Home): a media key, focus left where it is; it chimes, since nothing on
+     * screen moves.
+     */
+    private fun skip(key: Int) {
+        press(key)
         sounds?.play(Sound.Select)
     }
 
-    private fun press(media: QuickMedia) {
-        controls.press(media)
+    private fun press(media: QuickMedia) = press(media.key)
+
+    private fun press(key: Int) {
+        controls.press(key)
         scope.launch {
             delay(MEDIA_SETTLE)
             controls.read()
@@ -1032,6 +1045,14 @@ class LauncherState(
         val focused = categoryList.getOrNull(categoryFocus)
         editingCategories = false
         categoryIndex = categories.indexOf(focused).takeIf { it >= 0 } ?: categories.indexOf(category).coerceAtLeast(0)
+    }
+
+    /** L1 or R1 on Home: the category before or after, its row from the start; the ends stop. */
+    private fun turnCategory(by: Int) {
+        val next = categories.getOrNull(categories.indexOf(category) + by) ?: return
+        currentCategory = next.id
+        prefs.lastCategory = next.id
+        rowIndex = 0
     }
 
     /** Into a category from the layer: its row from the start, unless it is the one already shown. */
@@ -1250,7 +1271,13 @@ class LauncherState(
             Origin.Drawer -> Unit
         }
         if (origin != Origin.Dock) add(if (favorite) Option.Unfavorite else Option.Favorite)
-        if (docked) add(Option.RemoveFromDock) else if (dock.size < DOCK_MAX) add(Option.AddToDock)
+        if (docked) {
+            // From the dock itself, Move above does it.
+            if (origin != Origin.Dock) add(Option.MoveInDock)
+            add(Option.RemoveFromDock)
+        } else {
+            add(if (dock.size < DOCK_MAX) Option.AddToDock else Option.DockFull)
+        }
         add(Option.ChangeCategory)
         if (origin != Origin.Dock) add(if (app.key in hidden) Option.Unhide else Option.Hide)
         if (art != null) add(Option.Art)
@@ -1267,6 +1294,10 @@ class LauncherState(
         val sheet = sheet ?: return
         val option = sheet.options.getOrNull(index) ?: return
         val app = sheet.app
+        if (!option.enabled) {
+            sounds?.play(Sound.Edge)
+            return
+        }
         if (option == Option.Art) {
             art?.let { picker = ArtPicker(app, it, scope, pickImage) }
             return
@@ -1281,7 +1312,9 @@ class LauncherState(
             Option.Move -> moving = sheet.origin
             Option.Favorite, Option.Unfavorite -> toggleFavorite(app)
             Option.AddToDock -> saveDock(dock.map { it.key } + app.key)
+            Option.MoveInDock -> moveInDock(app)
             Option.RemoveFromDock -> saveDock(dock.map { it.key } - app.key)
+            Option.DockFull -> Unit
             Option.Hide -> hide(app)
             Option.Unhide -> saveHidden(hidden - app.key)
             Option.Art, Option.ChangeCategory -> Unit
@@ -1342,6 +1375,16 @@ class LauncherState(
         }
     }
 
+    /** From the row or All apps: Home, focus on the app's dock button, picked up as Move does. */
+    private fun moveInDock(app: AppEntry) {
+        val i = dock.indexOfFirst { it.key == app.key }
+        if (i < 0) return
+        closeDrawer()
+        zone = Zone.Dock
+        dockIndex = i + 1
+        moving = Origin.Dock
+    }
+
     // A hidden app leaves the row and the dock too; unhiding doesn't put it back.
     private fun hide(app: AppEntry) {
         saveHidden(hidden + app.key)
@@ -1396,7 +1439,6 @@ class LauncherState(
     }
 
     private companion object {
-        const val PAGE = 5
         const val DOCK_MAX = 6
         // How long a player takes to start or stop after the media key, before reading it again.
         const val MEDIA_SETTLE = 400L

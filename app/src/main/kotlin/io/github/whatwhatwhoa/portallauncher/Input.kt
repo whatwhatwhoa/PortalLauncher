@@ -9,7 +9,7 @@ import android.view.KeyEvent
 enum class Action(val repeats: Boolean = false) {
     Left(true), Right(true), Up(true), Down(true),
     Open, Back, Options, Select, X, Y,
-    PagePrev(true), PageNext(true), First, Last,
+    PagePrev(true), PageNext(true), First, Last, R3,
 }
 
 /**
@@ -42,6 +42,7 @@ private val keyActions = mapOf(
     KeyEvent.KEYCODE_MOVE_HOME to Action.First,
     KeyEvent.KEYCODE_BUTTON_R2 to Action.Last,
     KeyEvent.KEYCODE_MOVE_END to Action.Last,
+    KeyEvent.KEYCODE_BUTTON_THUMBR to Action.R3,
 )
 
 fun actionFor(event: KeyEvent): Action? = keyActions[event.keyCode]

@@ -84,7 +84,8 @@ class DeviceControls(private val context: Context) {
     private val audio = context.getSystemService(AudioManager::class.java)
     private val notifications = context.getSystemService(NotificationManager::class.java)
     private val resolver = context.contentResolver
-    private val sessions = context.getSystemService(MediaSessionManager::class.java)
+    // From the application, as LauncherApps in AppCatalog: its listener's binder outlives removal.
+    private val sessions = context.applicationContext.getSystemService(MediaSessionManager::class.java)
     private val listener = ComponentName(context, MediaListener::class.java)
 
     /** The brightness slider, 0..1: the raw 0..255 through [GAMMA], so each step looks alike. */
@@ -250,13 +251,13 @@ class DeviceControls(private val context: Context) {
     }
 
     /**
-     * [media]'s key to whatever app last played, as a headset's buttons do; whether it plays now
+     * A media [key] to whatever app last played, as a headset's buttons do; whether it plays now
      * shows a moment later.
      */
-    fun press(media: QuickMedia) {
+    fun press(key: Int) {
         val now = SystemClock.uptimeMillis()
-        audio.dispatchMediaKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, media.key, 0))
-        audio.dispatchMediaKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, media.key, 0))
+        audio.dispatchMediaKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, key, 0))
+        audio.dispatchMediaKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, key, 0))
     }
 
     private companion object {
@@ -342,7 +343,7 @@ fun AnimatedVisibilityScope.QuickPanel(state: LauncherState) {
                     exit = if (motion) slideOutVertically(Transit.exit()) { -it / 4 } else ExitTransition.None,
                 )
                 .width(QUICK_WIDTH)
-                .background(p.surface, RoundedCornerShape(bottomStart = Space.xl, bottomEnd = Space.xl))
+                .background(p.panel, RoundedCornerShape(bottomStart = Space.xl, bottomEnd = Space.xl))
                 .clickable(interactionSource = null, indication = null) {}
                 // The player sits at the top edge, between the status corners, so no sheetTop here.
                 .padding(start = Space.xxl, end = Space.xxl, top = Space.l, bottom = Space.xxl),

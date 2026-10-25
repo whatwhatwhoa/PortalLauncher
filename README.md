@@ -24,8 +24,8 @@ Do this on the Portal itself.
    pick **Portal** and confirm. From now on the Home button brings you here.
 4. **Add your art** (optional, about a minute): see [Game art](#game-art) below.
 
-**Updating:** download the new APK and install it over the old one. Your favorites, dock,
-art and settings stay.
+**Updating:** download the new APK and install it over the old one, or let Portal do it (see
+[Good to know](#good-to-know)). Your favorites, dock, art and settings stay.
 
 **Going back to your old launcher:** Android **Settings → Apps → Default apps → Home app**, and
 pick the old one. Portal stays installed until you uninstall it.
@@ -35,20 +35,29 @@ pick the old one. Portal stays installed until you uninstall it.
 | Button | On Home | In All apps |
 |---|---|---|
 | **A** | Open the app | Open the app |
-| **B** | Switch category (Favorites, Games, Entertainment, Social, Utilities) | Back to Home |
-| **Y** | All apps | — |
+| **B** | Categories: pick one, or **+** to edit them | Back to Home |
+| **Y** | All apps | Back to Home |
 | **X** | — | Favorite / unfavorite |
 | **+** (Start) | Options for this app: favorite, move, dock, category, hide, art, uninstall | Same |
 | **−** (Select) | Quick settings | Quick settings |
-| **L1 / R1** | — | Jump to the previous / next letter |
+| **L1 / R1** | Previous / next category (or tracks, with *Home screen play controls*) | Jump to the previous / next letter |
 | **L2 / R2** | First / last app | First / last app |
+| **R3** | Play / pause, with *Home screen play controls* | — |
+| **Hold Home** | [Standby](#standby), from anywhere, once switched on | Same |
 
 Touch works everywhere too: tap to open, long-press for options, swipe up for All apps.
 
 - **Favorites** are your Home row. Press **X** on an app in All apps, or **+ → Favorite**.
+  **+ → Move** puts a favorite where you want it.
 - **The dock** along the bottom holds up to six everyday apps (mail, files, the store).
-  **+ → Add to dock** on any app. The gear at the end opens **Launcher Settings**.
-- **Categories:** games, video and music apps sort themselves. Move one with **+ → Category…**.
+  **+ → Add to dock** on any app (grayed out once the dock is full); **+ → Move in dock** changes
+  the order. The gear at the end opens **Launcher Settings**.
+- **Categories:** Home shows one at a time: Favorites, Games, Entertainment, Social, Utilities.
+  Games, video and music apps sort themselves; move any app with **+ → Category…** (it can be in
+  several). Press **B** for the list, then **+** to rename, reorder or delete a category, or to
+  add your own.
+- **Hide** an app you never open with **+ → Hide**. Launcher Settings → Apps → *Hidden apps*
+  shows them again.
 
 ## Game art
 
@@ -65,8 +74,10 @@ page. It needs a free SteamGridDB key, which is yours and stays on your Portal:
    row says **Set**, you're done.
 
 Art then arrives on its own for your favorites and games. For any other app, or to pick a
-different picture, press **+ → Art…**. You can also use any picture from your gallery as a cover
-or scene, with or without a key.
+different picture, press **+ → Art…**: the art in use is at the top, the matches below. Go up
+to the preview, pick the cover or the wide picture, and press **A** to browse every choice for
+it; **L1 / R1** switch the wide one between a header and a full-screen scene. You can also use
+any picture from your gallery as a cover or scene (the *Gallery…* tile), with or without a key.
 
 **No art showing up?** If your Portal runs LineageOS, new apps may be kept offline. Open
 **App info → Portal → Mobile data & Wi-Fi** and turn **Network access** on.
@@ -75,18 +86,41 @@ or scene, with or without a key.
 
 Press **−** for the music player (previous, play/pause, next, and a seek bar), brightness,
 volume, auto-brightness and Do not disturb, plus shortcuts to Wi-Fi, Bluetooth, battery, AYN's
-settings (*Controller settings*) and Android's settings. **L1** and **R1** skip tracks while the panel is open.
+settings (*Controller settings*) and Android's settings. **L1** and **R1** skip tracks while the
+panel is open; on the seek bar, left and right jump 10 seconds.
 The first time you use brightness, Do not disturb or the seek bar, Portal opens the Android page
 that lets it change them. Switch Portal on there once, then press **B** to come back. The seek
 bar needs *Notification access*, which Android asks for to show what is playing; Portal reads no
-notifications.
+notifications. With it, what is playing also shows beside the clock on Home.
+
+## Standby
+
+Hold **Home** for a rest that doesn't lock the Portal: the clock and battery on black, the
+screen kept on, whatever you were doing (a game too) waiting underneath. Press the **same
+button four times** to come back; touches, the sticks and the triggers don't count, so it won't
+wake in a bag. A short press of Home works as always.
+
+To switch it on: **Launcher Settings → Home → Hold Home for standby**, press **A**, and turn on
+**Portal: hold Home for standby** on the Android page that opens. Android warns that an
+accessibility service can see your screen and control the device. This one is only allowed to
+receive the Home button: it can't read anything on the screen, and the code is here to check.
 
 ## Make it yours
 
 **Launcher Settings** (the dock's gear, or **+ → Launcher settings…**) changes everything live,
-sorted into categories (move through them on the left, **A** to go in, **B** to come back out):
-theme (light, dark or follow the system), accent color, backdrop, covers on tiles, glow
-and depth effects, the clock format, button hints, and what the Home button does.
+sorted into categories (move through them on the left, **A** to go in, **B** to come back out,
+**L1 / R1** to turn the page):
+
+- **Look:** theme (light, dark or follow the system), accent color (eight presets or your own),
+  backdrop, covers on tiles, the big name (*Metro*, large and faint, or *Fitted*, the whole
+  title), and the glow, depth, reflection and pulse effects.
+- **Home:** the clock format, battery percent, button hints, whether the row wraps round, where
+  the Home button takes you, *Home screen play controls*, and standby.
+- **Sound:** soft sounds as you move around, in three styles and four volumes, or off. They
+  follow the media volume and stay quiet in Do not disturb.
+- **Art:** your SteamGridDB key, whether art is fetched by itself, and clearing it all.
+- **Apps:** hidden apps, and putting the dock back as it was.
+- **System:** the Home app, Android's settings, updates, and saving or restoring your setup.
 
 ## Screenshots
 
@@ -94,7 +128,7 @@ and depth effects, the clock format, button hints, and what the Home button does
 |---|---|
 | ![Home with Stardew Valley's scene](docs/screenshots/home-stardew.jpg) | ![Choosing a category](docs/screenshots/categories.jpg) |
 | *Home: the focused game's scene fills the screen* | *B: switch category* |
-| ![All apps grid](docs/screenshots/all-apps.png) | ![Quick settings panel](docs/screenshots/quick-settings.png) |
+| ![All apps grid](docs/screenshots/all-apps.png) | ![Quick settings panel](docs/screenshots/quick-settings.jpg) |
 | *Y: every app, A–Z* | *−: quick settings* |
 | ![Options for an app](docs/screenshots/options.jpg) | ![Picking art](docs/screenshots/art.jpg) |
 | *+: options for any app* | *+ → Art…: pick a cover, header or scene* |
@@ -106,6 +140,11 @@ and depth effects, the clock format, button hints, and what the Home button does
 - **Made for the Odin 2 Portal** (7" 1920×1080, landscape). Other landscape Android handhelds
   should work, since the layout scales to fit, but only the Portal is tested. Phones and
   portrait aren't supported.
+- **Any display size works.** Portal fits itself to Android's *Display size* or *Smallest
+  width*, whatever you set, and adjusts at once when you change it. No setup needed.
+  **Tip:** set *Smallest width* to **600** (Settings → System → Developer options) and your
+  other apps open in their tablet layouts, with more on screen. Portal looks the same either
+  way. To go back, set it to the number it showed before.
 - **Updates:** Launcher Settings → System → Updates says when a newer version is out; A
   downloads and installs it, keeping your setup. The first time, Android asks you to allow
   Portal to install apps.
@@ -116,7 +155,7 @@ and depth effects, the clock format, button hints, and what the Home button does
 - **Privacy:** Portal uses the internet only for art, SteamGridDB (with your key) and Steam's
   public store pages, and to ask GitHub for a newer version when you open Launcher Settings.
   Nothing else leaves your device, and there are no analytics.
-- **Early days:** this is version 0.1. If something looks off, please
+- **Early days:** Portal isn't at 1.0 yet. If something looks off, please
   [open an issue](https://github.com/whatwhatwhoa/PortalLauncher/issues) with a photo or
   screenshot.
 - Not affiliated with AYN, Valve or SteamGridDB.
@@ -127,9 +166,15 @@ and depth effects, the clock format, button hints, and what the Home button does
   ([text](licenses/Selawik-OFL.txt)).
 - Icons: [Material Symbols](https://fonts.google.com/icons), Apache License 2.0
   ([text](licenses/MaterialSymbols-Apache-2.0.txt)).
+- Sounds: made for Portal ([tools/sounds](tools/sounds/make_sounds.py)).
 - Game art comes from [SteamGridDB](https://www.steamgriddb.com) and the Steam store. The art in
   the screenshots belongs to the games' makers.
 
-Portal Launcher is open source under the [MIT License](LICENSE). Building it yourself:
-see [docs/device.md](docs/device.md) (*Toolchain*) and run
-`./gradlew assembleRelease` with JDK 21.
+Portal Launcher is open source under the [MIT License](LICENSE).
+
+**Building it yourself:** with JDK 21 and the Android SDK (platform 37), run
+`./gradlew assembleDebug` and install `app/build/outputs/apk/debug/app-debug.apk`. A release
+build (`./gradlew assembleRelease`) is signed only when `local.properties` names your own key
+(`release.storeFile`, `release.storePassword`, `release.keyAlias`, `release.keyPassword`). A build
+you sign yourself can't update the published APK or be updated by it: *Save setup*, uninstall
+one, then install the other. The toolchain: [docs/device.md](docs/device.md) (*Toolchain*).

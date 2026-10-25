@@ -60,7 +60,7 @@ access, or over adb (no `cmd netpolicy` verb exists): `service call netpolicy 3 
 check them with the read (code 4) before writing. Survives a reinstall (`install -r`).
 
 ### Trying an update before it is on GitHub
-The repo is private, so GitHub answers 404 and Updates says "None published". To try the whole
+Updates reads the real releases on GitHub; to try a version that isn't published yet, or the whole
 path: put `update.url=http://localhost:8765/latest.json` in `local.properties` (debug builds
 only; plain http to localhost is allowed in debug only), serve a folder holding `latest.json`
 (`{"tag_name":"v0.1.1","assets":[{"name":"x.apk","size":…,"browser_download_url":"http://localhost:8765/x.apk"}]}`)
@@ -121,6 +121,25 @@ new APK is in place, and the process dies in `handleBindApplication` (`Resources
 on null) with none of our code on the stack. It comes back by itself (or `am start`). Check the
 crash time in `adb logcat -b crash -d` against the install before hunting for a bug.
 
+### Back with nothing to handle finishes the Home activity
+A disabled `BackHandler` lets Android's own back run, and for an activity that isn't the root of
+a launcher task (ours is a HOME task) that is `finish()`: Home is rebuilt in a new task, the
+process stays (`wm_finish_activity … app-request` in `adb logcat -b events`). With predictive
+back, `KEYCODE_BACK` never reaches `dispatchKeyEvent`, so the key table can't catch it. Keep a
+handler on at all times (`MainActivity`), doing nothing when there is nothing to close.
+
+### A system service taken from an activity can keep it alive
+`LauncherApps` (and `MediaSessionManager`) from an activity's context hold that context, and
+their callback's binder stays a JNI global in the process after unregistering, so every
+recreated activity stayed in memory with its art and SoundPool (`decisions/0.4.0.md` D28.1).
+Take services that get a listener from `applicationContext`. Count live activities with
+`dumpsys meminfo <pkg>` (*Activities*) after `am dumpheap` (it collects first).
+
+### `cmd media_session volume --set` sets another output's volume
+It writes the *default* device's index, not the speaker's, though `--get` reads the speaker.
+Read the real one in `dumpsys audio` (*STREAM_MUSIC*, *streamVolume*); to set it, send
+`input keyevent 24`/`25` over the launcher with nothing playing (they step the music volume).
+
 ## Look
 
 ### Raster icons look soft on this panel
@@ -134,6 +153,13 @@ A `graphicsLayer` with alpha under 1 is drawn offscreen at the node's own size, 
 node draws outside its bounds (a shadow, a glow, the focus ring) is cut off at that box. Home's
 light shadow showed as grey square corners on every faded tile. Put the fade in its own layer
 after (inside) the modifiers that draw outside, or fade without one.
+
+### BoxWithConstraints' `maxWidth` goes stale after a density change
+The activity handles `density` itself (`configChanges`), so a new *Display size* or *Smallest
+width* recomposes without a restart. `LocalDensity.current` was new, but `maxWidth`/`maxHeight`
+were still converted with the old density, so the root's scale came out 1 and Home drew ~1.25×
+too big until a restart. Size from `constraints` (pixels) / `LocalDensity.current` instead, and
+test with `adb shell wm density <n>` while the launcher runs (back: `wm density 288`).
 
 ### A spring overshoots: clamp anything computed from it
 A spring with damping under 1 passes its target. Home's tile size did (192 dp → a bit more),
