@@ -45,12 +45,31 @@ the current APK, how to set it up, screenshots that show how it looks.
 - **Version 0.1.0** (versionCode 1). The release APK is about 2.3 MB against the debug build's
   24 MB.
 
-## Left before going public (T8.2)
-- The release APK is R8-minified and has never run. It can't be installed over the owner's
-  debug build (a different signature) without uninstalling, which would wipe their favorites,
-  dock and art. Options: a second device, or the owner moving to release builds for good,
-  which also makes their Portal match what users get.
-- Then: the repo goes public (check the history once more for secrets), and a release v0.1.0
-  goes up with the APK renamed `PortalLauncher-0.1.0.apk`, as the README expects.
+## The release check (T8.2, 2026-10-25)
+**Why a side-by-side build:** the release APK can't be installed over the owner's debug build
+(a different signature) without uninstalling, which would wipe their favorites, dock and art.
+A `releaseCheck` build type (`initWith(release)`, package suffix `.check`, owner-approved) is the
+same R8 output under its own package, so it ran beside the debug install with its own data.
+It carries the owner's key so art search could be checked; the shipped `release` still has none.
+**Rejected:** a second device (there is none); moving the owner to release builds for good
+(their data would have to be moved over first).
+
+**What ran, all fine, no crash and no R8 error in the log:** first start (Home-role dialog
+dismissed, nothing chosen), Home with the starting categories applied on first run, scene
+lookups and downloads (GameNative, NTE), carousel moves, the categories layer on B, All apps on
+Y, the quick panel on −, the options sheet on +, the Art… page (SteamGridDB search answered;
+its one DroidDeck match has no grids, SteamGridDB's answer), a cover from the gallery through
+Android's photo picker, Launcher Settings down to the version line ("0.1.0-check"), and the key
+row's clipboard read ("Copy your key first" with no key on the clipboard). Not run: a key typed
+in through the clipboard and accepted; the request is the same one art search makes. No keep
+rules were needed. The check build was uninstalled after.
+
+**Then the release APK** was rebuilt from the same tree and named `PortalLauncher-0.1.0.apk`
+(2.3 MB, release-signed). 0.1.0 is closed on the board (owner, 2026-10-25).
+
+## Left for the owner before going public
+- Make the repo public (check the history once more for secrets; the deleted `concepts/` files
+  are still in it), then put up the GitHub release v0.1.0 with `PortalLauncher-0.1.0.apk`, as
+  the README's `releases/latest` link expects.
 - The README's LineageOS network step says "App info → Mobile data & Wi-Fi → Network access".
   That wording comes from LineageOS in general and wasn't checked on the Portal.

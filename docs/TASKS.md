@@ -10,7 +10,7 @@ Rules:
 - **Work** on the first open card or task under *Working on*, or the owner's explicit ask; one
   per session unless the owner bundles several.
 - **IDs never change when a card moves.** A new card is **F<n>**, numbered on from the last
-  milestone M8 (F9 first; next free F20), so its tasks are T<n>.1, T<n>.2 … and its decision
+  milestone M8 (F9 first; next free F21), so its tasks are T<n>.1, T<n>.2 … and its decision
   entries D<n>.1 …, clashing with no milestone's. A card that came out of a milestone keeps its
   task IDs. Owner bug and tweak batches stay **B<n>** (B6 next). A follow-up gets an F number
   when it is planned.
@@ -29,39 +29,24 @@ Rules:
 
 ## Working on
 
-### 0.1.0 — First public release (owner, 2026-10-25)
-Also in it, done since the start: M1–M7, B1–B4 (history under *Released*).
-- **M8 Public page and release** (owner, 2026-10-25): a GitHub page users can install from: what it is, the APK, setup, screenshots.
-  - [x] T8.1 (2026-10-25) User-facing README with screenshots, MIT license, SteamGridDB key entry
-    in Launcher Settings (release APKs carry no key), release signing (`decisions/M8-release.md`).
-  - [ ] T8.2 Run the release APK on a device once (R8-minified, never run), then the owner makes
-    the repo public and publishes v0.1.0 with the APK as `PortalLauncher-0.1.0.apk`.
-- **VERIFY rounds** (owner, 2026-10-25): the milestones' hand checks on the Portal (`VERIFY.md`).
+Nothing yet: 0.2.0 moves here when the owner starts it.
+
+## Planned
+
+### 0.2.0 — Functional and refinement
+- **F20 Reflection changes**: See concept, but right now the reflection is too close. Add some spacing.
+- **F19 Long press home button to lock screen**: Allow long press home button to lock screen. When single click, a hint comes up and displays for 0.5 or so seconds
+- **F12 Renaming or adding categories** (2026-10-25): the fixed five first (`decisions/M5-categories.md`).
+- **F18 Github Update**: Able to update via Github
+- **VERIFY rounds** (owner, 2026-10-25; carried from 0.1.0): the milestones' hand checks on the Portal (`VERIFY.md`).
   - [ ] T2.3 Device session: install, run `docs/VERIFY.md` *V-skeleton*, fix what breaks; the
     owner sets it as Home and goes back to Launcher3 once, to prove the way back.
   - [ ] T5.3 VERIFY round: ghost opacity, type size (`VERIFY.md` *V-categories*).
   - [ ] T7.3 VERIFY round on the device (`VERIFY.md` *V-quick*).
   - [ ] T6.5 VERIFY round on the device (`VERIFY.md` *V-transit*, *V-accent*).
-- [x] **F9 Hero reflection** (owner, 2026-10-25): below the hero band, the hero mirrored, blurred
-  and darkened, a soft rippling "windy moonlight" reflection; the band's gradient stays.
-  `decisions/0.1.0.md` D9.1.
-  - [x] T9.1 Build it on Home's hero band — 2026-10-25: mirrored, blurred, darkened, rippling;
-    a *Hero reflection* switch (D9.1).
-- [x] **F10 Starting categories** (owner, 2026-10-25): a bundled table puts popular apps in their
-  usual category on the launcher's first run; apps installed after that go to All apps only, not
-  Home, until placed. `decisions/0.1.0.md` D10.1.
-  - [x] T10.1 Table, first-run cutoff, an All-apps-only place on Category… — 2026-10-25: 117
-    packages, cut by first install time (D10.1).
-- [x] **B5** (owner, 2026-10-25): `decisions/0.1.0.md`.
-  - [x] B5.1 The dock's Launcher Settings button: the launcher's own icon with a small gear badge, not a third plain gear — 2026-10-25: built as asked.
-
-## Planned
 
 ### Candidates
 Nothing planned yet: the owner picks a version, a theme and the cards from the feature list.
-- **F18 Github Update**: Able to update via Github
-- **F19 Long press home button to lock screen**: Allow long press home button to lock screen. When single click, a hint comes up and displays for 0.5 or so seconds
-- **F12 Renaming or adding categories** (2026-10-25): the fixed five first (`decisions/M5-categories.md`).
 
 ## Feature list
 
@@ -85,7 +70,12 @@ Not scheduled; a line or two each; an F number when planned.
 ## Released
 
 One line each, and the milestones before the board. The full task lines:
-`archive/tasks-M1-M7.md`; the why: `decisions/`.
+`archive/tasks-<version>.md` and `archive/tasks-M1-M7.md`; the why: `decisions/`.
+
+### Releases
+- **0.1.0** (2026-10-25, First public release): M8, F9, F10, B5, on top of M1–M7 and B1–B4;
+  release APK checked on the Portal (T8.2); going public and the GitHub release are the owner's.
+  `archive/tasks-0.1.0.md`, `decisions/0.1.0.md`, `decisions/M8-release.md`.
 
 ### Milestones (the foundation, 2026-10-25 … 2026-10-25)
 - **M0 Notes** (2026-10-25) — notes in the iceberg convention, `concepts/` drop folder, `git init`.

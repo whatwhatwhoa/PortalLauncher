@@ -50,6 +50,14 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
+        // The release build under its own package, so the R8 output can run beside the owner's
+        // debug install without wiping it. The owner's key lets art search be checked; never shipped.
+        create("releaseCheck") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".check"
+            versionNameSuffix = "-check"
+            buildConfigField("String", "STEAMGRIDDB_KEY", "\"${local.getProperty("steamgriddb.apiKey", "")}\"")
+        }
     }
 
     buildFeatures {

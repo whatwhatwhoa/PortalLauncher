@@ -383,6 +383,12 @@ Portal with `adb exec-out screencap`, photos as JPEG 90). License MIT (`LICENSE`
 - **Build:** Gradle 9.8.2 (wrapper), Android Gradle Plugin 9.4.1, which compiles Kotlin itself;
   `compileSdk`/`targetSdk` 37, `minSdk` 31. Application id
   `io.github.whatwhatwhoa.portallauncher`.
+- **Build types:** `debug` (the owner's daily build, their art key from `local.properties`),
+  `release` (R8-minified, resources shrunk, release-signed, no key: what users get) and
+  `releaseCheck` (`assembleReleaseCheck`: the release build under the package `….check`, so the
+  R8 output runs beside the debug install; it carries the owner's key and is never published).
+  The check build is a second Home app: its first start asks for the Home role (back out), and
+  it is uninstalled after the check.
 - **SDK:** `C:\Users\Jim\AppData\Local\Android\Sdk` (`ANDROID_HOME` set for the user):
   platform `android-37.0` (Android 17), build-tools 37.0.0, platform-tools 37.0.1,
   cmdline-tools 23.0. Packages are managed with `cmdline-tools\latest\bin\android.exe sdk`.

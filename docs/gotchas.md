@@ -82,6 +82,10 @@ input is quiet: `adb shell dumpsys input` *RecentQueue* lists recent events, and
 queues is stale (its ages don't move between two reads), so compare two reads; the youngest
 event must be older than our own last key. Stop when it isn't.
 
+A key sent while a sheet is still sliding in can be lost: three downs on the options sheet
+moved focus two rows and left it on *Uninstall* (2026-10-25). Screenshot before every A and
+send it only when the focus is where it should be.
+
 ### Pull app files with `adb exec-out`, not `adb shell`
 `adb shell run-as … cat` goes through a terminal that turns every LF into CRLF, so a preferences
 file pulled that way no longer matches; `adb exec-out run-as … cat` gives the bytes. To put one
