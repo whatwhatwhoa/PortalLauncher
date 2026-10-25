@@ -69,8 +69,10 @@ then `adb shell "run-as <package> cp /data/local/tmp/f files/..."` (debug builds
 Any touch (an `adb shell input tap`, a finger on the screen, the photo picker) puts the window in
 touch mode, and Android eats the next D-pad press to leave it: four Downs land one row short.
 A scripted run that then presses A can choose the wrong option (it hid Browser once, 2026-10-25;
-put back by editing `launcher.xml`). After any tap, send one throwaway key or screenshot before
-A. The owner may meet it too, when they touch the screen and then use the controller.
+put back by editing `launcher.xml`). It is standard Android (`ViewRootImpl` spends the press
+before the activity sees it), so `dispatchKeyEvent` can't catch it. Since 2026-10-25 the launcher
+leaves touch mode as each touch ends (`requestFocusFromTouch`, `MainActivity.dispatchTouchEvent`),
+so the press counts; other apps (the photo picker, Android's settings) still swallow one.
 
 ### Pull app files with `adb exec-out`, not `adb shell`
 `adb shell run-as … cat` goes through a terminal that turns every LF into CRLF, so a preferences

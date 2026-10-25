@@ -38,7 +38,8 @@
 ## T4.2 Covers in the tiles (2026-10-25)
 - **Home carousel only.** The dock's buttons are round and 56 dp: a cover cropped to a circle
   loses its title and reads worse than the icon. All apps tiles are 96 dp with the name under
-  them, where a cover adds little; both can follow if the owner wants.
+  them, where a cover adds little. Owner (2026-10-25): Home only, "the dock is more for
+  utility apps, like mail, messenger".
 - **Decoded at the lifted size** (tile × 1.14, the move-mode lift), so neither focus nor lift
   scales a bitmap up; the unfocused tile is a slight downscale.
 - **Cropped, not letterboxed:** SteamGridDB's square covers are square, so the crop only trims

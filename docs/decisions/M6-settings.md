@@ -34,8 +34,11 @@ packs, grid size, backup and restore of settings.
 
 ## Open
 - Which colors are the owner's favorites (the six are built; the rest go).
-- Settings reachable only from + (calm), or also as a dock button?
-- Keep each effect, tune it, or drop it, once seen on the device (all on for the first look).
+
+## Owner's answers (2026-10-25)
+- **Effects settled:** "all effects are good so far": the three stay as built, on by default.
+- **A dock button too:** a gear after the dock's apps opens Launcher Settings. It is last so the
+  apps keep their places and All apps stays first; it has no options sheet and doesn't move.
 
 ## Built (T6.1, T6.2, 2026-10-25)
 Built by jim-98 while jim-e6 did T4.6, T4.7 and B1.1; driven over adb with keys only (no taps),

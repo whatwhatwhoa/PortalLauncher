@@ -14,6 +14,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.view.KeyEvent
+import android.view.MotionEvent
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -165,6 +166,17 @@ class MainActivity : ComponentActivity() {
             state.onAction(action)
         }
         return true
+    }
+
+    // A touch puts the window in touch mode, and Android spends the next D-pad press leaving it
+    // (gotchas.md). Focus here is always drawn, so that press only felt lost: the window leaves
+    // touch mode as each touch ends instead (owner, 2026-10-25). Not while the keyboard is up.
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        val handled = super.dispatchTouchEvent(event)
+        if (event.actionMasked == MotionEvent.ACTION_UP && state.picker?.typing != true) {
+            window.decorView.post { (currentFocus ?: window.decorView).requestFocusFromTouch() }
+        }
+        return handled
     }
 
     /**

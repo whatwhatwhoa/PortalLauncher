@@ -78,7 +78,7 @@ class LauncherState(
         else -> 1
     }
 
-    /** The line under the panel: what the focused control needs, or how to use it. */
+    /** The line under the panel: what the focused control needs, or else the focused button's name. */
     val quickNote: String
         get() = when {
             quickFocus == QuickRow.Brightness && !controls.canWrite ->
@@ -87,6 +87,8 @@ class LauncherState(
                 "Auto brightness needs Android's “Modify system settings” for the launcher, once"
             quickFocus == QuickRow.Toggles && quickColumn == QuickToggle.Quiet.ordinal && !controls.canQuiet ->
                 "Do not disturb needs Android's “Do Not Disturb access” for the launcher, once"
+            quickFocus == QuickRow.Toggles -> QuickToggle.entries[quickColumn].label
+            quickFocus == QuickRow.Links -> QuickLink.entries[quickColumn].label
             else -> ""
         }
     var screen by mutableStateOf(Screen.Home)
@@ -225,8 +227,9 @@ class LauncherState(
     // Lists change under us (an uninstall, a new favorite), so indices are clamped on read.
     // A previewed category shows from its start.
     val rowFocus get() = if (shownCategory != category) 0 else rowIndex.coerceIn(0, maxOf(0, row.lastIndex))
-    /** 0 is the All apps button; dock apps follow from 1. */
-    val dockFocus get() = dockIndex.coerceIn(0, dock.size)
+    /** 0 is the All apps button; dock apps follow from 1, then the Launcher Settings button. */
+    val dockFocus get() = dockIndex.coerceIn(0, dockSettings)
+    val dockSettings get() = dock.size + 1
     val drawerFocus get() = drawerIndex.coerceIn(0, maxOf(0, drawer.lastIndex))
     val sheetFocus get() = sheetIndex.coerceIn(0, maxOf(0, sheetRows - 1))
     val categoryFocus get() = categoryIndex.coerceIn(0, maxOf(0, categories.lastIndex))
@@ -235,8 +238,8 @@ class LauncherState(
     fun isFavorite(entry: AppEntry) = entry.key in favorites
     fun isHidden(entry: AppEntry) = entry.key in hidden
 
-    /** Whether + does anything where focus is now (the All apps button has no options). */
-    val focusHasOptions get() = screen == Screen.Drawer || zone == Zone.Row || dockFocus > 0
+    /** Whether + does anything where focus is now (All apps and Launcher Settings have none). */
+    val focusHasOptions get() = screen == Screen.Drawer || zone == Zone.Row || dockFocus in 1..dock.size
 
     fun onAction(action: Action) = when {
         settingsOpen -> onSettings(action)
@@ -498,6 +501,8 @@ class LauncherState(
             row.getOrNull(rowFocus)?.let { launchFrom(Origin.Row, it) }
         } else if (dockFocus == 0) {
             openDrawer()
+        } else if (dockFocus == dockSettings) {
+            openSettings()
         } else {
             dock.getOrNull(dockFocus - 1)?.let { launchFrom(Origin.Dock, it) }
         }

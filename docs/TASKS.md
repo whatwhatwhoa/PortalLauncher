@@ -63,6 +63,13 @@ Goal: real art where an app's icon is too small, and the Home layout built aroun
 - [x] B2.5 (2026-10-25) Re-picking a game after *Use the app's icon* fetches its scene again (`decisions/M4-art.md`).
 - [x] B2.6 (2026-10-25) Hints at 80%, each on the side its button is on (− bottom-left).
 
+### B3 — Owner's answers (2026-10-25)
+- [x] B3.1 (2026-10-25) Effects settled as built, all three on (`decisions/M6-settings.md` *Owner's answers*).
+- [x] B3.2 (2026-10-25) A gear at the dock's end opens Launcher Settings (`decisions/M6-settings.md`).
+- [x] B3.3 (2026-10-25) Quick panel buttons and sliders as Material Symbols icons (`decisions/M7-quick-settings.md` *Icons*).
+- [x] B3.4 (2026-10-25) The first D-pad press after a touch counts: the window leaves touch mode as a touch ends (`gotchas.md`).
+- [x] B3.5 (2026-10-25) Covers stay on Home only; the dock is for utilities (`decisions/M4-art.md` T4.2).
+
 ### M5 — Categories (owner, 2026-10-25)
 Goal: the carousel shows one category at a time, and a big-type categories layer (XMB / Metro)
 moves between them. Proposal and open questions: `decisions/M5-categories.md`.

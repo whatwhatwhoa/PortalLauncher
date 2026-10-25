@@ -71,3 +71,19 @@ value changed. Not clicked by the owner.
   real pull-down a swipe away. A dock button wasn't asked for.
 - The manifest declares `WRITE_SETTINGS` and `ACCESS_NOTIFICATION_POLICY`; neither does
   anything until the owner flips it on in Android's page, which A on the control opens.
+
+## Icons (B3.3, owner, 2026-10-25)
+The owner asked for icons "similar to Android 17 icons" instead of the text buttons.
+- **Material Symbols, Rounded, filled, weight 400**: Google's icon set, the one Android's own
+  quick settings is drawn from; Apache 2.0 (`licenses/MaterialSymbols-Apache-2.0.txt`, credits
+  line). Fetched as SVG from fonts.gstatic.com and turned into vector drawables
+  (`res/drawable/ic_sym_*`, viewport 960 shifted down 960), so they stay crisp at any size.
+  Not pulled from the Portal's SystemUI: its drawables are compiled and LineageOS's may differ.
+- **Which:** brightness `light_mode` (a sun), volume `volume_up`, `brightness_auto`,
+  `do_not_disturb_on`, `play_arrow` / `pause` (pause while music plays), `wifi`, `bluetooth`,
+  `battery_android_full`, AYN `sports_esports` (a gamepad: its page is the handheld's
+  performance and controller settings), Android settings `settings` (a gear, also the dock's
+  Launcher Settings button).
+- **Icon only, names on the note line:** round 56 dp buttons like the dock's; with no names the
+  rows are short, and the focused button is named on the muted line when nothing is missing.
+  The slider rows lose their names to the icon too, as Android's slider shows only its sun.

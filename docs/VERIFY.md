@@ -167,6 +167,16 @@ All three are on; + → Launcher settings… switches each off and on to compare
 - [ ] Wi-Fi, Bluetooth, Battery, AYN and Android settings each open their page; B comes back to
       the panel still open.
 
+## V-b3 (built 2026-10-25)
+- [ ] The dock ends with a gear; focused it reads "Launcher settings", A opens the panel, B
+      closes it and focus is still on the gear. + on the gear does nothing (no hint either).
+- [ ] − opens the quick panel: a sun and a speaker before the sliders, then two rows of round
+      icon buttons, crisp; the line under them names the focused one ("Wi-Fi", …).
+- [ ] Play / pause shows a pause icon while music plays; Auto brightness and Do not disturb fill
+      when on, their icon dark.
+- [ ] Touch the screen (a tap on the background), then press the D-pad once: focus moves at
+      once, no lost press. Typing in Art… search still works with the keyboard.
+
 ## V-b2 (built 2026-10-25)
 - [ ] Every word reads in American English (Favorites, color, centered); favorites survived.
 - [ ] The hints: − Quick settings bottom-left, + Options and Y All apps bottom-right, all at 80%;

@@ -469,7 +469,10 @@ private fun BottomRow(state: LauncherState) {
     }
 }
 
-/** All apps first, then the utility apps, as round buttons; the focused one's name sits above. */
+/**
+ * All apps first, then the utility apps, then Launcher Settings (owner, 2026-10-25), as round
+ * buttons; the focused one's name sits above.
+ */
 @Composable
 private fun Dock(state: LauncherState) {
     val inDock = state.zone == Zone.Dock
@@ -488,6 +491,15 @@ private fun Dock(state: LauncherState) {
             ) {
                 AppIcon(app, CircleShape, Modifier.size(Dimens.dockButton).launchesFrom(state, Origin.Dock, app))
             }
+        }
+        DockButton(
+            "Launcher settings",
+            inDock && state.dockFocus == state.dockSettings,
+            lifted = false,
+            onClick = { state.tapDock(state.dockSettings) },
+            onHold = null,
+        ) {
+            Symbol(R.drawable.ic_sym_settings, LocalPalette.current.text)
         }
     }
 }

@@ -185,6 +185,7 @@ fun AnimatedVisibilityScope.SettingsPanel(state: LauncherState) {
                 }
                 BasicText(
                     "Portal ${BuildConfig.VERSION_NAME} · Selawik font, SIL Open Font License · " +
+                        "Material Symbols icons, Apache License 2.0 · " +
                         "Art from SteamGridDB and Steam",
                     Modifier.padding(start = Space.l, end = Space.l, top = Space.l),
                     style = t.caption.copy(color = p.muted),

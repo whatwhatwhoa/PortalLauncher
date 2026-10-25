@@ -80,8 +80,9 @@ second input, never the only one.
    tile width.
 4. *Bottom row*, 24 dp from the bottom, everything bottom-aligned. In the middle of the screen
    the dock: round 56 dp buttons, 24 dp apart: All apps first, then up to six apps the owner
-   picks (+ → Add to dock), in their order. Until the first change it shows the utility apps
-   (Settings, Files, Play Store, default browser, whichever exist). The focused button's name
+   picks (+ → Add to dock), in their order, then a gear that opens Launcher Settings. Until the
+   first change it shows the utility apps (Settings, Files, Play Store, default browser,
+   whichever exist); the dock is for utilities (mail, messages), covers stay on Home. The focused button's name
    shows 12 dp above it in caption type. On the right the live button hints, stacked 4 dp
    apart and right-aligned, each a 20 dp drawn disc with the button's mark knocked out and an
    8 dp gap to its label in hint type. The mark is the letter, or for the two menu buttons the
@@ -191,7 +192,8 @@ in light mode; the owner's pick). The others are a hue and chroma made into OKLC
 lightness 0.80 (dark) or 0.55 (light), fitted to sRGB: Ice blue 235° 0.08, Mint 165° 0.11,
 Amber 75° 0.14, Coral 28° 0.15, Lavender 295° 0.12.
 
-**Overlay effects.** Three, each switchable in *Settings*, all on by default:
+**Overlay effects.** Three, each switchable in *Settings*, all on by default (the owner kept
+all three as they are):
 - *Background gradient*: a radial spot centered 62% across and 45% down (where scenes are
   brightest), radius 75% of the width, fading to the background. Its color (`lift`) is the
   accent at 12% over the background in the dark, near white (tinted 6% by a hued accent) in the
@@ -201,8 +203,8 @@ Amber 75° 0.14, Coral 28° 0.15, Lavender 295° 0.12.
   in the light a soft shadow (black 22%, blur 8 dp, 4 dp down). Carousel tiles, dock buttons,
   All apps tiles.
 
-**Settings.** One panel, *Launcher Settings*, from + → *Launcher settings…* or the gear beside
-Portal in Android's Default apps → Home app: the options sheet's 360 dp column at the right,
+**Settings.** One panel, *Launcher Settings*, from + → *Launcher settings…*, the dock's last
+button (a gear), or the gear beside Portal in Android's Default apps → Home app: the options sheet's 360 dp column at the right,
 over the screen *undimmed* so a change is judged live against Home. The title, then each group
 under a muted caption heading, its rows 48 dp: the name left, the value right (the accent with
 a swatch); the focused row is filled and ringed. Two kinds of row: a *value* row shows its
@@ -224,22 +226,27 @@ applies at once and is kept (`look.*`, `home.*`, `art.fetch` in the `launcher` p
 - *Apps*: Hidden apps (the count; A opens All apps with them shown), Reset the dock (confirmed;
   back to the utility apps; "Default" when it already is).
 - *System*: Home app (Portal or Not set; A opens Android's Default apps), Android settings.
-- Under the list, muted: the version, the font and its license, where the art comes from.
+- Under the list, muted: the version, the font and the icons and their licenses, where the art
+  comes from.
 
 **Quick panel.** − (the square, Select) on Home or All apps, the pull-down's everyday controls
 from the controller (`decisions/M7-quick-settings.md`). A 760 dp panel drops from the top
 (a quarter of its height, fading) over the screen dimmed to 60%, its bottom corners rounded:
-- *Brightness* and *Volume* sliders, 48 dp rows like the settings rows: the name, a 6 dp
+- *Brightness* and *Volume* sliders, 48 dp rows like the settings rows: a sun or speaker icon, a 6 dp
   track filled with the accent, the value in percent. Left and right step them (5% of the
   slider for brightness, one step of media volume), held repeats; a tap on the track sets it
   there. Brightness goes through a 2.2 curve over Android's 0–255 value, so each step looks
   alike; moving it turns auto-brightness off, as the pull-down does.
-- Toggles, round-ended 48 dp buttons filled in the text color when on: Auto brightness, Do
-  not disturb (priority only while on), Play / pause (the media key to the last player; on
-  while music plays, read again 0.4 s after).
-- Shortcuts to the system's pages, for what a launcher may not change: Wi-Fi, Bluetooth,
-  Battery, AYN (its settings activity, which has no launcher entry), Android settings.
-- A muted line at the bottom says what the focused control still needs.
+- Toggles, round 56 dp icon buttons (the dock's size, 16 dp apart) filled in the text color
+  when on: Auto brightness, Do not disturb (priority only while on), Play / pause (the media
+  key to the last player; on while music plays, read again 0.4 s after; shows pause then).
+- Shortcuts to the system's pages, the same buttons, for what a launcher may not change: Wi-Fi,
+  Bluetooth, Battery, AYN settings (a gamepad; its settings activity, which has no launcher
+  entry), Android settings (a gear).
+- A muted line at the bottom says what the focused control still needs, or else names the
+  focused button.
+The icons are Material Symbols (Rounded, filled; Google, Apache 2.0) as vector drawables
+(`res/drawable/ic_sym_*`), the family Android's own panel uses, tinted from the palette.
 Up and down move between the four rows, left and right along a row, A toggles or opens, B or −
 closes, a tap outside closes. **Grants:** brightness and auto-brightness need Android's *Modify
 system settings* for the launcher, Do not disturb its *Do Not Disturb access*; until granted the

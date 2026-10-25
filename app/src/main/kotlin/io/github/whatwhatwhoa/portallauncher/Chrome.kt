@@ -4,6 +4,7 @@ import android.graphics.BlurMaskFilter
 import android.graphics.Paint
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.text.format.DateFormat
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
@@ -44,12 +45,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toAndroidRect
@@ -390,4 +393,13 @@ fun AllAppsGlyph() {
             drawCircle(color, r, Offset(step * (col + 0.5f), step * (row + 0.5f)))
         }
     }
+}
+
+/**
+ * A Material Symbols glyph (Rounded, filled) from `res/drawable/ic_sym_*`: vector, so crisp at
+ * any size, and tinted here so it follows the palette.
+ */
+@Composable
+fun Symbol(@DrawableRes id: Int, color: Color, modifier: Modifier = Modifier) {
+    Image(painterResource(id), contentDescription = null, modifier.size(Space.xl), colorFilter = ColorFilter.tint(color))
 }

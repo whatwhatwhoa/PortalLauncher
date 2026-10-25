@@ -8,6 +8,7 @@ import android.media.AudioManager
 import android.os.SystemClock
 import android.provider.Settings
 import android.view.KeyEvent
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
@@ -25,7 +26,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
@@ -139,16 +142,22 @@ class DeviceControls(private val context: Context) {
 /** The panel's rows, top to bottom; the last two are rows of buttons. */
 enum class QuickRow { Brightness, Volume, Toggles, Links }
 
-enum class QuickToggle(val label: String) { AutoBrightness("Auto brightness"), Quiet("Do not disturb"), Media("Play / pause") }
+enum class QuickToggle(val label: String, @DrawableRes val icon: Int) {
+    AutoBrightness("Auto brightness", R.drawable.ic_sym_auto_brightness),
+    Quiet("Do not disturb", R.drawable.ic_sym_dnd),
+    Media("Play / pause", R.drawable.ic_sym_play),
+}
 
 /** Shortcuts to the system's own pages, for what a launcher may not change itself. */
-enum class QuickLink(val label: String, val intent: () -> Intent) {
-    Wifi("Wi-Fi", { Intent(Settings.ACTION_WIFI_SETTINGS) }),
-    Bluetooth("Bluetooth", { Intent(Settings.ACTION_BLUETOOTH_SETTINGS) }),
-    Battery("Battery", { Intent(Intent.ACTION_POWER_USAGE_SUMMARY) }),
+enum class QuickLink(val label: String, @DrawableRes val icon: Int, val intent: () -> Intent) {
+    Wifi("Wi-Fi", R.drawable.ic_sym_wifi, { Intent(Settings.ACTION_WIFI_SETTINGS) }),
+    Bluetooth("Bluetooth", R.drawable.ic_sym_bluetooth, { Intent(Settings.ACTION_BLUETOOTH_SETTINGS) }),
+    Battery("Battery", R.drawable.ic_sym_battery, { Intent(Intent.ACTION_POWER_USAGE_SUMMARY) }),
     // AYN's performance, fan and controller settings; it has no launcher entry of its own.
-    Ayn("AYN", { Intent().setComponent(ComponentName("org.lineageos.settings.ayn", "org.lineageos.settings.ayn.AynSettingsActivity")) }),
-    Android("Android settings", { Intent(Settings.ACTION_SETTINGS) }),
+    Ayn("AYN settings", R.drawable.ic_sym_gamepad, {
+        Intent().setComponent(ComponentName("org.lineageos.settings.ayn", "org.lineageos.settings.ayn.AynSettingsActivity"))
+    }),
+    Android("Android settings", R.drawable.ic_sym_settings, { Intent(Settings.ACTION_SETTINGS) }),
 }
 
 /** The page where the owner lets the launcher change brightness. */
@@ -158,8 +167,10 @@ fun quietGrant() = Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
 
 /**
  * The quick panel, from the top like the pull-down, over Home dimmed as the options sheet dims
- * it: brightness and volume sliders, then toggles, then shortcuts. Up and down move between
- * rows, left and right change a slider or move along a row, A toggles or opens, B or − closes.
+ * it: brightness and volume sliders, then toggles, then shortcuts, each an icon as in Android's
+ * own panel (owner, 2026-10-25); the focused one is named on the line below. Up and down move
+ * between rows, left and right change a slider or move along a row, A toggles or opens, B or −
+ * closes.
  */
 @Composable
 fun AnimatedVisibilityScope.QuickPanel(state: LauncherState) {
@@ -186,7 +197,7 @@ fun AnimatedVisibilityScope.QuickPanel(state: LauncherState) {
         ) {
             val focusedRow = state.quickFocus
             SliderRow(
-                "Brightness",
+                R.drawable.ic_sym_brightness,
                 controls.brightness,
                 "${(controls.brightness * 100).roundToInt()}%",
                 missing = !controls.canWrite,
@@ -194,43 +205,45 @@ fun AnimatedVisibilityScope.QuickPanel(state: LauncherState) {
                 onTap = { state.tapQuickSlider(QuickRow.Brightness, it) },
             )
             SliderRow(
-                "Volume",
+                R.drawable.ic_sym_volume,
                 controls.volume.toFloat() / controls.volumeMax.coerceAtLeast(1),
                 "${(controls.volume * 100f / controls.volumeMax.coerceAtLeast(1)).roundToInt()}%",
                 missing = false,
                 focused = focusedRow == QuickRow.Volume,
                 onTap = { state.tapQuickSlider(QuickRow.Volume, it) },
             )
-            Row(Modifier.padding(top = Space.s), horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+            Row(Modifier.padding(top = Space.s), horizontalArrangement = Arrangement.spacedBy(Space.l)) {
                 QuickToggle.entries.forEachIndexed { i, toggle ->
                     val on = when (toggle) {
                         QuickToggle.AutoBrightness -> controls.autoBrightness
                         QuickToggle.Quiet -> controls.quiet
                         QuickToggle.Media -> controls.playing
                     }
-                    Chip(toggle.label, on, focused = focusedRow == QuickRow.Toggles && i == state.quickColumn) {
+                    // Play shows pause while something plays, as a player's own button does.
+                    val icon = if (toggle == QuickToggle.Media && on) R.drawable.ic_sym_pause else toggle.icon
+                    IconChip(icon, on, focused = focusedRow == QuickRow.Toggles && i == state.quickColumn) {
                         state.tapQuick(QuickRow.Toggles, i)
                     }
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(Space.s)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(Space.l)) {
                 QuickLink.entries.forEachIndexed { i, link ->
-                    Chip(link.label, on = false, focused = focusedRow == QuickRow.Links && i == state.quickColumn) {
+                    IconChip(link.icon, on = false, focused = focusedRow == QuickRow.Links && i == state.quickColumn) {
                         state.tapQuick(QuickRow.Links, i)
                     }
                 }
             }
-            BasicText(state.quickNote, style = t.caption.copy(color = p.muted), maxLines = 1)
+            BasicText(state.quickNote, Modifier.padding(top = Space.xs), style = t.caption.copy(color = p.muted), maxLines = 1)
         }
     }
 }
 
 /**
- * A slider row: the name, a drawn track filled to [value], the value in words. Without the grant
+ * A slider row: its icon, a drawn track filled to [value], the value in words. Without the grant
  * it needs, the track gives way to how to get it.
  */
 @Composable
-private fun SliderRow(name: String, value: Float, shown: String, missing: Boolean, focused: Boolean, onTap: (Float) -> Unit) {
+private fun SliderRow(@DrawableRes icon: Int, value: Float, shown: String, missing: Boolean, focused: Boolean, onTap: (Float) -> Unit) {
     val p = LocalPalette.current
     val t = LocalType.current
     Row(
@@ -242,7 +255,7 @@ private fun SliderRow(name: String, value: Float, shown: String, missing: Boolea
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Space.l),
     ) {
-        BasicText(name, Modifier.width(SLIDER_LABEL), style = t.body.copy(color = p.text), maxLines = 1)
+        Symbol(icon, p.text)
         if (missing) {
             BasicText("A: let the launcher change it", Modifier.weight(1f), style = t.body.copy(color = p.muted), maxLines = 1)
             return@Row
@@ -265,26 +278,22 @@ private fun SliderRow(name: String, value: Float, shown: String, missing: Boolea
     }
 }
 
-/** A round-ended button; [on] fills it, as Android's tiles fill when on. */
+/** A round icon button, the dock's size; [on] fills it, as Android's tiles fill when on. */
 @Composable
-private fun Chip(label: String, on: Boolean, focused: Boolean, onClick: () -> Unit) {
+private fun IconChip(@DrawableRes icon: Int, on: Boolean, focused: Boolean, onClick: () -> Unit) {
     val p = LocalPalette.current
-    val t = LocalType.current
-    val shape = RoundedCornerShape(Dimens.sheetRow / 2)
     Box(
-        Modifier.height(Dimens.sheetRow)
-            .focusRing(focused, Dimens.sheetRow / 2)
-            .background(if (on) p.text else p.rule, shape)
-            .clickable(interactionSource = null, indication = null, onClick = onClick)
-            .padding(horizontal = Space.l),
+        Modifier.size(Dimens.dockButton)
+            .focusRing(focused, Dimens.dockButton / 2)
+            .background(if (on) p.text else p.rule, CircleShape)
+            .clickable(interactionSource = null, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        BasicText(label, style = t.body.copy(color = if (on) p.background else p.text), maxLines = 1)
+        Symbol(icon, if (on) p.background else p.text)
     }
 }
 
 private val QUICK_WIDTH = 760.dp
-private val SLIDER_LABEL = 120.dp
 private val SLIDER_VALUE = 56.dp
 private val TRACK = 6.dp
 private const val SCRIM = 0.6f
