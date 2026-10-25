@@ -3,14 +3,17 @@ package io.github.whatwhatwhoa.portallauncher
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
+import android.graphics.Rect
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import androidx.core.content.edit
 import androidx.core.net.toUri
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
@@ -32,6 +35,10 @@ class AppEntry(
     val label: String,
     val component: ComponentName,
     val user: UserHandle,
+    /** Part of the system image: it can't be uninstalled, only its updates. */
+    val system: Boolean,
+    /** The category the app's own manifest puts it in; the owner's override wins (LauncherState). */
+    val seed: Category,
     private val icon: Drawable,
 ) {
     /**
@@ -66,8 +73,26 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
 
     fun stop() = launcherApps.unregisterCallback(callback)
 
-    fun launch(entry: AppEntry): Boolean = try {
-        launcherApps.startMainActivity(entry.component, entry.user, null, null)
+    fun launch(entry: AppEntry, bounds: Rect?, options: Bundle?): Boolean = try {
+        launcherApps.startMainActivity(entry.component, entry.user, bounds, options)
+        true
+    } catch (e: Exception) {
+        false
+    }
+
+    fun showInfo(entry: AppEntry): Boolean = try {
+        launcherApps.startAppDetailsActivity(entry.component, entry.user, null, null)
+        true
+    } catch (e: Exception) {
+        false
+    }
+
+    /** The system's own uninstall dialog; the catalog callback drops the app once it is gone. */
+    fun uninstall(entry: AppEntry): Boolean = try {
+        val intent = Intent(Intent.ACTION_DELETE, "package:${entry.component.packageName}".toUri())
+            .putExtra(Intent.EXTRA_USER, entry.user)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
         true
     } catch (e: Exception) {
         false
@@ -100,7 +125,15 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
         launcherApps.getActivityList(null, user)
             .filter { it.componentName.packageName != context.packageName }
             .map { info ->
-                AppEntry(key(info.componentName, user), info.label.toString(), info.componentName, user, loadIcon(info))
+                AppEntry(
+                    key(info.componentName, user),
+                    info.label.toString(),
+                    info.componentName,
+                    user,
+                    system = info.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0,
+                    seed = seedCategory(info.applicationInfo.category),
+                    icon = loadIcon(info),
+                )
             }
     }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
 
@@ -122,20 +155,95 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
 class Prefs(context: Context) {
     private val sp = context.getSharedPreferences("launcher", Context.MODE_PRIVATE)
 
-    /** Favourite keys in carousel order; a newline-joined string keeps the order a set loses. */
-    var favourites: List<String>
+    /**
+     * Favorite keys in carousel order; a newline-joined string keeps the order a set loses.
+     * The key keeps the British spelling it was first saved under, so existing favorites stay.
+     */
+    var favorites: List<String>
         get() = sp.getString("favourites", "").orEmpty().split('\n').filter { it.isNotEmpty() }
         set(value) = sp.edit { putString("favourites", value.joinToString("\n")) }
 
-    var accent: Int
-        get() = sp.getInt("accent", 0)
-        set(value) = sp.edit { putInt("accent", value) }
+    var hidden: Set<String>
+        get() = sp.getStringSet("hidden", emptySet()).orEmpty().toSet()
+        set(value) = sp.edit { putStringSet("hidden", value) }
 
-    var font: Int
-        get() = sp.getInt("font", 0)
-        set(value) = sp.edit { putInt("font", value) }
+    /** Dock app keys in order; null until the owner first changes the dock, then the defaults apply. */
+    var dock: List<String>?
+        get() = sp.getString("dock", null)?.split('\n')?.filter { it.isNotEmpty() }
+        set(value) = sp.edit { if (value == null) remove("dock") else putString("dock", value.joinToString("\n")) }
+
+    /** The owner's category moves only, one "key<TAB>category" per line, so new installs sort themselves. */
+    var categories: Map<String, Category>
+        get() = sp.getString("categories", "").orEmpty().split('\n').mapNotNull { line ->
+            val (key, name) = line.split('\t').takeIf { it.size == 2 } ?: return@mapNotNull null
+            Category.entries.firstOrNull { it.name == name }?.let { key to it }
+        }.toMap()
+        set(value) = sp.edit { putString("categories", value.entries.joinToString("\n") { "${it.key}\t${it.value.name}" }) }
 
     var askedForHome: Boolean
         get() = sp.getBoolean("askedForHome", false)
         set(value) = sp.edit { putBoolean("askedForHome", value) }
+
+    /** Settings → Look; anything not stored yet is the default, so an untouched install is unchanged. */
+    var look: LookSettings
+        get() {
+            val d = LookSettings()
+            return LookSettings(
+                theme = named("look.theme", d.theme),
+                accent = named("look.accent", d.accent),
+                backdrop = sp.getString("look.backdrop", null) ?: d.backdrop,
+                scenes = sp.getBoolean("look.scenes", d.scenes),
+                covers = sp.getBoolean("look.covers", d.covers),
+                effects = Effects(
+                    gradient = sp.getBoolean("look.gradient", d.effects.gradient),
+                    glow = sp.getBoolean("look.glow", d.effects.glow),
+                    depth = sp.getBoolean("look.depth", d.effects.depth),
+                ),
+                pulse = named("look.pulse", d.pulse),
+            )
+        }
+        set(value) = sp.edit {
+            putString("look.theme", value.theme.name)
+            putString("look.accent", value.accent.name)
+            putString("look.backdrop", value.backdrop)
+            putBoolean("look.scenes", value.scenes)
+            putBoolean("look.covers", value.covers)
+            putBoolean("look.gradient", value.effects.gradient)
+            putBoolean("look.glow", value.effects.glow)
+            putBoolean("look.depth", value.effects.depth)
+            putString("look.pulse", value.pulse.name)
+        }
+
+    /** Settings → Home, stored the same way as [look]. */
+    var home: HomeSettings
+        get() {
+            val d = HomeSettings()
+            return HomeSettings(
+                clock = named("home.clock", d.clock),
+                batteryPercent = sp.getBoolean("home.batteryPercent", d.batteryPercent),
+                hints = sp.getBoolean("home.hints", d.hints),
+                wraps = sp.getBoolean("home.wraps", d.wraps),
+                start = named("home.start", d.start),
+            )
+        }
+        set(value) = sp.edit {
+            putString("home.clock", value.clock.name)
+            putBoolean("home.batteryPercent", value.batteryPercent)
+            putBoolean("home.hints", value.hints)
+            putBoolean("home.wraps", value.wraps)
+            putString("home.start", value.start.name)
+        }
+
+    /** The category Home was last on, for Start on → Where you left after a restart. */
+    var lastCategory: Category?
+        get() = sp.getString("home.category", null)?.let { name -> Category.entries.firstOrNull { it.name == name } }
+        set(value) = sp.edit { putString("home.category", value?.name) }
+
+    /** Settings → Art: look art up without being asked; off, the launcher uses the network only from Art…. */
+    var fetchArt: Boolean
+        get() = sp.getBoolean("art.fetch", true)
+        set(value) = sp.edit { putBoolean("art.fetch", value) }
+
+    private inline fun <reified E : Enum<E>> named(key: String, default: E): E =
+        sp.getString(key, null)?.let { name -> enumValues<E>().firstOrNull { it.name == name } } ?: default
 }

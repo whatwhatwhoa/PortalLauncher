@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Only the window colour matters: it shows for a frame before Compose draws. -->
+    <!-- Only the window color matters: it shows for a frame before Compose draws. -->
     <style name="Theme.Portal" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/background</item>
         <item name="android:windowShowWallpaper">false</item>

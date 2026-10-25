@@ -11,11 +11,13 @@ building the first skeleton (carousel, All apps, dock). `architecture.md` holds 
   Done as a hue plus a per-theme OKLCH lightness (below); four hues to try on the device.
 - **Q-font:** asked back, not answered. All three candidates are bundled and the owner flips
   through them on the device (X on Home); the loser fonts are dropped at sign-off.
+  Answered 2026-10-25: Selawik (`M3-home.md`); Inter, Nunito Sans and Manrope dropped, X went
+  to the backdrop trial.
 - **Q-sgdb:** not now; the scope is replacing the Android launcher. Covers move to *Later*.
 - **Q-cocoon:** "the other launchers are ass"; not tried, not wanted.
 - **Q-commit:** commit and push to the owner's GitHub (`whatwhatwhoa`), private for now.
 - New asks: SVG (vector) for everything, raster only when unavoidable; spacing consistent on a
-  modern scale; overlay effects and gradients later; a favourites carousel, an All apps drawer
+  modern scale; overlay effects and gradients later; a favorites carousel, an All apps drawer
   that can be opened, and a bottom row of utility apps.
 
 ## Toolchain
@@ -40,7 +42,7 @@ we can't regenerate them. What we control is how they are drawn:
   for tiles, circle for the dock), not the system's. That is the "render them slightly
   different / give them squares" the owner asked for, and it works for every adaptive icon.
 - Bitmap layers get mipmaps, so the 56 dp dock size (2.9× smaller) doesn't alias.
-- Legacy (non-adaptive) icons sit inset 16% on the surface colour.
+- Legacy (non-adaptive) icons sit inset 16% on the surface color.
 - Each place an icon is drawn gets its own drawable copy: the render thread reads a drawable's
   bounds after recording, so one drawable shared by two sizes would draw both at the last size.
 
@@ -53,11 +55,32 @@ we can't regenerate them. What we control is how they are drawn:
 - **Dock = All apps + utility apps** (Settings, Files, Play Store, default browser, whichever
   exist), drawn as round icons. The earlier plan of system-function buttons (Notifications,
   Power) gives way to the owner's "bottom row of utilities/general apps".
-- **Favourites:** X in All apps toggles one; the carousel shows them in the order added. Until
-  the first favourite exists it shows every app not in the dock, so it is never empty.
+- **Favorites:** X in All apps toggles one; the carousel shows them in the order added. Until
+  the first favorite exists it shows every app not in the dock, so it is never empty.
 - **SharedPreferences, not DataStore**, for now: four small values read once at start; no
   flows needed. Revisit if settings grow.
 - **No motion handling for the stick.** Android turns unhandled joystick and hat motion into
   D-pad key events with repeat, so the key table covers both.
 - **Tuning keys are temporary:** − (Select) cycles the accent and X the font on Home, with the
   current choice shown in the hint bar, until the owner picks.
+
+## First device run (2026-10-25)
+Installed on the Portal over adb; it ran first time, no crash. The owner chose Portal in the
+Home-role dialog. The agent then drove it with `adb shell input keyevent` (keyboard-source
+keys, not the real controller) and 1:1 screenshots:
+- **Worked as built:** the dialog; the Home layout; row movement, L1 (five), L2 (start); down
+  to the dock with its label, up again; A opening a dock app and Home coming back with focus at
+  the row's start; Y into All apps, the 8-column grid, X marking favorites (accent dot, hint
+  turns to *Unfavorite*), B back to a carousel of only the favorites; − and X cycling accent
+  and font; favorites, accent and font surviving a reinstall. 21 apps on the device.
+- **Fixed:** every text style rendered at the font file's default weight. Two of the three
+  trial fonts default to 200, so Nunito Sans and Manrope looked thin and the trial was unfair
+  (`gotchas.md` *Variable fonts*).
+- **Crispness:** unfocused tiles and dock buttons have one-pixel edges at 1:1. The focused
+  tile and dock button are a little softer, because the 1.08 scale resamples them; it shows
+  most on the small dock buttons. To look at in tuning (drawing the focused icon at its scaled
+  size instead of scaling the layer).
+- **Tuning seen, not changed:** at 1.08 plus the ring, the focused tile leaves only about 8 px
+  to the next tile; in All apps the ring touches the label below; the previous tile peeks into
+  the 48 dp left margin. The first key after a tap was once dropped (not seen again).
+- The owner's state was put back afterwards: no favorites, Cyan, Inter.

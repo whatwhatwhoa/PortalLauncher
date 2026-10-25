@@ -6,6 +6,18 @@
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
+    <!-- Art from SteamGridDB. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- The Wi-Fi signal in the status corner. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Uninstall from the options sheet; the system still asks the owner to confirm. -->
+    <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <!-- The quick panel: brightness (granted once by the owner in Android's "Modify system
+         settings") and Do not disturb (granted once in "Do Not Disturb access"). -->
+    <uses-permission
+        android:name="android.permission.WRITE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 
     <application
         android:icon="@mipmap/ic_launcher"
@@ -26,6 +38,11 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <!-- The settings gear beside Portal in Android's Default apps → Home app. -->
+            <intent-filter>
+                <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
             <!-- Also an ordinary app icon, so it can be tried from Launcher3 before it is Home. -->

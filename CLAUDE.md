@@ -32,6 +32,8 @@ works → `architecture.md` · why → `docs/decisions/` · traps → `gotchas.m
    scaled bitmaps: the reason this project exists is that other launchers look off.
 5. **Commit wording**: "commit" = local only; "commit to github" = commit + push.
 6. **Small diffs.** One task per session unless the owner bundles several.
+7. **Secrets stay in `local.properties`** (gitignored), e.g. `steamgriddb.apiKey`. Never copy a
+   key into code, notes, a commit or a reply; the repo may be made public.
 
 ## Commands
 - adb: `C:\Users\Jim\AppData\Local\Android\Sdk\platform-tools\adb.exe` (device `82ee7769`)
@@ -56,4 +58,5 @@ works → `architecture.md` · why → `docs/decisions/` · traps → `gotchas.m
 5. Run the notes audit; fix what it flags.
 
 ## Style
-Kotlin, Jetpack Compose, one screen per file; comments explain why, not what.
+Kotlin, Jetpack Compose, one screen per file; comments explain why, not what. American English
+in the UI, code and notes (owner, 2026-10-25); stored keys keep their old spelling.

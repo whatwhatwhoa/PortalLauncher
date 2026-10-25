@@ -1,6 +1,13 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
+}
+
+// Secrets live in the gitignored local.properties and reach the code only through BuildConfig.
+val local = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
 }
 
 android {
@@ -13,6 +20,8 @@ android {
         targetSdk = 37
         versionCode = 1
         versionName = "0.0.1"
+        // Empty when the key is missing: the art lookup is then switched off.
+        buildConfigField("String", "STEAMGRIDDB_KEY", "\"${local.getProperty("steamgriddb.apiKey", "")}\"")
     }
 
     buildTypes {
@@ -25,6 +34,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

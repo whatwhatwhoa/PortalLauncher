@@ -21,9 +21,9 @@ on is a bonus. Scalable if it costs nothing; never at the expense of the target.
 ### `gijhclroo4pe1.png` — Switch 2 style home (fan mock-up, 1920×1080)
 - **Right:** this is the clearest anatomy of the three and the closest to the brief. Portrait
   covers (3:4) in one row; the focused cover lifts with a cyan glow and its title appears above
-  it in the accent colour; a dock of round, evenly spaced system buttons under the row; a thin
+  it in the accent color; a dock of round, evenly spaced system buttons under the row; a thin
   rule and a hint bar (`+ Options`, `A Start`) at the very bottom; status top-right; two tabs
-  (`Software` / `Media`) centred at the top.
+  (`Software` / `Media`) centered at the top.
 - **Wrong for us:** the folder tile (four small covers) is busy; nine dock buttons is too many;
   the music line at the bottom is noise.
 
@@ -31,7 +31,7 @@ on is a bonus. Scalable if it costs nothing; never at the expense of the target.
 - **Right:** the hero art behind a dim gradient; the row's first tile is wide and the rest are
   portrait, so the focused game dominates; the hint bar lists every button in play; the three
   section tabs are small type under the row.
-- **Wrong for us:** too dense for 7"; mixed tile shapes make the row ragged; small grey labels
+- **Wrong for us:** too dense for 7"; mixed tile shapes make the row ragged; small gray labels
   (`Recent Games`, `What's new`) would be unreadable at arm's length.
 
 ## Launchers already tried
@@ -45,7 +45,7 @@ packs, emulator and platform registries, and a market index. Two lessons from it
   Discord, RetroAchievements) is the Nova problem in console clothes. Nothing on it is a goal.
 
 ### The real Switch home (the baseline the owner named)
-Flat light grey (`#EBEBEB`) or dark grey (`#2D2D2D`) background, no hero art; twelve square
+Flat light gray (`#EBEBEB`) or dark gray (`#2D2D2D`) background, no hero art; twelve square
 tiles in one row then an *All Software* tile; a dock of round icons; a hint bar; a hard focus
 ring in cyan with a slow pulse; one rounded sans at two sizes. The mock-ups add hero art to this;
 the owner picked both mock-ups, so hero art is wanted.

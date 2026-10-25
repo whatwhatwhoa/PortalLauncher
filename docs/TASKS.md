@@ -3,7 +3,8 @@
 Rules: one task per session unless the owner bundles several; work on the first unchecked task
 under *Open*, or the owner's explicit ask; tick with the date and one clause, then its detail
 goes to `decisions/` and the line stays one line. Owner bug/tweak batches are B1, B2, …
-After M4 the list moves to the feature board (`notes-architecture` skill, format 1).
+After M6 and M7 the list moves to the feature board (`notes-architecture` skill, format 1).
+IDs are stable, so a milestone slotted in later keeps its number wherever it sits (M7 before M6).
 
 ## Open (in order)
 
@@ -18,32 +19,82 @@ Goal: from the owner's concepts, settle what "clean and welcoming" looks like on
 Goal: a Gradle project that builds on this laptop and installs on the Portal as a Home app.
 - [x] T2.1 (2026-10-25) Gradle 9.8.2 + AGP 9.4.1 + Kotlin 2.4.21 on a native ARM64 JDK 21;
   `assembleDebug` and lint pass.
-- [x] T2.2 (2026-10-25) Home app built with the owner's bundle: favourites carousel, All apps
+- [x] T2.2 (2026-10-25) Home app built with the owner's bundle: favorites carousel, All apps
   drawer, utility dock, key table, Home-role request; not yet run on the device.
 - [ ] T2.3 Device session: install, run `docs/VERIFY.md` *V-skeleton*, fix what breaks; the
   owner sets it as Home and goes back to Launcher3 once, to prove the way back.
 
 ### M3 — Home screen v1 (owner, 2026-10-25)
 Goal: the first version the owner would keep as the daily Home.
-- [ ] T3.1 Status: battery and Wi-Fi beside the clock (vector glyphs); system bars stay hidden.
-- [ ] T3.2 Options on + (pin/unpin, move left/right, hide, app info, uninstall) for carousel
-  and drawer tiles; dock apps chosen the same way; L1/R1 letter jump in All apps.
-- [ ] T3.3 Font scale clamp and `Dimens` scaling; animation-off honoured; launch transition.
-- [ ] T3.4 Trial ends: the owner picks the font and the accent; drop the trial keys and the
-  unused fonts; tune constants at 1:1 screenshots (`adb exec-out screencap -p`).
+- [x] T3.1 (2026-10-25) Status: clock, Wi-Fi wedge, battery with % inside, tighter to the
+  corner (`decisions/M3-home.md`); not yet clicked by the owner.
+- [x] T3.2 (2026-10-25) Options sheet on + and long press, move mode, hidden apps, owner's
+  dock, L1/R1 letter jump; Selawik joins the font trial (`decisions/M3-home.md`).
+- [x] T3.3 (2026-10-25) Canvas scaling and font scale clamp at the root, animation-off watched
+  live, clip-reveal launch from the tile; Selawik 1.3× (`decisions/M3-home.md`).
+- [x] T3.4 (2026-10-25) Trial ends: Selawik at 1.15×, accent White (owner), trial keys gone
+  (`decisions/M3-home.md`, `decisions/M4-art.md` *Scenes kept*).
 
-### M4 — Depth (owner, 2026-10-25)
-Goal: the overlay effects and gradients the owner asked for, keeping everything vector-crisp.
-- [ ] T4.1 Overlay pass: background gradient, focus glow, tile depth (a soft shadow or
-  highlight), light and dark; each effect switchable off while judging.
-- [ ] T4.2 Settings screen: theme override, accent, effects on/off.
-- [ ] T4.3 Motion pass: focus pulse tuning, All apps transition, a VERIFY round.
+### M4 — Art and the hero (owner, 2026-10-25)
+Goal: real art where an app's icon is too small, and the Home layout built around it.
+- [x] T4.1 (2026-10-25) SteamGridDB covers and heroes for favorites on a close label match,
+  + → Art… to pick or search; blocked on the device's network setting (`decisions/M4-art.md`).
+- [x] T4.2 (2026-10-25) Square covers in the Home tiles where art exists; NTE's shows
+  (`decisions/M4-art.md`).
+- [x] T4.3 (2026-10-25) Home layout v2: hero band with vignette, Metro-style display name, reflections,
+  focused tile 1.2× by layout, dock beside the hints (`decisions/M4-art.md`).
+- [x] T4.4 (2026-10-25) Backdrop trial ended on Black, the key removed; choices wait for T6.2
+  (`decisions/M4-art.md` *Scenes kept*).
+- [x] T4.5 (2026-10-25) Scenes kept: fetched from Steam on a match, the shot picked by a score
+  tuned to the owner's two picks; dock centered, smaller hints (`decisions/M4-art.md` *Scenes kept*).
+- [x] T4.6 (2026-10-25) SteamGridDB choice: Art… opens the game's covers or heroes as a grid,
+  A picks; kept per slot (`decisions/M4-art.md` *Art choices*).
+- [x] T4.7 (2026-10-25) Art sources: a Steam screenshot grid for the scene; cover or scene from
+  the gallery, auto-cropped, any app (`decisions/M4-art.md` *Art choices*).
+
+### B1 — Owner tweaks (2026-10-25)
+- [x] B1.1 (2026-10-25) Focus pulse at half speed, 1.8 s each way; a speed setting waits for T6.2.
+
+### B2 — Owner tweaks (2026-10-25)
+- [x] B2.1 (2026-10-25) American English in the UI, code and notes; the stored favorites key keeps its old spelling.
+- [x] B2.2 (2026-10-25) Menu-button hints drawn as their printed shapes (square −, right triangle +) knocked out of the disc, big and rounded.
+- [x] B2.3 (2026-10-25) A Home name too long for the screen scrolls while the row has focus.
+- [x] B2.4 (2026-10-25) The panel is *Launcher Settings* (+ → Launcher settings…).
+- [x] B2.5 (2026-10-25) Re-picking a game after *Use the app's icon* fetches its scene again (`decisions/M4-art.md`).
+- [x] B2.6 (2026-10-25) Hints at 80%, each on the side its button is on (− bottom-left).
+
+### M5 — Categories (owner, 2026-10-25)
+Goal: the carousel shows one category at a time, and a big-type categories layer (XMB / Metro)
+moves between them. Proposal and open questions: `decisions/M5-categories.md`.
+- [x] T5.1 (2026-10-25) Categories seeded from the app's manifest, moved with + → Category…,
+  label above the row (`decisions/M5-categories.md` *Built*).
+- [x] T5.2 (2026-10-25) B opens the layer: names stacked, the row ghosted at 18% and zoomed out,
+  previewing as focus moves (`decisions/M5-categories.md` *Built*).
+- [ ] T5.3 VERIFY round: ghost opacity, type size (`VERIFY.md` *V-categories*).
+
+### M7 — Quick settings (owner, 2026-10-25)
+Goal: the pull-down's everyday controls (brightness, volume and the like) from the controller,
+on Home. Proposal, what Android allows and open questions: `decisions/M7-quick-settings.md`.
+- [x] T7.1 (2026-10-25) Owner: the square (−) opens it, "brightness, volume etc."; grants on first use as proposed.
+- [x] T7.2 (2026-10-25) Quick panel: brightness and volume sliders, three toggles, five shortcuts
+  (`decisions/M7-quick-settings.md` *Built*).
+- [ ] T7.3 VERIFY round on the device (`VERIFY.md` *V-quick*).
+
+### M6 — Depth (owner, 2026-10-25)
+Goal: the overlay effects and gradients the owner asked for, keeping everything vector-crisp,
+and the settings screen that holds the choices. Settings proposal: `decisions/M6-settings.md`.
+- [x] T6.1 (2026-10-25) Effects: accent-tinted background gradient, focus glow breathing with
+  the ring, tile depth (top highlight dark, shadow light); each a switch (`decisions/M6-settings.md` *Built*).
+- [x] T6.2 (2026-10-25) Settings *Look* panel from + → Settings… and Android's gear: theme,
+  six accents, backdrop, scenes, covers, the three effects, pulse (`decisions/M6-settings.md` *Built*).
+- [ ] T6.3 Motion pass: focus pulse tuning, All apps transition, a VERIFY round.
+- [x] T6.4 (2026-10-25) *Home*, *Art*, *Apps*, *System* groups, action rows with a confirming
+  second A, credits (`decisions/M6-settings.md` *Built (T6.4)*).
 
 ### Later
-- Covers and the hero backdrop: SteamGridDB (needs the owner's free API key) or a document-picker
-  import, cached at ≥ 600 px, never upscaled; the backdrop only once covers are real.
-- Categories or tabs (Games / Apps), recently played ordering, search on Y.
-- Quick toggles: Wi-Fi, brightness, the rotation app.
+- Tile reflections back on the carousel (dropped 2026-10-25, never committed; how it was built: `decisions/M4-art.md`).
+- Recently played ordering (perhaps as a category), search on Y.
+- Renaming or adding categories (the fixed five first, `decisions/M5-categories.md`).
 - A dock button that opens the notification shade directly (needs an accessibility service or
   a hidden API; the swipe works meanwhile).
 - A monochrome icon style from Android 13's themed-icon layer (often vector).

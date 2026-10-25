@@ -2,7 +2,7 @@ package io.github.whatwhatwhoa.portallauncher
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,11 +27,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-/** Every app, alphabetical, in a grid; X adds or removes a favourite. */
+/** Every app, alphabetical, in a grid; X adds or removes a favorite, + opens its options. */
 @Composable
 fun AllAppsScreen(state: LauncherState) {
     val p = LocalPalette.current
@@ -40,20 +41,28 @@ fun AllAppsScreen(state: LauncherState) {
     val focus = state.drawerFocus
     val cols = Dimens.DRAWER_COLUMNS
     val gridState = rememberLazyGridState()
+    val motion = LocalMotion.current
     // Keep the focused row second from the top, so there is always a row of context above it.
     LaunchedEffect(focus) {
-        if (apps.isNotEmpty()) gridState.animateScrollToItem(maxOf(0, focus / cols - 1) * cols)
+        if (apps.isEmpty()) return@LaunchedEffect
+        val top = maxOf(0, focus / cols - 1) * cols
+        if (motion) gridState.animateScrollToItem(top) else gridState.scrollToItem(top)
     }
     Column(Modifier.fillMaxSize().background(p.background)) {
+        // Below the status band, which is drawn over this screen and has the clock top-left.
         Row(
-            Modifier.fillMaxWidth().padding(top = Dimens.top, start = Dimens.edge, end = Dimens.edge),
+            Modifier.fillMaxWidth().padding(
+                top = Dimens.top + t.body.lineHeight.asDp(),
+                start = Dimens.edge,
+                end = Dimens.edge,
+            ),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Space.m),
         ) {
             BasicText("All apps", style = t.title.copy(color = p.text))
-            BasicText("${apps.size}", style = t.body.copy(color = p.muted))
-            Spacer(Modifier.weight(1f))
-            Clock()
+            val hidden = state.hiddenCount
+            val count = if (hidden > 0 && !state.showHidden) "${apps.size} · $hidden hidden" else "${apps.size}"
+            BasicText(count, style = t.body.copy(color = p.muted))
         }
         LazyVerticalGrid(
             columns = GridCells.Fixed(cols),
@@ -64,25 +73,46 @@ fun AllAppsScreen(state: LauncherState) {
             verticalArrangement = Arrangement.spacedBy(Dimens.drawerGap),
         ) {
             itemsIndexed(apps, key = { _, app -> app.key }) { i, app ->
-                DrawerTile(app, focused = i == focus, favourite = state.isFavourite(app)) { state.tapDrawer(i) }
+                DrawerTile(
+                    app,
+                    focused = i == focus,
+                    favorite = state.isFavorite(app),
+                    hidden = state.isHidden(app),
+                    onClick = { state.tapDrawer(i) },
+                    onHold = { state.holdDrawer(i) },
+                    modifier = Modifier.launchesFrom(state, Origin.Drawer, app),
+                )
             }
         }
-        val favourite = apps.getOrNull(focus)?.let(state::isFavourite) == true
-        HintBar(listOf("A" to "Open", "X" to if (favourite) "Unfavourite" else "Favourite", "B" to "Back"))
+        val favorite = apps.getOrNull(focus)?.let(state::isFavorite) == true
+        HintBar(listOf(Hint("−", "Quick settings"), Hint("X", if (favorite) "Unfavorite" else "Favorite", room = "Unfavorite"), Hint("+", "Options")))
     }
 }
 
 @Composable
-private fun DrawerTile(app: AppEntry, focused: Boolean, favourite: Boolean, onClick: () -> Unit) {
+private fun DrawerTile(
+    app: AppEntry,
+    focused: Boolean,
+    favorite: Boolean,
+    hidden: Boolean,
+    onClick: () -> Unit,
+    onHold: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val p = LocalPalette.current
     val t = LocalType.current
     Column(
-        Modifier.clickable(interactionSource = null, indication = null, onClick = onClick),
+        Modifier.combinedClickable(interactionSource = null, indication = null, onLongClick = onHold, onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(Modifier.size(Dimens.drawerTile).focusTile(focused, Dimens.drawerRadius)) {
-            AppIcon(app, RoundedCornerShape(Dimens.drawerRadius), Modifier.size(Dimens.drawerTile))
-            if (favourite) {
+        Box(Modifier.size(Dimens.drawerTile).then(modifier).focusTile(focused, Dimens.drawerRadius).depth(Dimens.drawerRadius)) {
+            // Hidden apps only show while the owner asks to see them, faded so they read as hidden.
+            AppIcon(
+                app,
+                RoundedCornerShape(Dimens.drawerRadius),
+                Modifier.size(Dimens.drawerTile).alpha(if (hidden) HIDDEN_ALPHA else 1f),
+            )
+            if (favorite) {
                 // A small accent dot on the corner, ringed in the background so it lifts off any icon.
                 Box(
                     Modifier.align(Alignment.TopEnd)
@@ -103,3 +133,5 @@ private fun DrawerTile(app: AppEntry, focused: Boolean, favourite: Boolean, onCl
         )
     }
 }
+
+private const val HIDDEN_ALPHA = 0.4f
