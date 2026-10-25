@@ -157,7 +157,7 @@ All three are on; + → Launcher settings… switches each off and on to compare
 Seen on the Portal (2026-10-25): title · artist · album with YouTube Music playing, a long one
 cut at the middle with its end faded, then scrolling; gone on pause.
 - [ ] A long line waits 2.5 s, then scrolls left and slides under the bar, round again; its
-      right end fades where it is cut. Is the speed (36 dp/s) right?
+      right end fades where it is cut.
 - [ ] Skip a track: the line crossfades. Pause: the bar and name fade out.
 - [ ] − opens the quick panel, or + Launcher Settings: the artist is gone while it is open.
 - [ ] Notification access off for Portal: no artist, even while playing (turn it back on).

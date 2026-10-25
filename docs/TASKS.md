@@ -23,6 +23,8 @@ Rules:
   the detail goes to its decision entry. It stays ticked under *Working on* until the release
   ships, then folds into that release's line under *Released* (the full lines to
   `archive/tasks-<version>.md`).
+- **Releasing** (owner, 2026-10-25) raises the app's version (`versionCode`, `versionName` in
+  `app/build.gradle.kts`) and builds the release APK `PortalLauncher-<version>.apk`.
 - **Format**: feature-board format 1 (the notes-architecture skill's
   `references/board-format.md`); the owner's board app moves cards in this file, and the notes
   audit checks it.
@@ -30,7 +32,9 @@ Rules:
 ## Working on
 
 ### 0.4.0 — Stress Test and Prepare for release candidate
-- **F28 Stress Test Script**
+The beta (owner, 2026-10-25): already polished; this release hunts bugs and readies the release candidate.
+- **F28 Stress Test Script**: a bug hunt the agent scripts and runs (owner, 2026-10-25): load the
+  systems, press every button, try to break it; what breaks becomes a fix or a card.
 - **F29 Updated GitHub home page**: Updated instructions on must current features
 - **F30 Text on standby screen to unlock**: Only appearings after registering a press, Press same button 4 times to unlock. Disabling helper text also disables this.
 - **F31 Big Font Look**: A setting that makes the big font normal and fits most game titles and less of a metro UI. Doesn't get cutoff, is a bit more opague and less weight.
@@ -74,10 +78,10 @@ One line each, and the milestones before the board. The full task lines:
 
 ### Releases
 - **0.3.0** (2026-10-25, Sounds and effects): F22, F23, F24, F21, F25, F26, F27, B6–B8; its VERIFY
-  rounds carried into 0.4.0; no version number or release APK yet. `archive/tasks-0.3.0.md`,
+  rounds carried into 0.4.0; versionCode 3, release APK `PortalLauncher-0.3.0.apk`. `archive/tasks-0.3.0.md`,
   `decisions/0.3.0.md`, `F22-sounds.md`, `F25-settings.md`, `F26-setup.md`.
 - **0.2.0** (2026-10-25, Functional and refinement): F20, F19, F12, F18; its VERIFY rounds
-  carried into 0.3.0; no version number or release APK yet. `archive/tasks-0.2.0.md`, `decisions/0.2.0.md`.
+  carried into 0.3.0; no version of its own (0.3.0 went from versionCode 1 to 3). `archive/tasks-0.2.0.md`, `decisions/0.2.0.md`.
 - **0.1.0** (2026-10-25, First public release): M8, F9, F10, B5, on top of M1–M7 and B1–B4;
   release APK checked on the Portal (T8.2); going public and the GitHub release are the owner's.
   `archive/tasks-0.1.0.md`, `decisions/0.1.0.md`, `decisions/M8-release.md`.

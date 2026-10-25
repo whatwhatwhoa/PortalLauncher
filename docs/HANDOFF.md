@@ -6,27 +6,25 @@ open, delete what is resolved, never append history (git and `docs/decisions/` h
 **State (2026-10-25):** The launcher **runs on the Portal and is its Home app** (Launcher3 still
 installed). `TASKS.md` is the owner's **feature board**; a session works the first open card or
 task under *Working on*. **0.1.0**, **0.2.0** and **0.3.0 — Sounds and effects** are under
-*Released* (0.2.0 and 0.3.0 without a version bump or release APK; repo still private). 0.3.0
-closed with **F27**: title · artist · album after the clock while music plays (seen on the
-Portal). **0.4.0 — Stress Test and Prepare for release candidate** is under *Working on*:
+*Released*; releasing raises the version: **0.3.0 is versionCode 3** with
+`PortalLauncher-0.3.0.apk` built (repo still private, no GitHub release). 0.3.0 closed with
+**F27** (title · artist · album after the clock), which the owner accepted. **0.4.0 — Stress Test and Prepare for release candidate**, the beta, is under *Working on*:
 F28–F33 (F30–F33 numbered this session) and the VERIFY rounds carried along. Everything is
 committed and pushed.
 
 ## Next
-1. **F28 Stress Test Script**, the first open card of 0.4.0 (only a title so far: ask the owner
-   what it should stress, or propose one), then F29–F33 in order.
+1. **F28 Stress Test Script**: the agent scripts a bug hunt and runs it on the Portal (load the
+   systems, press every button, try to break it), including the release build (`releaseCheck`,
+   `decisions/M8-release.md`); then F29–F33 in order.
 2. The owner tries *V-artist*, *V-setup*, *V-b8*, *V-b7*, *V-quick-media*, *V-art-preview*
    (incl. B6.1), *V-sounds*, *V-categories-edit*, *V-standby*, *V-gap*.
 3. The VERIFY rounds (T2.3, T5.3, T7.3, T6.5). *V-updates* only once the repo is public.
 4. `docs/screenshots/settings.jpg` shows the old one-column panel: retake it with F29.
 
 ## Waiting on the owner
-- F27: title · artist · album beside the clock, a 24 dp bar: right? The scroll's speed (36 dp/s)?
 - F21: Play / pause moved from the toggles row into the player line: keep it there? *Enable
   seek* is in sentence case like the rest of the UI (the owner wrote "Enable Seek"). Seek steps
   10 s: right? The track title on the line itself (it is on the note line now)?
-- 0.2.0 and 0.3.0 are Released on the board without a version number: want versionCode 3 /
-  0.3.0 and a release APK (0.2.0 skipped)? The 0.3.0 state is the commit that released it.
 - F23/F24: *Covers on tiles* is still in Launcher Settings (global): move it to Art… too?
 - F22: is the move/edge level right now? If it still doesn't feel louder, reshape Soft's move
   rather than add dB. Sounds on touch taps too?

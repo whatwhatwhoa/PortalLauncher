@@ -55,7 +55,8 @@ since 2026-10-25); a big card's file is `F<n>-<slug>.md`, a release's small ones
   the hero by default, B6.1); the quick panel's player row (D21.1: L1/R1 skip, a seek bar on notification access; the seek
   bar not yet tried); B7: AYN settings as an app and a dock default, the light shadow's
   square corners (a faded layer clips); B8: named Controller settings, a Portal icon of our own;
-  what's playing beside the clock (D27.1: title · artist · album, playing only, Android's callbacks).
+  what's playing beside the clock (D27.1: title · artist · album, playing only, Android's callbacks);
+  the release: versionCode 3, what releasing means.
 - `F25-settings.md` (2026-10-25) — Launcher Settings in categories (D25.1): 760 dp from the right
   rather than full screen (Home judged live beside it), the Switch's two columns, focus on the
   categories first, B back out, L1/R1 turn; Look split into Look and Effects so no page scrolls;
