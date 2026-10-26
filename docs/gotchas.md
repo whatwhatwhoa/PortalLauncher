@@ -109,6 +109,13 @@ own hold action (`key_home_long_press_action` in `content://lineagesettings/syst
 works (it replaces the row). On the owner's Portal it is 0 since 2026-10-25 (it was unset:
 Circle to Search).
 
+### A force stop turns the hold-Home service off
+Android drops a package's accessibility services from `enabled_accessibility_services` when it
+is force-stopped (AOSP's `AccessibilityManagerService`; not yet seen on the Portal), and an
+uninstall clears them too. The restore below force-stops the launcher. The launcher switches it
+back on by itself where `WRITE_SECURE_SETTINGS` is granted, else Home says so once
+(`decisions/0.4.1.md` D35.1). Check with `adb shell settings get secure enabled_accessibility_services`.
+
 ### Pull app files with `adb exec-out`, not `adb shell`
 `adb shell run-as … cat` goes through a terminal that turns every LF into CRLF, so a preferences
 file pulled that way no longer matches; `adb exec-out run-as … cat` gives the bytes. To put one

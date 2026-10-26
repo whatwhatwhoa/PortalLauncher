@@ -35,11 +35,11 @@ pick the old one. Portal stays installed until you uninstall it.
 | Button | On Home | In All apps |
 |---|---|---|
 | **A** | Open the app | Open the app |
-| **B** | Categories: pick one, or **+** to edit them | Back to Home |
+| **B** | Categories: pick one, or **Triangle** to edit them | Back to Home |
 | **Y** | All apps | Back to Home |
 | **X** | — | Favorite / unfavorite |
-| **+** (Start) | Options for this app: favorite, move, dock, category, hide, art, uninstall | Same |
-| **−** (Select) | Quick settings | Quick settings |
+| **Triangle** (Start) | Options for this app: favorite, move, dock, category, hide, art, uninstall | Same |
+| **Square** (Select) | Quick settings | Quick settings |
 | **L1 / R1** | Previous / next category (or tracks, with *Home screen play controls*) | Jump to the previous / next letter |
 | **L2 / R2** | First / last app | First / last app |
 | **R3** | Play / pause, with *Home screen play controls* | — |
@@ -47,16 +47,16 @@ pick the old one. Portal stays installed until you uninstall it.
 
 Touch works everywhere too: tap to open, long-press for options, swipe up for All apps.
 
-- **Favorites** are your Home row. Press **X** on an app in All apps, or **+ → Favorite**.
-  **+ → Move** puts a favorite where you want it.
+- **Favorites** are your Home row. Press **X** on an app in All apps, or **Triangle → Favorite**.
+  **Triangle → Move** puts a favorite where you want it.
 - **The dock** along the bottom holds up to six everyday apps (mail, files, the store).
-  **+ → Add to dock** on any app (grayed out once the dock is full); **+ → Move in dock** changes
+  **Triangle → Add to dock** on any app (grayed out once the dock is full); **Triangle → Move in dock** changes
   the order. The gear at the end opens **Launcher Settings**.
 - **Categories:** Home shows one at a time: Favorites, Games, Entertainment, Social, Utilities.
-  Games, video and music apps sort themselves; move any app with **+ → Category…** (it can be in
-  several). Press **B** for the list, then **+** to rename, reorder or delete a category, or to
+  Games, video and music apps sort themselves; move any app with **Triangle → Category…** (it can be in
+  several). Press **B** for the list, then **Triangle** to rename, reorder or delete a category, or to
   add your own.
-- **Hide** an app you never open with **+ → Hide**. Launcher Settings → Apps → *Hidden apps*
+- **Hide** an app you never open with **Triangle → Hide**. Launcher Settings → Apps → *Hidden apps*
   shows them again.
 
 ## Game art
@@ -74,7 +74,7 @@ page. It needs a free SteamGridDB key, which is yours and stays on your Portal:
    row says **Set**, you're done.
 
 Art then arrives on its own for your favorites and games. For any other app, or to pick a
-different picture, press **+ → Art…**: the art in use is at the top, the matches below. Go up
+different picture, press **Triangle → Art…**: the art in use is at the top, the matches below. Go up
 to the preview, pick the cover or the wide picture, and press **A** to browse every choice for
 it; **L1 / R1** switch the wide one between a header and a full-screen scene. You can also use
 any picture from your gallery as a cover or scene (the *Gallery…* tile), with or without a key.
@@ -84,7 +84,7 @@ any picture from your gallery as a cover or scene (the *Gallery…* tile), with 
 
 ## Quick settings
 
-Press **−** for the music player (previous, play/pause, next, and a seek bar), brightness,
+Press **Square** for the music player (previous, play/pause, next, and a seek bar), brightness,
 volume, auto-brightness and Do not disturb, plus shortcuts to Wi-Fi, Bluetooth, battery, AYN's
 settings (*Controller settings*) and Android's settings. **L1** and **R1** skip tracks while the
 panel is open; on the seek bar, left and right jump 10 seconds.
@@ -101,13 +101,29 @@ button four times** to come back; touches, the sticks and the triggers don't cou
 wake in a bag. A short press of Home works as always.
 
 To switch it on: **Launcher Settings → Home → Hold Home for standby**, press **A**, and turn on
-**Portal: hold Home for standby** on the Android page that opens. Android warns that an
-accessibility service can see your screen and control the device. This one is only allowed to
+**Portal: hold Home for standby** in the Android list that opens (its row flashes). Android warns
+that an accessibility service can see your screen and control the device. This one is only allowed to
 receive the Home button: it can't read anything on the screen, and the code is here to check.
+
+**Switch grayed out?** Android restricts it for apps installed from a downloaded file. Come back
+to Launcher Settings: the row says *Restricted*. Press **A** for Portal's App info, then
+**⋮ → Allow restricted settings**, and switch it on as above.
+
+**Off again by itself?** Android switches it off whenever Portal is force-stopped. The next
+time you press Home, a note at the top says so; switch it on again as above. To have Portal turn
+it back on by itself, and switch it right in Launcher Settings, give it permission once from a
+computer with [adb](https://developer.android.com/tools/adb):
+
+```
+adb shell pm grant io.github.whatwhatwhoa.portallauncher android.permission.WRITE_SECURE_SETTINGS
+```
+
+It lets Portal change Android's secure settings; it uses it only for this switch. Uninstalling
+Portal takes the permission away.
 
 ## Make it yours
 
-**Launcher Settings** (the dock's gear, or **+ → Launcher settings…**) changes everything live,
+**Launcher Settings** (the dock's gear, or **Triangle → Launcher settings…**) changes everything live,
 sorted into categories (move through them on the left, **A** to go in, **B** to come back out,
 **L1 / R1** to turn the page):
 
@@ -131,7 +147,7 @@ sorted into categories (move through them on the left, **A** to go in, **B** to 
 | ![All apps grid](docs/screenshots/all-apps.png) | ![Quick settings panel](docs/screenshots/quick-settings.jpg) |
 | *Y: every app, A–Z* | *−: quick settings* |
 | ![Options for an app](docs/screenshots/options.jpg) | ![Picking art](docs/screenshots/art.jpg) |
-| *+: options for any app* | *+ → Art…: pick a cover, header or scene* |
+| *Triangle: options for any app* | *Triangle → Art…: pick a cover, header or scene* |
 | ![Launcher Settings](docs/screenshots/settings.jpg) | |
 | *Launcher Settings, applied live* | |
 

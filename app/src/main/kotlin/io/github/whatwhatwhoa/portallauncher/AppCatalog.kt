@@ -321,6 +321,11 @@ class Prefs(context: Context) {
         get() = sp.getString("home.category", null)
         set(value) = sp.edit { putString("home.category", value) }
 
+    /** The owner turned standby's service on and not off since, so the launcher puts it back if Android turns it off. */
+    var homeHoldWanted: Boolean
+        get() = sp.getBoolean("home.holdWanted", false)
+        set(value) = sp.edit { putBoolean("home.holdWanted", value) }
+
     /** Settings → Art: look art up without being asked; off, the launcher uses the network only from Art…. */
     var fetchArt: Boolean
         get() = sp.getBoolean("art.fetch", true)

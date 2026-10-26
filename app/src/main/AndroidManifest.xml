@@ -18,6 +18,11 @@
         android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <!-- Optional, granted only over adb (pm grant): the launcher switches standby's service itself
+         and puts it back after Android turns it off (HomeHoldSwitch). Without it, nothing changes. -->
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
     <!-- Updates from GitHub: Android asks once to allow installs ("Install unknown apps"); after
          that an update to the launcher itself goes in without a second confirm. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />

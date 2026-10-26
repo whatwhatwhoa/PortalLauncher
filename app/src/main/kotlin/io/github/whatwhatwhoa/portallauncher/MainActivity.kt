@@ -3,7 +3,6 @@ package io.github.whatwhatwhoa.portallauncher
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
 import android.app.ActivityOptions
-import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.role.RoleManager
 import android.content.ActivityNotFoundException
 import android.content.ClipboardManager
@@ -18,7 +17,6 @@ import android.provider.Settings
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.WindowManager
-import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
@@ -67,6 +65,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var catalog: AppCatalog
     private lateinit var state: LauncherState
     private lateinit var sounds: Sounds
+    private lateinit var holdSwitch: HomeHoldSwitch
     private val roleRequest = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
     private var imageReply: ((Uri?) -> Unit)? = null
     private val imageRequest = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -97,11 +96,12 @@ class MainActivity : ComponentActivity() {
         // The owner's key from Launcher Settings; a debug build may carry one from local.properties.
         val art = Art(this, lifecycleScope, prefs.artKey ?: BuildConfig.STEAMGRIDDB_KEY)
         sounds = Sounds(this)
+        holdSwitch = HomeHoldSwitch(this)
         state = LauncherState(
             catalog, prefs, art, lifecycleScope, ::launch, ::pickImage, File(filesDir, "backdrops"),
             openSystem = ::openSystem,
             holdsHome = { getSystemService(RoleManager::class.java).isRoleHeld(RoleManager.ROLE_HOME) },
-            holdsHomeKey = ::homeHoldOn,
+            holdSwitch = holdSwitch,
             controls = DeviceControls(this),
             readClipboard = ::clipboardText,
             updates = Updates(this),
@@ -110,6 +110,7 @@ class MainActivity : ComponentActivity() {
             pickSetup = ::pickSetup,
         )
         catalog.start()
+        holdSwitch.watch { state.checkHomeHold(watched = true) }
         // New favorites and newly installed games get their art looked up as they appear, and
         // everything again after Clear all art or a new key; not at all while Fetch art is off.
         lifecycleScope.launch {
@@ -179,6 +180,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         contentResolver.unregisterContentObserver(motionWatcher)
+        holdSwitch.stop()
         catalog.stop()
         sounds.release()
         super.onDestroy()
@@ -200,11 +202,6 @@ class MainActivity : ComponentActivity() {
         if (intent.action == Intent.ACTION_APPLICATION_PREFERENCES) state.openSettings()
         if (intent.action == ACTION_STANDBY) state.openStandby()
     }
-
-    private fun homeHoldOn(): Boolean =
-        getSystemService(AccessibilityManager::class.java)
-            .getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
-            .any { it.resolveInfo.serviceInfo.let { s -> s.packageName == packageName && s.name == HomeHoldService::class.java.name } }
 
     // Keys are turned into actions here, once, before any view sees them; a mapped key's up event
     // is swallowed too, so the system never adds its own fallback (B as Back, A as Enter).
@@ -417,7 +414,7 @@ private fun Layers(state: LauncherState, motion: Boolean) {
             enter = if (motion) fadeIn(Transit.enter()) else EnterTransition.None,
             exit = if (motion) fadeOut(Transit.exit()) else ExitTransition.None,
         ) {
-            StandbyHint()
+            StandbyHint(state.standbyHintText)
         }
         AnimatedVisibility(
             visible = state.standby,

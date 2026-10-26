@@ -74,3 +74,6 @@ since 2026-10-25); a big card's file is `F<n>-<slug>.md`, a release's small ones
   of the device; back at home finished the launcher, every old activity leaked through
   LauncherApps; both fixed; a clean run on the R8 build), the release (versionCode 4, the
   history purged of `concepts/`, the repo public, GitHub release v0.4.0).
+- `0.4.1.md` (2026-10-25) — standby's switch (D35.1: why it went off, a force stop; the wanted
+  flag and its watch; the row onto Android's list, then App info when restricted; the optional
+  adb grant that puts it back by itself); the README names the menu buttons by shape (B10).

@@ -323,6 +323,20 @@ Home for standby* in Android's accessibility settings; back in Launcher Settings
 - [ ] Volume keys in standby still change the volume; power off and on: Home, not standby.
 - [ ] The clock moves to a new spot each minute.
 
+## V-standby-switch (F35, built 2026-10-25)
+On the 0.4.1 build. Undo the grant: `adb shell pm revoke io.github.whatwhatwhoa.portallauncher android.permission.WRITE_SECURE_SETTINGS`.
+- [ ] Launcher Settings → Home → Hold Home for standby (Off) → A: Android's accessibility list
+      opens at *Portal: hold Home for standby*, its row highlighted; turn it on, B back: On.
+- [ ] Force-stop Portal (App info → Force stop), press Home: "Standby is off: Launcher Settings
+      → Home turns it back on" for about 4 s; a second Home press doesn't show it again.
+- [ ] Turn it off yourself in Android's list, press Home: no note (you chose it).
+- [ ] After the grant (`adb shell pm grant io.github.whatwhatwhoa.portallauncher
+      android.permission.WRITE_SECURE_SETTINGS`): A on the row flips On and Off in place; set On,
+      force-stop Portal, press Home: holding Home opens standby again, no note.
+- [ ] (Release APK installed from the browser, if you try it) the switch is gray; back in Launcher
+      Settings the row says "Restricted: A, then ⋮ → Allow"; A opens App info, ⋮ has *Allow
+      restricted settings*; after it the switch works.
+
 ## V-updates (F18, built 2026-10-25)
 Once the repo is public and a release has its APK, on the release build (a debug build reads
 "Signed differently", which is right).

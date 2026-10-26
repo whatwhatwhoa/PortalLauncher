@@ -139,7 +139,8 @@ private fun LauncherState.shown(setting: Setting): String {
         Setting.Wraps -> onOff(home.wraps)
         Setting.Start -> home.start.label
         Setting.PlayControls -> onOff(home.playControls)
-        Setting.HomeHold -> onOff(homeHold)
+        // Grayed out by Android: the next A opens App info, where ⋮ allows it (README *Standby*).
+        Setting.HomeHold -> if (!homeHold && homeHoldTried && homeHoldRestricted) "Restricted: A, then ⋮ → Allow" else onOff(homeHold)
         Setting.SoundsOn -> onOff(sound.on)
         Setting.SoundSet -> sound.family.label
         Setting.SoundVolume -> sound.level.label

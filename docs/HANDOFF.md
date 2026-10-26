@@ -3,29 +3,34 @@
 Current state only. **Rewrite this file at the end of every session**: carry forward what is
 open, delete what is resolved, never append history (git and `docs/decisions/` hold it).
 
-**State (2026-10-25):** **0.4.0 is out, and the repo is public** (MIT). GitHub release
-`v0.4.0` carries `PortalLauncher-0.4.0.apk` (release-signed, versionCode 4), the asset the
-README's *Download* link and the app's Updates row find. The launcher is the Portal's Home app
-(the owner's debug build, with B9 and the F28 fixes; Launcher3 still installed). The deleted
-`concepts/` files were purged from the history before going public (`decisions/0.4.0.md`
-*Release*). `TASKS.md`: nothing under *Working on*; the VERIFY rounds wait under *Planned* →
-*Candidates*.
+**State (2026-10-25):** **0.4.1 is built and committed** (versionCode 5, release theme
+*Standby's switch*): F35 makes Hold Home's switch easy to find, puts it back after Android turns
+it off (a force stop does), and with an optional adb grant switches it itself; B10 names the menu
+buttons Triangle and Square in the README. Built and linted; **not run on the Portal** (it
+wasn't connected). No GitHub release for 0.4.1 yet: `v0.4.0` is still what the README and
+Updates offer. The Portal runs the owner's debug build of 0.4.0, its hold-Home service off.
+`TASKS.md`: nothing under *Working on*; the VERIFY rounds wait under *Planned* → *Candidates*.
 
 ## Next
-1. The owner plans the next release on the board (version, theme, cards from the feature list).
-2. **VERIFY rounds** T2.3, T5.3, T7.3, T6.5 need the owner on the Portal; an agent can't tick them.
-3. The owner tries *V-0.4.0*, *V-artist*, *V-setup*, *V-b8*, *V-b7*, *V-quick-media*,
-   *V-art-preview* (incl. B6.1), *V-sounds*, *V-categories-edit*, *V-standby*, *V-gap*, and now
-   *V-updates* (it needs a release build: see the F18 question below).
-4. The promo video (jim-13, outside the repo): when it is on YouTube, add its link under the
+1. Install 0.4.1 on the Portal and run *V-standby-switch* (`VERIFY.md`) with the owner; then
+   publish GitHub release `v0.4.1` with `PortalLauncher-0.4.1.apk` if the owner wants it.
+2. The owner plans the next release on the board (version, theme, cards from the feature list).
+3. **VERIFY rounds** T2.3, T5.3, T7.3, T6.5, T35.1 need the owner on the Portal.
+4. The owner tries *V-0.4.0*, *V-artist*, *V-setup*, *V-b8*, *V-b7*, *V-quick-media*,
+   *V-art-preview* (incl. B6.1), *V-sounds*, *V-categories-edit*, *V-standby*, *V-gap*,
+   *V-updates* (needs a release build: see F18 below).
+5. The promo video (jim-13, outside the repo): when it is on YouTube, add its link under the
    README's hero shot.
 
 ## Waiting on the owner
+- 0.4.1: publish the GitHub release (users' Updates row would offer it) before or after the
+  Portal check? Grant `WRITE_SECURE_SETTINGS` on the Portal (undo: `pm revoke`, `VERIFY.md`)?
+- B10: the app's empty-category note still says "+ → Category…" (`Categories.kt`): Triangle?
 - Back up `C:\Users\Jim\.android\portallauncher-release.jks` with its password (in
   `local.properties`). If it is lost, users can't update.
 - F18: the daily build is debug-signed, so Updates says "Signed differently" for every release.
   Move the Portal to the release APK (*Save setup*, uninstall, install, *Restore setup*) or keep
-  updating by adb?
+  updating by adb? An uninstall turns standby's service off (`gotchas.md`).
 - B9: clear the wrong art on Chrome and Calculator: + → Art… → *Use the app's icon* (B9.1).
 - F29: read the README; is the accessibility paragraph the right tone (D29.1)?
 - F33: *Move in dock* from any sheet (D33.1): enough, or a dock page that lists all six?
@@ -35,8 +40,7 @@ README's *Download* link and the app's Updates row find. The launcher is the Por
   on the line itself (it is on the note line now)?
 - F23/F24: *Covers on tiles* is still in Launcher Settings (global): move it to Art… too?
 - F22: is the move/edge level right now? Sounds on touch taps too?
-- F19: is a hold of 0.4 s right? Should L3/R3 count toward waking? They do now. The hold-Home
-  service is off on the Portal at the moment (`enabled_accessibility_services` is empty).
+- F19: is a hold of 0.4 s right? Should L3/R3 count toward waking? They do now.
 - The agent's test category **Test** may still be on the Portal: delete it in edit mode.
 - Quick panel: a swipe down from the top by touch too?
 - Q-reboot: after a Portal restart, does it stay landscape and does the rotation app work?
@@ -50,9 +54,11 @@ Nothing.
   repo must be cloned again, not pulled. The pre-purge history is in
   `C:\Users\Jim\.android\PortalLauncher-pre-purge.bundle` (local only, it holds the concepts
   files: never push it).
+- **A force stop turns standby's service off** (`gotchas.md`), the restore procedure's
+  `am force-stop` included. 0.4.1 puts it back or says so; on 0.4.0 turn it on again by hand.
 - LineageOS's Home hold action on the Portal is 0 (nothing) since F19's session; only `content
   insert` changes it (`gotchas.md` *The Home key never reaches an app*).
-- IDs: next free card F35 (tasks T<n>.k, decisions D<n>.k), owner batches B10 next. Cards the
+- IDs: next free card F36 (tasks T<n>.k, decisions D<n>.k), owner batches B11 next. Cards the
   owner adds in FeatureBoard come without an ID: give one the next F number when it is planned.
 - Don't script key presses while the owner is holding the Portal (`gotchas.md` *Scripted keys
   mix with the owner's input*). The stress script changes the launcher's data: back up and

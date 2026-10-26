@@ -70,8 +70,8 @@ class LauncherState(
     private val openSystem: (Intent) -> Unit,
     /** Whether the launcher holds the Home role now. */
     private val holdsHome: () -> Boolean,
-    /** Whether the Home-hold service (HomeHoldService) is on, so holding Home opens standby. */
-    private val holdsHomeKey: () -> Boolean = { false },
+    /** The Home-hold service's switch (HomeHoldService); null leaves standby off. */
+    private val holdSwitch: HomeHoldSwitch? = null,
     /** Brightness, volume and the rest, for the quick panel. */
     val controls: DeviceControls,
     /** The clipboard's text, for pasting a SteamGridDB key without typing it on the controller. */
@@ -229,8 +229,17 @@ class LauncherState(
         private set
     var isHomeApp by mutableStateOf(false)
         private set
+    /** Whether holding Home opens standby (HomeHoldService on); kept current by [checkHomeHold]. */
     var homeHold by mutableStateOf(false)
         private set
+    /** Android grays the service's switch out until it is allowed in App info ([HomeHoldSwitch.restricted]). */
+    var homeHoldRestricted by mutableStateOf(false)
+        private set
+    /** The Hold Home row has opened Android's page since the launcher started, so a still-gray switch was seen. */
+    var homeHoldTried by mutableStateOf(false)
+        private set
+    // The note that standby went off shows once per start of the launcher, not at every Home press.
+    private var offNoteShown = false
     /** What the Updates row says: the check's answer, then the download and install. */
     var updateNote by mutableStateOf<String?>(null)
         private set
@@ -685,7 +694,22 @@ class LauncherState(
                 dockIndex = 0
             }
             Setting.HomeApp -> openSystem(Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
-            Setting.HomeHold -> openSystem(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            Setting.HomeHold -> holdSwitch?.let { sw ->
+                when {
+                    // Granted over adb: A flips it here, without Android's page.
+                    sw.canSwitch -> {
+                        sw.switch(!homeHold)
+                        homeHold = sw.on
+                        prefs.homeHoldWanted = homeHold
+                    }
+                    // App info's ⋮ menu offers Allow restricted settings only after the switch was tried.
+                    !homeHold && homeHoldTried && homeHoldRestricted -> openSystem(sw.appInfo())
+                    else -> {
+                        homeHoldTried = true
+                        openSystem(sw.page())
+                    }
+                }
+            }
             Setting.AndroidSettings -> openSystem(Intent(android.provider.Settings.ACTION_SETTINGS))
             Setting.Updates -> update()
             Setting.SaveSetup -> saveSetup()
@@ -740,13 +764,34 @@ class LauncherState(
     /** The values that change outside the panel; again on coming back from Android's settings. */
     fun refreshSettings() {
         if (quickOpen) controls.read()
+        checkHomeHold(watched = false)
         if (!settingsOpen) return
         isHomeApp = holdsHome()
-        homeHold = holdsHomeKey()
         scope.launch { artBytes = art?.bytes() }
         // Asked again after a while, or at once after a failed check; never while one runs.
         val stale = System.currentTimeMillis() - updateCheckedAt > UPDATE_CHECK_MS
         if (stale && updating?.isActive != true) checkUpdate()
+    }
+
+    /**
+     * The service's switch as Android has it, on every resume and ([watched]) whenever it changes
+     * while the launcher runs. Seen on, the owner wants it. Seen going off while the launcher runs,
+     * the owner (or a policy) turned it off, so it isn't wanted any more. Found off at a start or
+     * resume while still wanted, Android turned it off with a force stop (which ends the launcher
+     * first): it goes back on where the launcher may switch it, else Home says so once.
+     */
+    fun checkHomeHold(watched: Boolean) {
+        val sw = holdSwitch ?: return
+        homeHold = sw.on
+        when {
+            homeHold -> prefs.homeHoldWanted = true
+            watched -> prefs.homeHoldWanted = false
+            prefs.homeHoldWanted && sw.canSwitch -> {
+                sw.switch(true)
+                homeHold = sw.on
+            }
+        }
+        homeHoldRestricted = !homeHold && sw.restricted
     }
 
     private fun checkUpdate() {
@@ -1171,7 +1216,12 @@ class LauncherState(
 
     private fun goHome(alreadyHome: Boolean) {
         if (standby) return standbyPress(KeyEvent.KEYCODE_HOME)
-        if (holdsHomeKey()) flashStandbyHint()
+        if (homeHold) {
+            flashStandbyHint(HOLD_HINT, HINT_SHOWN)
+        } else if (prefs.homeHoldWanted && !offNoteShown) {
+            offNoteShown = true
+            flashStandbyHint(OFF_NOTE, OFF_NOTE_SHOWN)
+        }
         closeSettings()
         closeQuick()
         closeSheet()
@@ -1198,6 +1248,9 @@ class LauncherState(
     private var wakeWindow: Job? = null
     /** "Hold Home for standby", shown briefly on each Home press while holding Home opens it. */
     var standbyHint by mutableStateOf(false)
+        private set
+    /** The pill's words; kept after it hides, so its fade still has them. */
+    var standbyHintText by mutableStateOf(HOLD_HINT)
         private set
     private var hintTimer: Job? = null
 
@@ -1240,11 +1293,12 @@ class LauncherState(
         wakeButton = null
     }
 
-    private fun flashStandbyHint() {
+    private fun flashStandbyHint(text: String, shown: Long) {
         hintTimer?.cancel()
+        standbyHintText = text
         standbyHint = true
         hintTimer = scope.launch {
-            delay(HINT_SHOWN)
+            delay(shown)
             standbyHint = false
         }
     }
@@ -1448,6 +1502,10 @@ class LauncherState(
         const val WAKE_WINDOW = 2_000L
         // The owner's "0.5 or so seconds", plus the fades.
         const val HINT_SHOWN = 600L
+        const val HOLD_HINT = "Hold Home for standby"
+        // Shown when a Home press finds standby off though it was on: long enough to read twice.
+        const val OFF_NOTE = "Standby is off: Launcher Settings → Home turns it back on"
+        const val OFF_NOTE_SHOWN = 4000L
         val WALLPAPER_TYPES = setOf("jpg", "jpeg", "png", "webp")
         // SteamGridDB's API keys are 32 hex digits.
         val KEY_SHAPE = Regex("[0-9a-fA-F]{32}")

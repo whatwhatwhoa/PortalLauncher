@@ -276,8 +276,8 @@ preferences).
 - *Home*: Clock (System, 12-hour, 24-hour), Battery percent (off: only the fill), Button hints,
   Carousel wraps (off by default: the row stops at its ends), Home key goes to (Favorites, the
   first category's start; or Where you left, which also reopens the last category after a restart),
-  Home screen play controls (off by default; see *Controller map*), Hold Home for standby (On or Off: whether *Standby*'s service is on; A opens Android's
-  accessibility settings, where it is switched).
+  Home screen play controls (off by default; see *Controller map*), Hold Home for standby (On, Off or
+  Restricted; see *Standby*).
 - *Sound*: Sounds (on by default), Family (Soft, Glass, Crisp; Soft by default), Volume (Quiet,
   Low, Medium, Loud; Low by default). A new family or volume plays Select in itself (`sound.*`).
 - *Art*: SteamGridDB key (an action row: A reads the clipboard, takes 32 hex digits only, checks
@@ -386,10 +386,16 @@ button starts the count again at one; while a count runs, "Press the same button
 wake" shows under the rings (faded, none with *Button hints* off). Touches, the back gesture,
 the sticks and the triggers (axis and L2/R2 button both) are swallowed without counting; volume
 keys still set the volume. It also ends when the launcher goes out of view (the screen turned
-off, an app over it). Holding Home needs the launcher's accessibility service (`HomeHoldService`),
-which the owner turns on once (why: `decisions/0.2.0.md` D19.1). It takes every Home press: a hold (Android's long-press time) opens
-standby, a shorter one is handed back as Android's Home. It reads no screen content. While it is
-on, each Home press shows "Hold Home for standby" in a pill at the top for 0.6 s.
+off, an app over it). Holding Home needs the launcher's accessibility service (`HomeHoldService`,
+why: `decisions/0.2.0.md` D19.1): it takes every Home press, opens standby on a hold (Android's
+long-press time), hands a shorter one back as Android's Home, and reads no screen content. While
+it is on, each Home press shows "Hold Home for standby" in a pill for 0.6 s. Its switch
+(`HomeHoldSwitch`, why: `decisions/0.4.1.md` D35.1): the row's A opens Android's
+accessibility list at its row; still off and restricted by Android (an APK from a file), the
+row says *Restricted* and A opens App info. Seen on, it is wanted (`home.holdWanted`); seen going
+off while the launcher runs, not. A force stop turns it off: found off while wanted, it goes back
+on by itself where WRITE_SECURE_SETTINGS was granted over adb (the row then flips it in place),
+else the first Home press shows "Standby is off: …" for 4 s, once per start.
 
 **Scaling (bonus, not a goal).** The layout is drawn on a 600 dp tall canvas at least 1032 dp
 wide (the All apps grid). On another screen the root scales the density so the canvas fits:
@@ -409,9 +415,7 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
   system dialog and can pick Launcher3 back the same way.
 - **App catalog** (`AppCatalog.kt`). `LauncherApps` lists the launchable activities of every
   profile on a background thread and pushes add/remove/change callbacks, so the screens update
-  without a restart. An `AppEntry` is key (component + user serial), label, component, user,
-  whether it is part of the system image, its seed category, its first install time and its
-  icon. `SCREENS` adds settings pages with no launcher icon (AYN's, as *Controller settings*),
+  without a restart. An `AppEntry` is keyed by component + user serial. `SCREENS` adds settings pages with no launcher icon (AYN's, as *Controller settings*),
   opened by Settings' action, in All apps only, each with a name and icon of ours (AYN's: the
   Portal glyph on its teal, `ic_app_controller_settings`). It also picks the
   dock's utility apps and launches through `startMainActivity`.
@@ -442,15 +446,13 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
   everything below it.
 - **Updates** (`Updates.kt`). The project's GitHub releases, asked only when Launcher Settings
   opens (again after 10 minutes, or at once after a failed check), never in the background: the
-  latest release's tag (without its "v") against `versionName`, its first `.apk` asset. The row
-  reads "Checking…", "Up to date", "None published" (GitHub's 404: no release, or the repo is
-  private), "Install 0.2.0" or "Offline, try again". A on Install: the first time it opens
+  latest release's tag (without its "v") against `versionName`, its first `.apk` asset. "None published"
+  is GitHub's 404 (no release, or a private repo). A on Install: the first time it opens
   Android's *Install unknown apps* page for Portal ("Allow, then A again"); then it downloads
   to `cache/update/` ("Downloading n%"), refuses an APK that isn't this package, isn't a higher
   `versionCode` or isn't signed with the same key ("Not this app", "Not newer", "Signed
-  differently"), and commits it in a `PackageInstaller` session. An app updating itself needs
-  no Android confirm (`UPDATE_PACKAGES_WITHOUT_USER_ACTION`); Play Protect may still ask about
-  an APK it hasn't seen. Android stops the launcher and starts the new one with its data kept.
+  differently"), and commits it in a `PackageInstaller` session. No Android confirm
+  (`UPDATE_PACKAGES_WITHOUT_USER_ACTION`); Play Protect may still ask.
   `UpdateReceiver` gets the installer's answer: a confirm it shows, or "Install failed" or
   "Cancelled" for the row. The releases URL is `BuildConfig.UPDATE_URL`; a debug build takes
   `update.url` from `local.properties` instead, for a stand-in (`gotchas.md` *Trying an update*).
@@ -478,11 +480,10 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
   the source bounds and as a clip-reveal `ActivityOptions`.
 - **Build.** Gradle wrapper, one module, Compose foundation and ui only (no Material: every
   surface is ours), no Hilt, no navigation library. A release build is minified and signed with
-  the release key, which lives outside the repo; `local.properties` names it (`release.storeFile`,
-  `release.storePassword`, `release.keyAlias`, `release.keyPassword`). Without those lines the
+  the release key, which lives outside the repo; `local.properties` names it (the `release.*`
+  lines). Without those lines the
   release APK is unsigned.
 
-**The public page.** `README.md` is written for users, not developers: download, install,
-smallest width 600, buttons, the SteamGridDB key, quick settings, standby, the settings pages,
+**The public page.** `README.md` is written for users, not developers, with
 screenshots (`docs/screenshots/`, taken on the Portal with `adb exec-out screencap`, anything
 with a photo in it as JPEG 90). License MIT (`LICENSE`).

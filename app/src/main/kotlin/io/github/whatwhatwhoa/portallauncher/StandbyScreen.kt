@@ -101,12 +101,12 @@ private fun WakeDots(presses: Int, needed: Int) {
     }
 }
 
-/** "Hold Home for standby": a small pill at the top, for a moment after a Home press. */
+/** A small pill at the top after a Home press: "Hold Home for standby", or that standby went off. */
 @Composable
-fun StandbyHint(modifier: Modifier = Modifier) {
+fun StandbyHint(text: String, modifier: Modifier = Modifier) {
     val p = LocalPalette.current
     BasicText(
-        "Hold Home for standby",
+        text,
         modifier.padding(top = Space.xl).background(p.surface, CircleShape).padding(horizontal = Space.l, vertical = Space.xs),
         style = LocalType.current.caption.copy(color = p.text),
     )
