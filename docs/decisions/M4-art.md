@@ -119,13 +119,13 @@ Status: accepted 2026-10-25; owner to confirm in use (*V-scene*).
 - **Not on Steam:** GameNative and Crunchyroll found nothing; they keep the hero band.
 - **Trials ended:** the owner had left the backdrop on Black and the accent on Violet. Black
   stays as the default backdrop; the accent is a new *White* (the text color, so near-black in
-  light mode, where white would vanish). X and − do nothing on Home.
+  light mode, where white would vanish). X and Square do nothing on Home.
 - **Dock centered:** the hints went from 16/24 to 14/20 and their disc from 24 to 20 dp. Even so
   the owner's 7-button dock (536 dp) and three hints in a row (303 dp) couldn't share the line:
-  the first build moved the dock left to clear them, and since + Options comes and goes with
+  the first build moved the dock left to clear them, and since Triangle Options comes and goes with
   focus (not on the All apps button) the dock jumped (owner). Owner's fix: A and B are known,
   hint only the other buttons, stacked and right-aligned. The stack is under 100 dp wide, so the
-  dock sits exactly centered and still. All apps keeps X and +; the options sheet has no hints.
+  dock sits exactly centered and still. All apps keeps X and Triangle; the options sheet has no hints.
 - **X hint held still:** in All apps' right-aligned bar the X glyph slid as Favorite became
   Unfavorite (owner: "the icon should sit still and the text move"). A hint reserves the
   width of its longest label (`Hint.room`), the text left-aligned in it.

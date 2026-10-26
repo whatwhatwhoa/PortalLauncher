@@ -317,7 +317,7 @@ fun mediaGrant() = Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS)
  * brightness and volume sliders, toggles and shortcuts, each an icon as in Android's own panel
  * (owner, 2026-10-25); the focused one is named on the line below. Up and down move between rows,
  * left and right change a slider or move along a row (on the seek bar they seek), A toggles or
- * opens, L1 and R1 skip tracks, B or − closes.
+ * opens, L1 and R1 skip tracks, B or Square closes.
  */
 @Composable
 fun AnimatedVisibilityScope.QuickPanel(state: LauncherState) {

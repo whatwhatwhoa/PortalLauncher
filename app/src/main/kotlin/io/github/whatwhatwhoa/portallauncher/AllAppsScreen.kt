@@ -32,7 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-/** Every app, alphabetical, in a grid; X adds or removes a favorite, + opens its options. */
+/** Every app, alphabetical, in a grid; X adds or removes a favorite, Triangle opens its options. */
 @Composable
 fun AllAppsScreen(state: LauncherState) {
     val p = LocalPalette.current
@@ -85,7 +85,7 @@ fun AllAppsScreen(state: LauncherState) {
             }
         }
         val favorite = apps.getOrNull(focus)?.let(state::isFavorite) == true
-        HintBar(listOf(Hint("−", "Quick settings"), Hint("X", if (favorite) "Unfavorite" else "Favorite", room = "Unfavorite"), Hint("+", "Options")))
+        HintBar(listOf(Hint(SQUARE, "Quick settings"), Hint("X", if (favorite) "Unfavorite" else "Favorite", room = "Unfavorite"), Hint(TRIANGLE, "Options")))
     }
 }
 

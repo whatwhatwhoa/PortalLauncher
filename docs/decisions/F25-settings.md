@@ -15,7 +15,7 @@ with two sketches): **about 70%, at the right**, over the undimmed Home, rather 
 from the right edge, the same slide-in as before. The Switch's layout inside it: the categories
 down the left (200 dp), a hairline, then the chosen category's rows. Moving through the
 categories shows each one's page at once; A or Right goes into its rows, B comes back out, B
-again closes. L1/R1 turn the category from either column; + closes from anywhere. The rows keep
+again closes. L1/R1 turn the category from either column; Triangle closes from anywhere. The rows keep
 everything from before: value rows (chevrons, left/right), action rows, the confirming second A.
 The *submenu* is the accent picker: A on Accent opens it in the page's place, the categories
 staying in view, and B returns to the rows.

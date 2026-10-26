@@ -66,7 +66,7 @@ enum class ArtKind(val suffix: String) { Cover("cover"), Hero("hero"), Scene("sc
  * Art from SteamGridDB: a square cover and a 1920 px wide hero per app, downloaded once into the
  * app's files and never upscaled (only sizes at least as big as they are shown are asked for).
  * Favorites and apps Android marks as games are looked up by their label and taken only on a
- * close match; anything else waits for the owner (+ → Art…). A matched game also gets a scene
+ * close match; anything else waits for the owner (Triangle → Art…). A matched game also gets a scene
  * from Steam when it is sold there, which Home shows only once the owner chooses it. Lookups
  * need the owner's own SteamGridDB [key] (Launcher Settings → Art); without one, only gallery
  * images work.

@@ -111,7 +111,7 @@ Circle to Search).
 
 ### A force stop turns the hold-Home service off
 Android drops a package's accessibility services from `enabled_accessibility_services` when it
-is force-stopped (AOSP's `AccessibilityManagerService`; not yet seen on the Portal), and an
+is force-stopped (seen on the Portal 2026-10-25: the list went empty at once), and an
 uninstall clears them too. The restore below force-stops the launcher. The launcher switches it
 back on by itself where `WRITE_SECURE_SETTINGS` is granted, else Home says so once
 (`decisions/0.4.1.md` D35.1). Check with `adb shell settings get secure enabled_accessibility_services`.

@@ -85,7 +85,7 @@ class LauncherState(
     /** Opens Android's file picker for a setup file; the reply is the chosen file, or null. */
     private val pickSetup: ((Uri?) -> Unit) -> Unit = {},
 ) {
-    /** The quick panel (− on Home and All apps), over everything but the settings. */
+    /** The quick panel (Square on Home and All apps), over everything but the settings. */
     var quickOpen by mutableStateOf(false)
         private set
     // Brightness from the very first opening (owner, F21); openQuick sets it again each time.
@@ -161,7 +161,7 @@ class LauncherState(
         private set
 
     /**
-     * The layer's edit mode (+ in it): every category, the empty ones too, and New category after
+     * The layer's edit mode (Triangle in it): every category, the empty ones too, and New category after
      * them; out of it the layer is only the names Home shows (owner: clean, editing apart).
      */
     var editingCategories by mutableStateOf(false)
@@ -503,7 +503,7 @@ class LauncherState(
     /**
      * Two columns, as the Switch's settings: the categories, where moving shows each one's page at
      * once, and A or right goes into its rows; there left and right change a value and B comes
-     * back out. L1 and R1 turn the category from either, + closes from anywhere.
+     * back out. L1 and R1 turn the category from either, Triangle closes from anywhere.
      */
     private fun onSettings(action: Action) {
         if (accentOpen) return onAccent(action)
@@ -746,7 +746,7 @@ class LauncherState(
         }
     }
 
-    /** From the + sheet or Android's launcher-settings gear (MainActivity). */
+    /** From the options sheet (Triangle) or Android's launcher-settings gear (MainActivity). */
     fun openSettings() {
         wallpapers = findWallpapers()
         closeSheet()
@@ -1079,7 +1079,7 @@ class LauncherState(
         categoriesOpen = false
     }
 
-    /** + in the layer: edit mode, on the same name. */
+    /** Triangle in the layer: edit mode, on the same name. */
     private fun startEditingCategories() {
         categoryIndex = categoryList.indexOf(categories.getOrNull(categoryFocus)).coerceAtLeast(0)
         editingCategories = true

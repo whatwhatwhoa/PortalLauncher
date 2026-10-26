@@ -73,7 +73,7 @@ data class Category(val id: String, val label: String) {
     }
 }
 
-/** What + on a name in the categories layer offers, beside it; Favorites offers Rename only. */
+/** What Triangle on a name in the categories layer offers, beside it; Favorites offers Rename only. */
 enum class CategoryAction(val label: String) { Rename("Rename"), Move("Move"), Delete("Delete") }
 
 /** Where the categories layer is while the owner changes a category. */
@@ -161,9 +161,9 @@ private val starting: Map<String, String> = buildMap {
  * (HomeScreen does the ghosting). Up and down move, A goes in, B goes back; a tap on a name goes
  * in, a tap anywhere else goes back.
  *
- * + is edit mode (F12), kept apart so the layer stays clean (owner): every category, an empty one
+ * Triangle is edit mode (F12), kept apart so the layer stays clean (owner): every category, an empty one
  * fainter, and New category after them. A on a name puts Rename, Move and Delete beside it
- * (Favorites: Rename only); A on New category starts one. + or B leaves edit mode.
+ * (Favorites: Rename only); A on New category starts one. Triangle or B leaves edit mode.
  */
 @Composable
 fun CategoriesLayer(state: LauncherState) {
@@ -198,8 +198,8 @@ fun CategoriesLayer(state: LauncherState) {
             listOfNotNull(
                 when {
                     state.categoryEdit != null -> null
-                    editing -> Hint("+", "Done")
-                    else -> Hint("+", "Edit")
+                    editing -> Hint(TRIANGLE, "Done")
+                    else -> Hint(TRIANGLE, "Edit")
                 },
             ),
             Modifier.align(Alignment.BottomEnd).padding(end = Dimens.edge, bottom = Dimens.bottom),
@@ -250,7 +250,7 @@ private fun CategoryLine(state: LauncherState, i: Int, category: Category) {
                 edit == CategoryEdit.Moving -> Note("Up and down move it, A puts it down")
                 edit == CategoryEdit.Renaming -> Note("Type a name, then Done")
                 focused && state.editingCategories && !state.hasApps(category) -> Note(
-                    if (category.isFavorites) "Empty: Favorite on an app puts it here" else "Empty: + → Category… on an app puts it here",
+                    if (category.isFavorites) "Empty: Favorite on an app puts it here" else "Empty: Triangle → Category… on an app puts it here",
                 )
             }
         }

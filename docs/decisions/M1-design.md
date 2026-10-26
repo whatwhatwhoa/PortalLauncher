@@ -19,7 +19,7 @@ on is a bonus. Scalable if it costs nothing; never at the expense of the target.
 
 ### `62l9ribax0ae1.jpg` — Switch home redesign (fan mock-up by u/__Luner, 3648×2052)
 - **Right:** one row of square covers; the focused tile is larger with a cyan ring; the title
-  and the button hints (`A Start`, `+ Options`) sit beside it, not under it; the status cluster
+  and the button hints (`A Start`, `Triangle Options`) sit beside it, not under it; the status cluster
   (clock, Wi-Fi, battery) is small and top-right; the hero art fills the screen behind a
   dark teal wash so white text stays readable everywhere.
 - **Wrong for us:** the system icons are strung along the top with the profile avatar; the
@@ -29,7 +29,7 @@ on is a bonus. Scalable if it costs nothing; never at the expense of the target.
 - **Right:** this is the clearest anatomy of the three and the closest to the brief. Portrait
   covers (3:4) in one row; the focused cover lifts with a cyan glow and its title appears above
   it in the accent color; a dock of round, evenly spaced system buttons under the row; a thin
-  rule and a hint bar (`+ Options`, `A Start`) at the very bottom; status top-right; two tabs
+  rule and a hint bar (`Triangle Options`, `A Start`) at the very bottom; status top-right; two tabs
   (`Software` / `Media`) centered at the top.
 - **Wrong for us:** the folder tile (four small covers) is busy; nine dock buttons is too many;
   the music line at the bottom is noise.

@@ -4,8 +4,8 @@ Built but not yet clicked on the device. Each check is one line: what to do, wha
 happen. Ticked checks leave this file (their result goes in the commit or a decision entry).
 
 ## V-0.4.0 (F30–F34, F28, built 2026-10-25)
-- [ ] The dock is full (six apps): + on an undocked tile shows *Add to dock (full)* grayed; A on
-      it bumps and the sheet stays. + on a docked app from the row or All apps: *Move in dock*
+- [ ] The dock is full (six apps): Triangle on an undocked tile shows *Add to dock (full)* grayed; A on
+      it bumps and the sheet stays. Triangle on a docked app from the row or All apps: *Move in dock*
       goes Home with that dock button lifted; left/right shift it, A puts it down.
 - [ ] Home, L1/R1: the category before or after (Favorites → Games …), row from its start; at
       the ends a bump. Works from the dock too.
@@ -16,7 +16,7 @@ happen. Ticked checks leave this file (their result goes in the commit or a deci
 - [ ] Launcher Settings → Look → Big name: Fitted (the Portal is on it now). Home's name is as
       written, lighter, fully on screen under the clock; a long title shrinks to fit. Metro: as before.
 - [ ] Is Fitted's size, weight and 60% opacity right? Try a long game title.
-- [ ] The + options, Launcher Settings and the quick panel sit on dark gray (#242424), not black;
+- [ ] The Triangle options, Launcher Settings and the quick panel sit on dark gray (#242424), not black;
       the dock buttons stay as they were. Gray right, or lighter/darker?
 - [ ] F28: on Home with nothing open, the back gesture (swipe in from the side) does nothing: no
       flash, focus and category stay. B on Home still opens the categories.
@@ -37,8 +37,8 @@ injected keys (`decisions/M2-skeleton.md` *First device run*); these need the ow
 
 ## V-options (built 2026-10-25)
 The agent opened the sheet over adb; the rest is the owner's.
-- [ ] + on a carousel tile, a dock app and an All apps tile opens the sheet; the options fit
-      where it came from; B, + or a tap outside closes it; a long press opens it too.
+- [ ] Triangle on a carousel tile, a dock app and an All apps tile opens the sheet; the options fit
+      where it came from; B, Triangle or a tap outside closes it; a long press opens it too.
 - [ ] Move a favorite and a dock app: it lifts, left/right shift it, A puts it down; the
       order survives a restart.
 - [ ] Hide an app: it leaves All apps (count says "· 1 hidden"), the row and the dock; Show
@@ -65,8 +65,8 @@ The agent opened the sheet over adb; the rest is the owner's.
 
 ## V-art (built 2026-10-25)
 Network is allowed for the launcher, and the favorites' art is downloaded.
-- [ ] NTE's Home tile shows its cover, crisp, focused or not; its + sheet shows the cover too.
-- [ ] + → Art… on NTE: the cover and hero strip at the top, matches below with a dot on the
+- [ ] NTE's Home tile shows its cover, crisp, focused or not; its options sheet shows the cover too.
+- [ ] Triangle → Art… on NTE: the cover and hero strip at the top, matches below with a dot on the
       one in use; pick another, it downloads ("Fetching…") and the top changes; B goes back.
 - [ ] Search: A on the Search row brings up the keyboard; type a name, its search key lists
       new matches; B ends typing without leaving the page.
@@ -78,9 +78,9 @@ Network is allowed for the launcher, and the favorites' art is downloaded.
 - [ ] NTE and Stardew fill the whole of Home with their scene, crisp, the vignette heavy at the
       left and bottom; the name, tiles, dock and hints read over it; moving to an app without
       one crossfades back to the band or the backdrop with no flash.
-- [ ] Favorite a Steam game you have on the Portal (or + → Art… on one): its scene appears on
+- [ ] Favorite a Steam game you have on the Portal (or Triangle → Art… on one): its scene appears on
       its own within a few seconds and reads well; a non-Steam app keeps the band.
-- [ ] The dock sits in the middle and doesn't move as focus goes along it; the hints (+ Options,
+- [ ] The dock sits in the middle and doesn't move as focus goes along it; the hints (Triangle Options,
       Y All apps) are stacked at the right, smaller, and still read; the ring and name are white.
 
 ## V-hero (built 2026-10-25)
@@ -95,14 +95,14 @@ Network is allowed for the launcher, and the favorites' art is downloaded.
 - [ ] The focused tile grows and its neighbors slide aside smoothly; L2/R2 too.
 - [ ] Down to the dock: the row's tiles all shrink to 144, the row doesn't jump, the name goes
       muted, the dock's label is clear of the tiles. Up again: back to accent and 192.
-- [ ] + → Move on a carousel tile: it lifts a little more, moves, A puts it down.
+- [ ] Triangle → Move on a carousel tile: it lifts a little more, moves, A puts it down.
 - [ ] Light mode: the vignette fades to the light background, the name still reads.
 - [ ] Animations off: the hero, tile growth and lift all snap.
 
 ## V-art-preview (F23, F24, built 2026-10-25; replaces the grid checks of 2026-10-25)
 Installed, not driven over adb (the owner was using the Portal). The choice and gallery code
 underneath is the one checked over adb before; what is new is how it is reached.
-- [ ] + → Art… on NTE: the matches start focused; Up from the first one rings the cover in the
+- [ ] Triangle → Art… on NTE: the matches start focused; Up from the first one rings the cover in the
       preview; Right moves the ring to the wide strip, Left back, Down back to the matches.
 - [ ] A on the cover: a grid, *Gallery…* first, "n of N" above, a dot on the one in use, focus
       on it. Moving shows each thumbnail in the preview's cover; its ring stays still.
@@ -135,14 +135,14 @@ need the owner's eye and hands.
       up and down preview each category's row; A goes in, B goes back. Ghost at 18% and the
       heading size feel right? (T5.3: say lighter, darker, bigger or smaller.)
 - [ ] The seeds: Games has GameNative, Stardew, NTE and DroidDeck; Entertainment YouTube Music
-      and Twelve; Chrome alone in Social; YouTube and Crunchyroll in Utilities. + → Category…
+      and Twelve; Chrome alone in Social; YouTube and Crunchyroll in Utilities. Triangle → Category…
       moves one (try YouTube to Entertainment); it survives a restart.
 - [ ] Open a game from Games, press Home: back on Games with that game focused. Press Home
       again: Favorites, first tile.
 - [ ] Animations off: the layer and the ghosting snap.
 
 ## V-effects (built 2026-10-25)
-All three are on; + → Launcher settings… switches each off and on to compare.
+All three are on; Triangle → Launcher settings… switches each off and on to compare.
 - [ ] Focus glow: a soft accent haze outside the ring, breathing with it; the gap between tile
       and ring stays clean. Too strong, too weak, or right?
 - [ ] Tile depth, dark: a faint highlight along the top edge of the tiles, dock buttons and All
@@ -151,8 +151,8 @@ All three are on; + → Launcher settings… switches each off and on to compare
       row; with Mint or Amber it takes the color. Any banding on the OLED?
 
 ## V-settings (built 2026-10-25)
-- [ ] + on any tile: *Launcher settings…* is the last row; A opens *Launcher Settings* at the right, Home not
-      dimmed. B or + closes it; Home closes it too.
+- [ ] Triangle on any tile: *Launcher settings…* is the last row; A opens *Launcher Settings* at the right, Home not
+      dimmed. B or Triangle closes it; Home closes it too.
 - [ ] In a category's rows: up/down move, left/right change the value with chevrons either
       side; A steps it on.
 - [ ] Each accent recolors ring, glow, name and battery fill at once; Theme Light/Dark
@@ -168,7 +168,7 @@ All three are on; + → Launcher settings… switches each off and on to compare
 - [ ] Light theme, focus on the dock: Home's faded tiles have round shadows at all four
       corners, no grey square edge; the focused tile too.
 - [ ] All apps lists *Controller settings* (B8) under C; A opens AYN's Gamepad page; Home comes back.
-- [ ] It reaches your dock by + → Add to dock (yours is already your own); Reset the dock would
+- [ ] It reaches your dock by Triangle → Add to dock (yours is already your own); Reset the dock would
       put it after Settings, but resets the rest too.
 
 ## V-artist (F27, built 2026-10-25)
@@ -177,13 +177,13 @@ cut at the middle with its end faded, then scrolling; gone on pause.
 - [ ] A long line waits 2.5 s, then scrolls left and slides under the bar, round again; its
       right end fades where it is cut.
 - [ ] Skip a track: the line crossfades. Pause: the bar and name fade out.
-- [ ] − opens the quick panel, or + Launcher Settings: the artist is gone while it is open.
+- [ ] Square opens the quick panel, or Triangle Launcher Settings: the artist is gone while it is open.
 - [ ] Notification access off for Portal: no artist, even while playing (turn it back on).
 
 ## V-b8 (B8, built 2026-10-25)
 - [ ] The dock's Controller settings shows the Portal in white on teal, crisp, its name above
       when focused; the same icon in All apps.
-- [ ] Quick panel (−), the shortcuts row: the Portal glyph, named *Controller settings*.
+- [ ] Quick panel (Square), the shortcuts row: the Portal glyph, named *Controller settings*.
 
 ## V-setup (F26, built 2026-10-25)
 - [ ] Settings → System → *Save setup*: A shows "Saving…", then "In Download". Files (the dock)
@@ -204,7 +204,7 @@ cut at the middle with its end faded, then scrolling; gone on pause.
 - [ ] Carousel wraps On: right on the last tile goes to the first, left on the first to the last.
 - [ ] Home key goes to → Where you left: open Games, press Home twice, still on Games; restart the
       launcher, still Games. Favorites: back to the first category, as before.
-- [ ] Fetch art Off, then favorite a game you haven't: no art comes; + → Art… still searches.
+- [ ] Fetch art Off, then favorite a game you haven't: no art comes; Triangle → Art… still searches.
 - [ ] Clear all art: the size shows; A reads "A again to confirm", a move cancels it; A twice
       clears **every cover, scene and pick** (NTE's too), then with Fetch art on they come back
       by themselves (the picks don't). Only if you want that; otherwise skip this one.
@@ -215,7 +215,7 @@ cut at the middle with its end faded, then scrolling; gone on pause.
 ## V-quick-media (F21, built 2026-10-25)
 Seen on the Portal (2026-10-25): the one line with the grant on and music playing, "Endless
 Night · Dreamcatcher" over 0:43 / 3:18, focus on Brightness. Keys not driven over adb.
-- [ ] − opens the panel on Brightness; a faint line above it; the player on one line at the top:
+- [ ] Square opens the panel on Brightness; a faint line above it; the player on one line at the top:
       L1 ⏮ ⏯ ⏭ R1 and a small *Enable seek* at the right end. Up reaches ⏮; the line below
       names the focused one. The toggles row is two buttons now.
 - [ ] Right to *Enable seek*, A: Android's notification access for Portal; switch it on, B back:
@@ -228,7 +228,7 @@ Night · Dreamcatcher" over 0:43 / 3:18, focus on Brightness. Keys not driven ov
 - [ ] *Button hints* off in Launcher Settings: the bumpers are gone, L1/R1 still skip.
 
 ## V-quick (built 2026-10-25)
-- [ ] − (the square) on Home and in All apps drops the panel from the top; B or − closes it, a
+- [ ] Square on Home and in All apps drops the panel from the top; B or Square closes it, a
       tap outside too, the Home key too.
 - [ ] Brightness the first time: the row says "A: let the launcher change it"; A opens Android's
       *Modify system settings* for Portal; switch it on, B back: the slider is there.
@@ -263,15 +263,15 @@ Night · Dreamcatcher" over 0:43 / 3:18, focus on Brightness. Keys not driven ov
 ## V-transit (built 2026-10-25)
 - [ ] Y (or a swipe up): All apps rises and fades in, Home behind steps back a little; B: it
       sinks away quicker than it came. Neither feels slow or jumpy.
-- [ ] The +, − and settings panels and the categories layer (B) come and go with the same feel.
+- [ ] The Triangle, Square and settings panels and the categories layer (B) come and go with the same feel.
 - [ ] The ring's pulse at Slow and at Normal: a calm breath, no blink at the ends.
 - [ ] Animations off: all of it snaps (then put the duration scale back to 0.5).
 
 ## V-b3 (built 2026-10-25)
 - [ ] The dock ends with Launcher Settings (since B5.1 the launcher's icon with a gear badge);
       focused it reads "Launcher settings", A opens the panel, B closes it and focus is still on
-      it. + on it does nothing (no hint either).
-- [ ] − opens the quick panel: a sun and a speaker before the sliders, then two rows of round
+      it. Triangle on it does nothing (no hint either).
+- [ ] Square opens the quick panel: a sun and a speaker before the sliders, then two rows of round
       icon buttons, crisp; the line under them names the focused one ("Wi-Fi", …).
 - [ ] Play / pause shows a pause icon while music plays; Auto brightness and Do not disturb fill
       when on, their icon dark.
@@ -280,11 +280,11 @@ Night · Dreamcatcher" over 0:43 / 3:18, focus on Brightness. Keys not driven ov
 
 ## V-b2 (built 2026-10-25)
 - [ ] Every word reads in American English (Favorites, color, centered); favorites survived.
-- [ ] The hints: − Quick settings bottom-left, + Options and Y All apps bottom-right, all at 80%;
+- [ ] The hints: Square Quick settings bottom-left, Triangle Options and Y All apps bottom-right, all at 80%;
       the square and the right-pointing triangle sit big and rounded in their discs, crisp.
 - [ ] A favorite with a long name (one that runs off the screen): it scrolls left after a pause,
       round again; the dock focused, it stops and is muted.
-- [ ] NTE: + → Art… → Use the app's icon, then pick NTE's game again: cover, hero **and scene**
+- [ ] NTE: Triangle → Art… → Use the app's icon, then pick NTE's game again: cover, hero **and scene**
       come back (Covers on tiles must be On to see the cover on the Home tile).
 
 ## V-reflection (F9, built 2026-10-25; owner saw the first build)
@@ -296,13 +296,13 @@ On Home, focus an app with a hero but no scene (set to Hero in Art…, or a game
       top is soft, not a hard line; it is gone before the dock.
 
 ## V-categories-edit (F12, built 2026-10-25)
-- [ ] B on Home: the layer shows only the categories with apps, no New category; + Edit bottom right.
-- [ ] + : edit mode, every category (an empty one faint), New category at the end, + Done; + or B leaves.
+- [ ] B on Home: the layer shows only the categories with apps, no New category; Triangle Edit bottom right.
+- [ ] Triangle: edit mode, every category (an empty one faint), New category at the end, Triangle Done; Triangle or B leaves.
 - [ ] A on Games: Rename, Move, Delete beside it; on Favorites only Rename.
 - [ ] Rename: the keyboard comes up and the name stays above it; type, Done: Home's label and the
       layer show the new name, and it lasts a restart. B keeps the typed name too.
 - [ ] Move: up and down move it, never above Favorites; Home's order follows.
-- [ ] New category, type a name, Done: it shows faint with the empty note. + → Category… on an app:
+- [ ] New category, type a name, Done: it shows faint with the empty note. Triangle → Category… on an app:
       the new one is a row; A on it dots it and the page stays; the app shows there on Home.
 - [ ] Category… on an app: dot two categories, it shows in both; All apps only clears them; the
       first and last rows' ring isn't clipped.
@@ -310,7 +310,7 @@ On Home, focus an app with a hero but no scene (set to Hero in Art…, or a game
 - [ ] Remove the agent's test category **Test** the same way if it is still there.
 
 ## V-standby (F19, built 2026-10-25)
-First: + → Launcher settings… → Home → Hold Home for standby (Off) → A → turn on *Portal: hold
+First: Triangle → Launcher settings… → Home → Hold Home for standby (Off) → A → turn on *Portal: hold
 Home for standby* in Android's accessibility settings; back in Launcher Settings the row says On.
 - [ ] A short Home press: "Hold Home for standby" shows at the top for about half a second;
       Home does what it always did (closes layers; while home, back to the start).
@@ -340,7 +340,7 @@ On the 0.4.1 build. Undo the grant: `adb shell pm revoke io.github.whatwhatwhoa.
 ## V-updates (F18, built 2026-10-25)
 Once the repo is public and a release has its APK, on the release build (a debug build reads
 "Signed differently", which is right).
-- [ ] + → Launcher settings… → System → Updates: "Checking…", then "Up to date", or
+- [ ] Triangle → Launcher settings… → System → Updates: "Checking…", then "Up to date", or
       "Install <version>" when a newer release is up.
 - [ ] Before any release (or while private): "None published". Wi-Fi off: "Offline, try
       again"; A checks again.
@@ -354,7 +354,7 @@ Media volume up a little first: the sounds follow it.
 - [ ] Home: left and right tick softly; at the row's end (Carousel wraps off) a duller bump, and
       holding against the end doesn't machine-gun. Down to the dock and back up tick too.
 - [ ] B: the layer opens with a rising swish, B again closes with a falling one; Y and B on All
-      apps the same. + and − (sheet, quick panel) swell open; B out of them is Back.
+      apps the same. Triangle and Square (sheet, quick panel) swell open; B out of them is Back.
 - [ ] A on a tile: the launch sound, once (no select on top), and it isn't cut off as the app opens.
 - [ ] Quick panel: Volume and Brightness tick higher as they rise; Auto brightness toggles up
       and down. Do not disturb on: everything is silent until it's off again.
@@ -367,6 +367,6 @@ Media volume up a little first: the sounds follow it.
 - [ ] After this build, Home's categories hold the apps the table or their manifest places;
       the rest (system odds and ends) are in All apps only, and Chrome is in Utilities.
 - [ ] Install any app (from the Play Store): it shows in All apps, not on Home.
-- [ ] In All apps, + → Category… on it: five rows, *All apps only* dotted; pick Games: it is on
+- [ ] In All apps, Triangle → Category… on it: five rows, *All apps only* dotted; pick Games: it is on
       Home under Games. Category… again → *All apps only*: off Home again.
 - [ ] Update an app that is on Home: it stays where it was.

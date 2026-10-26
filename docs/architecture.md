@@ -92,7 +92,7 @@ second input, never the only one.
    the row by touch moves focus a slot per tile width.
 4. *Bottom row*, 24 dp from the bottom, everything bottom-aligned. In the middle of the screen
    the dock: round 56 dp buttons, 24 dp apart: All apps first, then up to six apps the owner
-   picks (+ → Add to dock), in their order, then Launcher Settings: the launcher's own icon with
+   picks (Triangle → Add to dock), in their order, then Launcher Settings: the launcher's own icon with
    a small gear on a background-colored disc over its lower right, so it isn't one more plain
    gear beside Android's Settings. Until the
    first change it shows the utility apps (Settings, Controller settings, Files, Play Store, default
@@ -100,11 +100,11 @@ second input, never the only one.
    shows 12 dp above it in caption type. On the right the live button hints, stacked 4 dp
    apart and right-aligned, each a 20 dp drawn disc with the button's mark knocked out and an
    8 dp gap to its label in hint type. The mark is the letter, or for the two menu buttons the
-   shape the Portal prints on them, half the disc or more and rounded: a square on − (Select, left) and a
-   triangle pointing right on + (Start, right). A and B are never hinted anywhere (the owner
-   takes open and back as known), so Home shows + Options (where it applies) and Y All apps;
+   shape the Portal prints on them, half the disc or more and rounded: Square (Select, left) and
+   Triangle (Start, right), pointing right. A and B are never hinted anywhere (the owner
+   takes open and back as known), so Home shows Triangle Options (where it applies) and Y All apps;
    while a tile is moved, only a muted note. *Button hints* off hides them all. Hints are drawn at
-   80% and each sits on the side of the Portal its button is on: − Quick settings stacks
+   80% and each sits on the side of the Portal its button is on: Square Quick settings stacks
    bottom-left on the content margin, the same way, and the dock keeps clear of both stacks. The stack is narrow, so the dock never moves as hints come and
    go; only a dock too wide to clear them would move left.
 
@@ -118,7 +118,7 @@ Social; browsers, system apps and tools → Utilities), else where its own manif
 Games, audio and video → Entertainment, social → Social); anything else starts in **All apps
 only**, off Home, so Home holds only what can be placed with confidence. That holds for the
 apps there when the launcher first sorted them (a time kept in the preferences); an app first
-installed later always starts in All apps only, so a new install never changes Home by itself. + → *Category…* puts it
+installed later always starts in All apps only, so a new install never changes Home by itself. Triangle → *Category…* puts it
 in or takes it out of any number of categories, or All apps only takes it out of all; only a
 change is stored, so putting it back where it started forgets it. An app can be a favorite and
 in several categories at once. Art is looked up for the Games category whatever its name; once
@@ -128,10 +128,10 @@ muted (a 150 ms fade as focus moves). Behind it Home zooms out: its art and row 
 focused category's row from its start, so it previews where A goes; the name, the dock and the
 hints fade out. The layer slides in 1/16 of the screen from the left and fades. A goes in, B goes
 back; a tap on a name goes in, a tap elsewhere goes back; a swipe up does nothing while it is
-open. The names scroll once there are more than fit. Bottom right, the hint + Edit.
-**Edit mode** (+ in the layer, kept apart so the layer stays clean): every category, an empty one
-at half the muted color, and *New category* in title type after them; the hint reads + Done, and
-+ or B leaves. A on a name puts Rename, Move and Delete beside it as title-type pills, the focused
+open. The names scroll once there are more than fit. Bottom right, the hint Triangle Edit.
+**Edit mode** (Triangle in the layer, kept apart so the layer stays clean): every category, an empty one
+at half the muted color, and *New category* in title type after them; the hint reads Triangle Done, and
+Triangle or B leaves. A on a name puts Rename, Move and Delete beside it as title-type pills, the focused
 one filled and ringed (Favorites: Rename only); left and right choose, A does it, B closes them.
 Rename turns the name into a field with Android's keyboard (Done or B keeps the name; left empty,
 the old one stays); Move colors the name with the accent, up and down move it (never above
@@ -144,12 +144,12 @@ keyboard, so the list gets 320 dp of room below while typing and scrolls the nam
 below the status band (as on Home), then an 8-column grid of 96 dp tiles (12 dp corners, 24 dp gaps), each
 with its name 8 dp below in caption type; a favorite has an accent dot on its corner. The
 focused row is kept second from the top. At the bottom, a 56 dp hint bar: a hairline, then the
-hints: − Quick settings on the left, X (Favorite / Unfavorite) and + right-aligned (Home's bottom row has no hairline). A
+hints: Square Quick settings on the left, X (Favorite / Unfavorite) and Triangle right-aligned (Home's bottom row has no hairline). A
 label that changes in place keeps the room of its longest form, so its glyph holds still. Opens with Y, the dock's first button, or a swipe up.
 Hidden apps are left out (the count says how many); *Show hidden apps* in the options sheet
 brings them back faded to 40% until it is turned off or the launcher restarts.
 
-**Options sheet.** + (or a long press) on a carousel tile, a dock app or an All apps tile opens a
+**Options sheet.** Triangle (or a long press) on a carousel tile, a dock app or an All apps tile opens a
 360 dp panel from the right over the screen dimmed to 60% (600 dp on the Art… page, sliding wider): the app's icon and name, then its
 options as 48 dp rows (the focused row filled with the rule color and ringed); no hints (A and B
 are known). Options depend on where it was opened: Move (favorites on the Favorites row, and
@@ -257,12 +257,12 @@ all three as they are):
   layer. Carousel tiles, dock buttons,
   All apps tiles.
 
-**Settings.** One panel, *Launcher Settings*, from + → *Launcher settings…*, the dock's last
+**Settings.** One panel, *Launcher Settings*, from Triangle → *Launcher settings…*, the dock's last
 button, or the gear beside Portal in Android's Default apps → Home app: 760 dp (about 70%) at the
 right, over the screen *undimmed* so a change is judged live against Home beside it. As the
 Switch's: the categories down the left, a hairline, the chosen one's rows. It opens on
 the categories at Look; up and down show each page at once, A or right goes into the rows, B
-comes out, B again closes; L1/R1 turn the category from either column, + closes from anywhere,
+comes out, B again closes; L1/R1 turn the category from either column, Triangle closes from anywhere,
 so does a tap outside. A row is 48 dp: the name left, the value right (the accent with a
 swatch). A *value* row shows its value between two drawn chevrons and left and right change it
 (wrapping), A steps it on; an *action* row has no chevrons and A does its one thing, a second A
@@ -306,7 +306,7 @@ pitch that rises with its value. Launching an app and waking from standby play t
 moves and bumps are spaced (40 ms, 250 ms). Touch is silent except a launch; coming back from an
 app is silent.
 
-**Quick panel.** − (the square, Select) on Home or All apps, the pull-down's everyday controls
+**Quick panel.** Square (Select) on Home or All apps, the pull-down's everyday controls
 from the controller (`decisions/M7-quick-settings.md`). A 760 dp panel drops from the top
 (a quarter of its height, fading) over the screen dimmed to 60%, its bottom corners rounded:
 - The player, one line 16 dp under the top edge: Previous, Play / pause, Next as round 56 dp
@@ -345,7 +345,7 @@ and *Intensity*, each a track painted with the colors it leads to at the theme's
 a ring in the accent where it sits. Moving over a swatch wears it; left and right on Hue (5°)
 or Intensity (0.01) make a custom color from the one shown (from White: chroma 0.12). Every
 change applies at once, so the ring, the glow and the Accent dot show it live. A or B goes back
-to the list, + closes the settings. Taps: a swatch picks it, a track sets the slider there.
+to the list, Triangle closes the settings. Taps: a swatch picks it, a track sets the slider there.
 
 **Motion.** Short and springy, never decorative: focus scale on a spring, the row and grid
 scroll animated to the focused item. Everything that comes and goes (All apps, the categories
@@ -365,10 +365,10 @@ one table. A is the bottom button (Xbox layout, `BUTTON_A`). Home: D-pad or left
 along the row, down to the dock and back up; A opens; Y opens All apps; L1/R1 turn to the
 category before or after, its row from the start, stopping at the ends (with *Home screen play
 controls* on they skip tracks instead and R3 plays or pauses, media keys to the last player);
-L2/R2 jump to the ends; + opens the options sheet; B opens the categories layer (up and down,
-L2/R2 to the ends, A in, B back, + edit mode); − opens the quick panel; X does nothing. Carousel wraps on,
+L2/R2 jump to the ends; Triangle opens the options sheet; B opens the categories layer (up and down,
+L2/R2 to the ends, A in, B back, Triangle edit mode); Square opens the quick panel; X does nothing. Carousel wraps on,
 left and right go round the row's ends. All apps: D-pad
-moves in the grid; A opens; X toggles favorite; + opens options; − the quick panel; B or Y
+moves in the grid; A opens; X toggles favorite; Triangle opens options; Square the quick panel; B or Y
 closes; L1/R1 jump to the previous or next letter (anything not starting with a letter is #).
 The Home key closes every layer; pressed while already home it also returns to the first
 category's start (unless *Home key goes to* is Where you left), while on
@@ -432,7 +432,7 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
   hook from `MainActivity`, which shows a toast if one is missing. The row is derived from the category
   on show, which is the layer's focused one while it is open.
 - **Screens.** `HomeScreen.kt` (carousel, dock, hint bar), `AllAppsScreen.kt` (grid),
-  `OptionsSheet.kt` (the + panel and its Category… page), `Categories.kt` (the categories, their
+  `OptionsSheet.kt` (the options panel and its Category… page), `Categories.kt` (the categories, their
   seeding from the manifest, the layer), `ArtSheet.kt` (its Art… page and the picker's state),
   `Settings.kt` (the panel, its rows and how each steps), `QuickSettings.kt` (the quick panel
   and `DeviceControls`, which reads and writes brightness, volume, Do not disturb and the media key),
@@ -485,5 +485,5 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
   release APK is unsigned.
 
 **The public page.** `README.md` is written for users, not developers, with
-screenshots (`docs/screenshots/`, taken on the Portal with `adb exec-out screencap`, anything
-with a photo in it as JPEG 90). License MIT (`LICENSE`).
+screenshots (`docs/screenshots/`, `adb exec-out screencap`, a photo in
+it as JPEG 90). License MIT (`LICENSE`).

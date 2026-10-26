@@ -618,7 +618,7 @@ private fun BottomRow(state: LauncherState) {
     val hints = if (moving) {
         emptyList()
     } else {
-        listOfNotNull(Hint("+", "Options").takeIf { state.focusHasOptions }, Hint("−", "Quick settings"), Hint("Y", "All apps"))
+        listOfNotNull(Hint(TRIANGLE, "Options").takeIf { state.focusHasOptions }, Hint(SQUARE, "Quick settings"), Hint("Y", "All apps"))
     }
     // Each hint on the side of the Portal its button is on (owner's ask).
     val (leftHints, rightHints) = hints.partition { it.onLeft }

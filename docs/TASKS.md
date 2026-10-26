@@ -44,6 +44,7 @@ No release planned yet: the owner picks a version, a theme and the cards from th
   - [ ] T7.3 VERIFY round on the device (`VERIFY.md` *V-quick*).
   - [ ] T6.5 VERIFY round on the device (`VERIFY.md` *V-transit*, *V-accent*).
   - [ ] T35.1 VERIFY round (`VERIFY.md` *V-standby-switch*), from 0.4.1.
+- **Defocus home when using dock**: When browsing dock, apply a darker render on the home items when the dock is getting focused on (selecting dock items)
 
 ## Feature list
 
@@ -71,8 +72,8 @@ One line each, and the milestones before the board. The full task lines:
 
 ### Releases
 - **0.4.1** (2026-10-25, Standby's switch): F35 (Hold Home's switch easy to find, kept on, an
-  optional adb grant), B10 (README: Triangle and Square); its VERIFY round to *Candidates*;
-  versionCode 5. `archive/tasks-0.4.1.md`, `decisions/0.4.1.md`.
+  optional adb grant), B10 (Triangle and Square everywhere); its VERIFY round to *Candidates*;
+  versionCode 5, GitHub release v0.4.1. `archive/tasks-0.4.1.md`, `decisions/0.4.1.md`.
 - **0.4.0** (2026-10-25, Stress Test and Prepare for release candidate): F28–F34, B9; the first
   public release (repo public, GitHub release v0.4.0 with `PortalLauncher-0.4.0.apk`); its VERIFY
   rounds carried to *Candidates*; versionCode 4. `archive/tasks-0.4.0.md`, `decisions/0.4.0.md`.
@@ -99,11 +100,11 @@ One line each, and the milestones before the board. The full task lines:
 - [x] **B1** (2026-10-25): B1.1 (2026-10-25) Focus pulse at half speed, 1.8 s each way; a speed setting waits for T6.2.
 - [x] **B2** (2026-10-25): owner tweaks.
   - [x] B2.1 (2026-10-25) American English in the UI, code and notes; the stored favorites key keeps its old spelling.
-  - [x] B2.2 (2026-10-25) Menu-button hints drawn as their printed shapes (square −, right triangle +) knocked out of the disc, big and rounded.
+  - [x] B2.2 (2026-10-25) Menu-button hints drawn as their printed shapes (a square for Select, a right triangle for Start) knocked out of the disc, big and rounded.
   - [x] B2.3 (2026-10-25) A Home name too long for the screen scrolls while the row has focus.
-  - [x] B2.4 (2026-10-25) The panel is *Launcher Settings* (+ → Launcher settings…).
+  - [x] B2.4 (2026-10-25) The panel is *Launcher Settings* (Triangle → Launcher settings…).
   - [x] B2.5 (2026-10-25) Re-picking a game after *Use the app's icon* fetches its scene again (`decisions/M4-art.md`).
-  - [x] B2.6 (2026-10-25) Hints at 80%, each on the side its button is on (− bottom-left).
+  - [x] B2.6 (2026-10-25) Hints at 80%, each on the side its button is on (Square bottom-left).
 - [x] **B3** (2026-10-25): owner's answers.
   - [x] B3.1 (2026-10-25) Effects settled as built, all three on (`decisions/M6-settings.md` *Owner's answers*).
   - [x] B3.2 (2026-10-25) A gear at the dock's end opens Launcher Settings (`decisions/M6-settings.md`).

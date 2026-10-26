@@ -42,7 +42,7 @@ panel in categories with F25 (`F25-settings.md`); undimmed still, for the reason
   page with Home judged behind, which can't both be true. The options sheet's 360 dp column
   keeps the focused tile, the name, the gradient and most of the dock in view while a value
   changes. The value sits between two drawn chevrons: the font isn't trusted to have ‹ ›.
-- **Where it opens:** the last row of every + sheet (the launcher's own, after everything about
+- **Where it opens:** the last row of every options sheet (the launcher's own, after everything about
   the app), the dock's gear, and Android's gear beside Portal in Default apps → Home app
   (`APPLICATION_PREFERENCES` on the activity). Named *Launcher Settings* (owner, B2.4), so it
   isn't mistaken for Android's.
@@ -61,14 +61,14 @@ Status: as built 2026-10-25, owner to confirm (*V-settings-more*).
   comes back on the spot), and refreshing only the automatic picks while keeping the owner's
   would need a second kind of record. Clearing takes the owner's picks too.
 - *Hidden apps* doesn't get its own list: A opens All apps with the hidden ones shown, where
-  + → Unhide already works. One place to unhide.
+  Triangle → Unhide already works. One place to unhide.
 - *About* is not a row: the version and credits are a muted line under the list. The license
   texts stay in `licenses/` (not in the APK; revisit when the repo goes public).
 - *Start on Favorites or the last category* became *Home key goes to*: Favorites (as the Switch
   does) or Where you left, which also restores the last category after a restart. "Start" only
   means something at those two moments.
 - *Carousel wraps* is off by default (the row stopped at its ends before).
-- *Fetch art* off stops only the automatic lookups; + → Art… still searches, as it is asked.
+- *Fetch art* off stops only the automatic lookups; Triangle → Art… still searches, as it is asked.
 - *Home app* shows whether Portal holds the role and opens Android's Default apps; the role
   itself is the owner's to change.
 

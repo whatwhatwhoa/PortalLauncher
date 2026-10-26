@@ -162,7 +162,7 @@ private fun onOff(on: Boolean) = if (on) "On" else "Off"
 private fun megabytes(bytes: Long) = if (bytes < 1_000_000) "Under 1 MB" else "${(bytes + 500_000) / 1_000_000} MB"
 
 /**
- * Launcher Settings, from the + sheet or Android's launcher-settings gear: about 70% of the screen
+ * Launcher Settings, from the options sheet (Triangle) or Android's launcher-settings gear: about 70% of the screen
  * from the right edge, over an undimmed Home, so each change is judged live against the strip of
  * it left showing. Laid out as the Switch's settings: the categories down the left, the chosen
  * one's rows beside them (`LauncherState.onSettings` for the keys). A tap outside closes. A long

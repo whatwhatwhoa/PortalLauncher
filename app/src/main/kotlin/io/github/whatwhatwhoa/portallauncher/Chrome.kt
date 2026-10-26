@@ -270,8 +270,8 @@ fun Modifier.depth(corner: Dp?): Modifier {
 
 /**
  * A controller button: a filled disc with its mark knocked out. A letter button's mark is its
- * letter; the two menu buttons' are the shapes the Portal prints on them (owner's ask): − (Select,
- * left) a square and + (Start, right) a triangle pointing right, both slightly rounded.
+ * letter; the two menu buttons' are the shapes the Portal prints on them (owner's ask): [SQUARE]
+ * (Select, left) and [TRIANGLE] (Start, right) pointing right, both slightly rounded.
  */
 @Composable
 fun ButtonGlyph(button: String) {
@@ -280,8 +280,8 @@ fun ButtonGlyph(button: String) {
         Modifier.size(Dimens.glyph).background(p.text, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        if (button == "−" || button == "+") {
-            MenuMark(triangle = button == "+", color = p.background)
+        if (button == SQUARE || button == TRIANGLE) {
+            MenuMark(triangle = button == TRIANGLE, color = p.background)
         } else {
             BasicText(button, style = LocalType.current.caption.copy(color = p.background, fontWeight = FontWeight.Bold))
         }
@@ -374,9 +374,13 @@ fun HintBar(hints: List<Hint>, note: String = "") {
  * longest form, [room], so the glyph holds still and only the text changes (owner's ask).
  */
 class Hint(val button: String, val label: String, val room: String = label) {
-    /** − (Select) is the one hinted button on the Portal's left; its hint goes on the left too. */
-    val onLeft get() = button == "−"
+    /** Square (Select) is the one hinted button on the Portal's left; its hint goes on the left too. */
+    val onLeft get() = button == SQUARE
 }
+
+/** The two menu buttons, named by the shapes printed on them (owner, B10). */
+const val SQUARE = "Square"
+const val TRIANGLE = "Triangle"
 
 /**
  * Button hints at 80% (owner's ask), each a glyph and its label: in a row 24 dp apart, or

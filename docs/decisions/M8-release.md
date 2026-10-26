@@ -57,7 +57,7 @@ It carries the owner's key so art search could be checked; the shipped `release`
 **What ran, all fine, no crash and no R8 error in the log:** first start (Home-role dialog
 dismissed, nothing chosen), Home with the starting categories applied on first run, scene
 lookups and downloads (GameNative, NTE), carousel moves, the categories layer on B, All apps on
-Y, the quick panel on −, the options sheet on +, the Art… page (SteamGridDB search answered;
+Y, the quick panel on Square, the options sheet on Triangle, the Art… page (SteamGridDB search answered;
 its one DroidDeck match has no grids, SteamGridDB's answer), a cover from the gallery through
 Android's photo picker, Launcher Settings down to the version line ("0.1.0-check"), and the key
 row's clipboard read ("Copy your key first" with no key on the clipboard). Not run: a key typed

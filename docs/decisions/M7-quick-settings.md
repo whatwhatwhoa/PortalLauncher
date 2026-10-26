@@ -29,7 +29,7 @@ different, heavier feature (to the feature list if the owner wants it).
 
 ## Owner's answers (2026-10-25)
 Status: accepted 2026-10-25.
-"Make square a quick button to system adjustments (brightness, volume etc.)": − (the square,
+"Make square a quick button to system adjustments (brightness, volume etc.)": Square (Select,
 Select) opens it; the proposed controls stand (sliders for brightness and volume; toggles for
 auto-brightness, Do not disturb, play/pause; shortcuts to Wi-Fi, Bluetooth, Battery, AYN
 settings, Android settings). The grants are asked on first use, not on install; Home and All
