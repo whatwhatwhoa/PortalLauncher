@@ -10,9 +10,9 @@ Rules:
 - **Work** on the first open card or task under *Working on*, or the owner's explicit ask; one
   per session unless the owner bundles several.
 - **IDs never change when a card moves.** A new card is **F<n>**, numbered on from the last
-  milestone M8 (F9 first; next free F36), so its tasks are T<n>.1, T<n>.2 … and its decision
+  milestone M8 (F9 first; next free F37), so its tasks are T<n>.1, T<n>.2 … and its decision
   entries D<n>.1 …, clashing with no milestone's. A card that came out of a milestone keeps its
-  task IDs. Owner bug and tweak batches stay **B<n>** (B11 next). A follow-up gets an F number
+  task IDs. Owner bug and tweak batches stay **B<n>** (B12 next). A follow-up gets an F number
   when it is planned.
 - **A card is a line or two**: what, why, a pointer to its spec. A long spec is a decision entry
   marked "planned" (`decisions/F<n>-<slug>.md` for a big feature, `decisions/<version>.md` for
@@ -31,7 +31,14 @@ Rules:
 
 ## Working on
 
-Nothing in progress: 0.4.1 shipped 2026-10-25. The owner moves the next release here from *Planned*.
+### 0.4.2 — Brightness and the dock
+Proposed: the owner names the version and theme. The owner's asks of 2026-10-25 (night).
+- [x] **B11** (2026-10-25: built, linted, installed on the Portal, not clicked;
+  `decisions/0.4.2.md` B11): B11.1 the brightness slider straight, as the Portal's slider counts
+  (0% at the bottom, not 8%; the tint near 9% on both); a curve first went the wrong way; B11.2 brightness steps on the 5% marks (volume: 15 levels, one a step).
+- [x] **F36 Defocus home when using dock** (2026-10-25: built, linted, installed, not clicked;
+  `decisions/0.4.2.md` D36.1): the row fades to about 40% while the dock has focus, as under
+  Triangle's sheet.
 
 ## Planned
 
@@ -44,7 +51,6 @@ No release planned yet: the owner picks a version, a theme and the cards from th
   - [ ] T7.3 VERIFY round on the device (`VERIFY.md` *V-quick*).
   - [ ] T6.5 VERIFY round on the device (`VERIFY.md` *V-transit*, *V-accent*).
   - [ ] T35.1 VERIFY round (`VERIFY.md` *V-standby-switch*), from 0.4.1.
-- **Defocus home when using dock**: When browsing dock, apply a darker render on the home items when the dock is getting focused on (selecting dock items)
 
 ## Feature list
 

@@ -86,7 +86,7 @@ second input, never the only one.
    part, 48 dp side margins.
    The focused tile grows from 144 to 192 dp by layout on a spring, so its neighbors move aside;
    the others are drawn at 85% opacity. The row is 192 dp tall either way, so it doesn't shift
-   when focus goes to the dock. The focused tile is always in the first slot, the last one too:
+   when focus goes to the dock; there the whole row fades to about 40%, as under a sheet. The focused tile is always in the first slot, the last one too:
    each tile slides on its own no-bounce spring along a fractional slot number, and its x and
    size come from that number in the layout phase, so the gaps stay even mid-slide. Dragging
    the row by touch moves focus a slot per tile width.
@@ -318,19 +318,19 @@ from the controller (`decisions/M7-quick-settings.md`). A 760 dp panel drops fro
   (*Grants*) it is a small *Enable seek* pill at the right end.
 - A faint 1 px line in the rule color, then the settings; the panel opens on Brightness.
 - *Brightness* and *Volume* sliders, 48 dp rows like the settings': a sun or speaker icon, a 6 dp
-  accent track, the percent. Left and right step them (5% for brightness, one media-volume
-  step), held repeats; a tap on the track sets it. Brightness goes through a 2.2 curve over Android's 0–255 value, so each step looks
-  alike; moving it turns auto-brightness off, as the pull-down does.
+  accent track, the percent. Left and right step them (brightness to the next 5% mark; volume one of the Portal's 15
+  levels), held repeats; a tap on the track sets it. Brightness is the 1–255 value straight, as
+  the Portal's slider shows it; moving it turns auto-brightness off.
 - Toggles, the same buttons filled in the text color when on: Auto brightness, Do not disturb
   (priority only while on).
 - Shortcuts, the same buttons, to system pages for what a launcher may not change: Wi-Fi,
   Bluetooth, Battery, Controller settings (AYN's page, by its activity; the Portal glyph, drawn
   for this launcher), Android settings (a gear).
 - A muted line at the bottom: what the focused control still needs, else its name.
-The icons are Material Symbols (Rounded, filled; Google, Apache 2.0) as vector drawables
-(`res/drawable/ic_sym_*`; `ic_sym_portal` is our own), the family Android's own panel uses, tinted from the palette.
-Up and down move between the five rows, left and right along a row, A toggles or opens, B or −
-closes, a tap outside closes. **Grants:** brightness and auto-brightness need Android's *Modify
+Icons: Material Symbols (Rounded, filled; Apache 2.0) as `res/drawable/ic_sym_*`, as in
+Android's panel, tinted from the palette (`ic_sym_portal` is ours).
+Up and down move between the five rows, left and right along a row, A toggles or opens, B or
+Square closes, a tap outside closes. **Grants:** brightness and auto-brightness need Android's *Modify
 system settings* for the launcher, Do not disturb its *Do Not Disturb access*; until granted the
 slider row reads "A: let the launcher change it" and A (on the row or the toggle) opens that
 page. The seek bar needs *Notification access* (Android shares media sessions only with a

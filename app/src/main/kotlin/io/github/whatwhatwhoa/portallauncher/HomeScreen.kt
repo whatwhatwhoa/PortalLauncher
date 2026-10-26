@@ -93,6 +93,12 @@ fun HomeScreen(state: LauncherState) {
         if (LocalMotion.current) tween(HERO_FADE) else snap(),
         label = "ghost",
     )
+    // The row steps back while the dock has focus, about as far as under Triangle's sheet (owner).
+    val rowDim by animateFloatAsState(
+        if (state.zone == Zone.Dock) ROW_IN_DOCK else 1f,
+        if (LocalMotion.current) tween(HERO_FADE) else snap(),
+        label = "rowDim",
+    )
     BoxWithConstraints(
         Modifier.fillMaxSize().pointerInput(Unit) {
             var travel = 0f
@@ -114,7 +120,10 @@ fun HomeScreen(state: LauncherState) {
         ) {
             BackdropLayer(state.backdrop, state.art, current)
             Hero(state.art, current)
-            Carousel(state, Modifier.offset(y = rowTop))
+            // Faded as one screen-sized layer: a layer the row's size would clip the shadows (B7.3).
+            Box(Modifier.fillMaxSize().graphicsLayer { alpha = rowDim }) {
+                Carousel(state, Modifier.offset(y = rowTop))
+            }
         }
         Column(Modifier.fillMaxSize().graphicsLayer { alpha = 1f - ghost }) {
             Box(Modifier.fillMaxWidth().height(Dimens.band)) {
@@ -151,6 +160,8 @@ private fun Modifier.endingAt(y: Dp) = layout { measurable, constraints ->
 
 private val SWIPE_UP = 96.dp
 private const val HERO_FADE = 250
+// With the tiles' own 0.85, about the 40% a sheet's 0.6 scrim leaves of them.
+private const val ROW_IN_DOCK = 0.47f
 private const val NAME_ALPHA = 0.4f
 private val NAME_BLEED = Space.m
 private const val CAP_HEIGHT = 0.72f

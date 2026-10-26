@@ -3,6 +3,11 @@
 Built but not yet clicked on the device. Each check is one line: what to do, what should
 happen. Ticked checks leave this file (their result goes in the commit or a decision entry).
 
+## V-0.4.2 (B11.2, F36, built 2026-10-25)
+- [ ] Brightness set to an odd level in Android (say 22%): Right goes to 25%, Left to 20%; then 5% a step.
+- [ ] Home, Down to the dock: the row fades to about the dimness under Triangle's sheet; Up
+      brings it back; moving a docked app keeps it faded. Too dark, too faint, or the hero too?
+
 ## V-0.4.0 (F30–F34, F28, built 2026-10-25)
 - [ ] The dock is full (six apps): Triangle on an undocked tile shows *Add to dock (full)* grayed; A on
       it bumps and the sheet stays. Triangle on a docked app from the row or All apps: *Move in dock*

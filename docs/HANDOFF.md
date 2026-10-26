@@ -3,18 +3,17 @@
 Current state only. **Rewrite this file at the end of every session**: carry forward what is
 open, delete what is resolved, never append history (git and `docs/decisions/` hold it).
 
-**State (2026-10-25):** **0.4.1 is out** (versionCode 5, GitHub release `v0.4.1` with
-`PortalLauncher-0.4.1.apk`, what the README and Updates now offer; release theme
-*Standby's switch*): F35 makes Hold Home's switch easy to find, puts it back after Android turns
-it off (a force stop does), and with an optional adb grant switches it itself; B10 names the menu
-buttons Triangle and Square everywhere (README, the app's hints and notes, comments, notes).
-The Portal runs the 0.4.1 debug build with `WRITE_SECURE_SETTINGS` granted (owner's word); a
-force stop there emptied the service list and Home put it back by itself.
-`TASKS.md`: nothing under *Working on*; the VERIFY rounds wait under *Planned* → *Candidates*.
+**State (2026-10-25, night):** 0.4.1 is the latest release (GitHub `v0.4.1`). Two of the owner's
+asks are built and on the Portal (debug), committed locally, not pushed:
+B11 the brightness slider (owner: "correct now. 10% no tint") straight, as the Portal's slider counts (it used a 2.2 gamma: 8% at
+the bottom, the tint at 35%; a try with AOSP's curve went the wrong way), its steps on the 5% marks (volume can't: 15 levels) and F36 the row fading while the dock has focus.
+`TASKS.md` *Working on*: **0.4.2 — Brightness and the dock**, a proposed name the owner may
+change; the owner brings a couple more bugs into it before releasing. The Portal runs this debug build; standby's service stayed on through the install.
 
 ## Next
-1. The owner runs *V-standby-switch* (`VERIFY.md`); a fault found there goes into 0.4.2.
-2. The owner plans the next release on the board (version, theme, cards from the feature list).
+1. The owner's next bugs for 0.4.2 (B12 on); then the owner tries *V-0.4.2* (dock fade, brightness
+   steps) and says when to release.
+2. The owner runs *V-standby-switch*; a fault found there goes into 0.4.2 too.
 3. **VERIFY rounds** T2.3, T5.3, T7.3, T6.5, T35.1 need the owner on the Portal.
 4. The owner tries *V-0.4.0*, *V-artist*, *V-setup*, *V-b8*, *V-b7*, *V-quick-media*,
    *V-art-preview* (incl. B6.1), *V-sounds*, *V-categories-edit*, *V-standby*, *V-gap*,
@@ -23,6 +22,8 @@ force stop there emptied the service list and Home put it back by itself.
    README's hero shot.
 
 ## Waiting on the owner
+- 0.4.2: the version and theme name; is the dock's fade right (about 40%, the row only, not
+  the hero)? Does the brightness percent now match the Portal's slider?
 - Back up `C:\Users\Jim\.android\portallauncher-release.jks` with its password (in
   `local.properties`). If it is lost, users can't update.
 - F18: the daily build is debug-signed, so Updates says "Signed differently" for every release.
@@ -44,7 +45,7 @@ force stop there emptied the service list and Home put it back by itself.
 - Q-javahome: set `JAVA_HOME` for the user to `C:\Users\Jim\AppData\Local\Android\jdk-21`.
 
 ## Uncommitted
-Nothing.
+Nothing; the commit is local only (not pushed).
 
 ## Watch out (this week only)
 - **The history was rewritten** for the purge (2026-10-25). Any other clone or worktree of the
@@ -55,7 +56,7 @@ Nothing.
   `am force-stop` included. 0.4.1 puts it back (the Portal has the grant) or says so.
 - LineageOS's Home hold action on the Portal is 0 (nothing) since F19's session; only `content
   insert` changes it (`gotchas.md` *The Home key never reaches an app*).
-- IDs: next free card F36 (tasks T<n>.k, decisions D<n>.k), owner batches B11 next. Cards the
+- IDs: next free card F37 (tasks T<n>.k, decisions D<n>.k), owner batches B12 next. Cards the
   owner adds in FeatureBoard come without an ID: give one the next F number when it is planned.
 - Don't script key presses while the owner is holding the Portal (`gotchas.md` *Scripted keys
   mix with the owner's input*). The stress script changes the launcher's data: back up and

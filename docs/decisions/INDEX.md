@@ -77,3 +77,5 @@ since 2026-10-25); a big card's file is `F<n>-<slug>.md`, a release's small ones
 - `0.4.1.md` (2026-10-25) — standby's switch (D35.1: why it went off, a force stop; the wanted
   flag and its watch; the row onto Android's list, then App info when restricted; the optional
   adb grant that puts it back by itself); the README names the menu buttons by shape (B10).
+- `0.4.2.md` (2026-10-25, proposed version) — brightness straight, as the Portal's slider
+  counts (why the 2.2 gamma was off; AOSP's HLG curve rejected) (B11); the row fades while the dock has focus (D36.1).

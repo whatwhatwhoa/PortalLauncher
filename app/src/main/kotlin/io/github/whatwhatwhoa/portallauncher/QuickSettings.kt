@@ -60,7 +60,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import kotlinx.coroutines.delay
-import kotlin.math.pow
+import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.roundToInt
 
 /** What a player says it is playing, read with notification access (F21). */
@@ -88,7 +89,10 @@ class DeviceControls(private val context: Context) {
     private val sessions = context.applicationContext.getSystemService(MediaSessionManager::class.java)
     private val listener = ComponentName(context, MediaListener::class.java)
 
-    /** The brightness slider, 0..1: the raw 0..255 through [GAMMA], so each step looks alike. */
+    /**
+     * The brightness slider, 0..1: the 1..255 setting straight, as the display's own 0..1 level,
+     * which is the percent the Portal's slider shows (owner's B11: its tint starts at 9%, value 25).
+     */
     var brightness by mutableFloatStateOf(0f)
         private set
     var autoBrightness by mutableStateOf(false)
@@ -126,7 +130,7 @@ class DeviceControls(private val context: Context) {
     /** Everything again: the values change outside the launcher (the pull-down, the volume keys). */
     fun read() {
         val raw = Settings.System.getInt(resolver, Settings.System.SCREEN_BRIGHTNESS, MAX_RAW / 2)
-        brightness = (raw.toFloat() / MAX_RAW).pow(1 / GAMMA)
+        brightness = ((raw - 1).toFloat() / (MAX_RAW - 1)).coerceIn(0f, 1f)
         autoBrightness = Settings.System.getInt(resolver, Settings.System.SCREEN_BRIGHTNESS_MODE, 0) ==
             Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC
         volume = audio.getStreamVolume(AudioManager.STREAM_MUSIC)
@@ -216,12 +220,17 @@ class DeviceControls(private val context: Context) {
     }
 
     /** One step of the slider; moving it by hand turns auto-brightness off, as the pull-down does. */
-    fun stepBrightness(by: Int) = moveBrightnessTo(brightness + by * BRIGHTNESS_STEP)
+    fun stepBrightness(by: Int) {
+        // On the 5% marks (owner): from a level set elsewhere (22%), the first step lands on 20 or
+        // 25. SNAP absorbs the 0..255 rounding, so a level on a mark counts as on it.
+        val at = brightness / BRIGHTNESS_STEP
+        val mark = if (by > 0) floor(at + SNAP) + by else ceil(at - SNAP) + by
+        moveBrightnessTo(mark * BRIGHTNESS_STEP)
+    }
 
     fun moveBrightnessTo(position: Float) {
         if (!canWrite) return
-        val p = position.coerceIn(0f, 1f)
-        val raw = (MAX_RAW * p.pow(GAMMA)).roundToInt().coerceIn(1, MAX_RAW)
+        val raw = 1 + (position.coerceIn(0f, 1f) * (MAX_RAW - 1)).roundToInt()
         Settings.System.putInt(resolver, Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL)
         Settings.System.putInt(resolver, Settings.System.SCREEN_BRIGHTNESS, raw)
         read()
@@ -262,8 +271,8 @@ class DeviceControls(private val context: Context) {
 
     private companion object {
         const val MAX_RAW = 255
-        const val GAMMA = 2.2f
         const val BRIGHTNESS_STEP = 0.05f
+        const val SNAP = 0.1f
     }
 }
 
