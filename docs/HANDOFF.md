@@ -3,27 +3,22 @@
 Current state only. **Rewrite this file at the end of every session**: carry forward what is
 open, delete what is resolved, never append history (git and `docs/decisions/` hold it).
 
-**State (2026-10-25, night):** 0.4.1 is the latest release (GitHub `v0.4.1`). Two of the owner's
-asks are built and on the Portal (debug), committed locally, not pushed:
-B11 the brightness slider (owner: "correct now. 10% no tint") straight, as the Portal's slider counts (it used a 2.2 gamma: 8% at
-the bottom, the tint at 35%; a try with AOSP's curve went the wrong way), its steps on the 5% marks (volume can't: 15 levels) and F36 the row fading while the dock has focus.
-`TASKS.md` *Working on*: **0.4.2 — Brightness and the dock**, a proposed name the owner may
-change; the owner brings a couple more bugs into it before releasing. The Portal runs this debug build; standby's service stayed on through the install.
+**State (2026-10-25, late night):** **0.4.2 — Brightness and the dock** is released (GitHub
+`v0.4.2`, versionCode 6): B11 brightness as the Portal counts it, F36 Home dims on the dock
+(owner: "This looks good"), B12 portrait letterboxed and a Home crash on resume while standby's
+service is off (in 0.4.1 too; found by the release's R8 run). Nothing under *Working on*; the
+owner plans next. The Portal runs the 0.4.2 debug build, landscape, auto-rotate off.
 
 ## Next
-1. The owner's next bugs for 0.4.2 (B12 on); then the owner tries *V-0.4.2* (dock fade, brightness
-   steps) and says when to release.
-2. The owner runs *V-standby-switch*; a fault found there goes into 0.4.2 too.
-3. **VERIFY rounds** T2.3, T5.3, T7.3, T6.5, T35.1 need the owner on the Portal.
-4. The owner tries *V-0.4.0*, *V-artist*, *V-setup*, *V-b8*, *V-b7*, *V-quick-media*,
+1. The owner plans the next release from the feature list.
+2. **VERIFY rounds** T2.3, T5.3, T7.3, T6.5, T35.1, T36.1 need the owner on the Portal.
+3. The owner tries *V-0.4.0*, *V-artist*, *V-setup*, *V-b8*, *V-b7*, *V-quick-media*,
    *V-art-preview* (incl. B6.1), *V-sounds*, *V-categories-edit*, *V-standby*, *V-gap*,
    *V-updates* (needs a release build: see F18 below).
-5. The promo video (jim-13, outside the repo): when it is on YouTube, add its link under the
+4. The promo video (jim-13, outside the repo): when it is on YouTube, add its link under the
    README's hero shot.
-
 ## Waiting on the owner
-- 0.4.2: the version and theme name; is the dock's fade right (about 40%, the row only, not
-  the hero)? Does the brightness percent now match the Portal's slider?
+- F36: the dock's hints stay bright while Home dims: right, or dim them too?
 - Back up `C:\Users\Jim\.android\portallauncher-release.jks` with its password (in
   `local.properties`). If it is lost, users can't update.
 - F18: the daily build is debug-signed, so Updates says "Signed differently" for every release.
@@ -45,7 +40,7 @@ change; the owner brings a couple more bugs into it before releasing. The Portal
 - Q-javahome: set `JAVA_HOME` for the user to `C:\Users\Jim\AppData\Local\Android\jdk-21`.
 
 ## Uncommitted
-Nothing; the commit is local only (not pushed).
+Nothing.
 
 ## Watch out (this week only)
 - **The history was rewritten** for the purge (2026-10-25). Any other clone or worktree of the
@@ -56,7 +51,7 @@ Nothing; the commit is local only (not pushed).
   `am force-stop` included. 0.4.1 puts it back (the Portal has the grant) or says so.
 - LineageOS's Home hold action on the Portal is 0 (nothing) since F19's session; only `content
   insert` changes it (`gotchas.md` *The Home key never reaches an app*).
-- IDs: next free card F37 (tasks T<n>.k, decisions D<n>.k), owner batches B12 next. Cards the
+- IDs: next free card F37 (tasks T<n>.k, decisions D<n>.k), owner batches B13 next. Cards the
   owner adds in FeatureBoard come without an ID: give one the next F number when it is planned.
 - Don't script key presses while the owner is holding the Portal (`gotchas.md` *Scripted keys
   mix with the owner's input*). The stress script changes the launcher's data: back up and

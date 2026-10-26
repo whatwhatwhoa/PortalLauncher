@@ -12,7 +12,7 @@ Rules:
 - **IDs never change when a card moves.** A new card is **F<n>**, numbered on from the last
   milestone M8 (F9 first; next free F37), so its tasks are T<n>.1, T<n>.2 … and its decision
   entries D<n>.1 …, clashing with no milestone's. A card that came out of a milestone keeps its
-  task IDs. Owner bug and tweak batches stay **B<n>** (B12 next). A follow-up gets an F number
+  task IDs. Owner bug and tweak batches stay **B<n>** (B13 next). A follow-up gets an F number
   when it is planned.
 - **A card is a line or two**: what, why, a pointer to its spec. A long spec is a decision entry
   marked "planned" (`decisions/F<n>-<slug>.md` for a big feature, `decisions/<version>.md` for
@@ -31,14 +31,7 @@ Rules:
 
 ## Working on
 
-### 0.4.2 — Brightness and the dock
-Proposed: the owner names the version and theme. The owner's asks of 2026-10-25 (night).
-- [x] **B11** (2026-10-25: built, linted, installed on the Portal, not clicked;
-  `decisions/0.4.2.md` B11): B11.1 the brightness slider straight, as the Portal's slider counts
-  (0% at the bottom, not 8%; the tint near 9% on both); a curve first went the wrong way; B11.2 brightness steps on the 5% marks (volume: 15 levels, one a step).
-- [x] **F36 Defocus home when using dock** (2026-10-25: built, linted, installed, not clicked;
-  `decisions/0.4.2.md` D36.1): the row fades to about 40% while the dock has focus, as under
-  Triangle's sheet.
+Nothing: 0.4.2 is released; the owner plans next.
 
 ## Planned
 
@@ -51,6 +44,7 @@ No release planned yet: the owner picks a version, a theme and the cards from th
   - [ ] T7.3 VERIFY round on the device (`VERIFY.md` *V-quick*).
   - [ ] T6.5 VERIFY round on the device (`VERIFY.md` *V-transit*, *V-accent*).
   - [ ] T35.1 VERIFY round (`VERIFY.md` *V-standby-switch*), from 0.4.1.
+  - [ ] T36.1 VERIFY round (`VERIFY.md` *V-0.4.2*: brightness steps, portrait), from 0.4.2.
 
 ## Feature list
 
@@ -77,6 +71,10 @@ One line each, and the milestones before the board. The full task lines:
 `archive/tasks-<version>.md` and `archive/tasks-M1-M7.md`; the why: `decisions/`.
 
 ### Releases
+- **0.4.2** (2026-10-25, Brightness and the dock): B11 (brightness as the Portal counts it, 5%
+  steps), F36 (Home dims while the dock has focus), B12 (portrait letterboxed; a resume crash
+  with standby off, from 0.4.1); its VERIFY round to *Candidates*; versionCode 6, GitHub release
+  v0.4.2. `archive/tasks-0.4.2.md`, `decisions/0.4.2.md`.
 - **0.4.1** (2026-10-25, Standby's switch): F35 (Hold Home's switch easy to find, kept on, an
   optional adb grant), B10 (Triangle and Square everywhere); its VERIFY round to *Candidates*;
   versionCode 5, GitHub release v0.4.1. `archive/tasks-0.4.1.md`, `decisions/0.4.1.md`.

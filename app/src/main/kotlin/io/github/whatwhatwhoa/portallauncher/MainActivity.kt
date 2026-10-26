@@ -39,7 +39,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -49,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
@@ -318,17 +321,25 @@ private fun LauncherRoot(state: LauncherState, motion: Boolean) {
     val palette = remember(dark, look.accent, black) { palette(dark, look.accent, black) }
     val type = remember { Type(selawik, FONT_SCALE) }
     BoxWithConstraints(Modifier.fillMaxSize().background(palette.background)) {
-        val density = canvasDensity(LocalDensity.current, constraints.maxWidth, constraints.maxHeight)
-        CompositionLocalProvider(
-            LocalDensity provides density,
-            LocalPalette provides palette,
-            LocalType provides type,
-            LocalMotion provides motion,
-            LocalEffects provides look.effects,
-            LocalPulse provides look.pulse,
-            LocalHome provides state.home,
-        ) {
-            Layers(state, motion)
+        // Portrait is unsupported, but the Portal lands in it when auto-rotate is on (its sensor
+        // reads 90° off) or a rotation app turns it: Home keeps the screen's landscape shape,
+        // across the width and centered, bars above and below, rather than break.
+        val portrait = constraints.maxHeight > constraints.maxWidth
+        val canvas = if (!portrait) Modifier.fillMaxSize() else Modifier.align(Alignment.Center)
+            .fillMaxWidth().aspectRatio(constraints.maxHeight.toFloat() / constraints.maxWidth).clipToBounds()
+        BoxWithConstraints(canvas) {
+            val density = canvasDensity(LocalDensity.current, constraints.maxWidth, constraints.maxHeight)
+            CompositionLocalProvider(
+                LocalDensity provides density,
+                LocalPalette provides palette,
+                LocalType provides type,
+                LocalMotion provides motion,
+                LocalEffects provides look.effects,
+                LocalPulse provides look.pulse,
+                LocalHome provides state.home,
+            ) {
+                Layers(state, motion)
+            }
         }
     }
     // Always on: with nothing to close, Android's own back finishes a Home activity (it isn't a

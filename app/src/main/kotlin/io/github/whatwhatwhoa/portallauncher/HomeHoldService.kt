@@ -109,6 +109,10 @@ class HomeHoldSwitch(private val context: Context) {
                     .unsafeCheckOpNoThrow(RESTRICTED_OP, Process.myUid(), context.packageName)
             } catch (e: IllegalArgumentException) {
                 return false
+            } catch (e: SecurityException) {
+                // The Portal's Android refuses even an app's own op without MANAGE_APPOPS (a
+                // fresh install crashed Home on resume): let the install source decide.
+                AppOpsManager.MODE_DEFAULT
             }
             return when (mode) {
                 AppOpsManager.MODE_ALLOWED -> false
@@ -155,7 +159,7 @@ class HomeHoldSwitch(private val context: Context) {
 
     private companion object {
         const val ENABLED = Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
-        // AppOpsManager.OPSTR_ACCESS_RESTRICTED_SETTINGS, hidden from apps; an app may read its own.
+        // AppOpsManager.OPSTR_ACCESS_RESTRICTED_SETTINGS, hidden from apps; reading even its own may be refused.
         const val RESTRICTED_OP = "android:access_restricted_settings"
         // Settings' extras for the row to show (its preference key is the component).
         const val ARG_KEY = ":settings:fragment_args_key"

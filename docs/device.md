@@ -14,6 +14,8 @@ traps: `gotchas.md`.
   `releaseCheck` (`assembleReleaseCheck`: the release build under the package `….check`, so the
   R8 output runs beside the debug install; it carries the owner's key and is never published).
   The check build is a second Home app (back out of its Home-role ask); uninstall it after.
+  It can take the Home role on the way, and its uninstall leaves none (Home shows Android's
+  chooser): `adb shell cmd role add-role-holder android.app.role.HOME io.github.whatwhatwhoa.portallauncher`.
 - **SDK:** `C:\Users\Jim\AppData\Local\Android\Sdk` (`ANDROID_HOME` set for the user):
   platform `android-37.0` (Android 17), build-tools 37.0.0, platform-tools 37.0.1,
   cmdline-tools 23.0. Packages are managed with `cmdline-tools\latest\bin\android.exe sdk`.

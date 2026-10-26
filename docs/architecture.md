@@ -74,7 +74,7 @@ second input, never the only one.
    and along the bottom under the dock and hints; it crossfades like the hero.
    The name sits top-left, 48 dp in, Metro-style, in capitals lifted so they run 12 dp past the
    top edge (cap height taken as 0.72 of the size), with the status drawn over it; display type
-   (bold) at 40% opacity, accent while the row has focus and muted otherwise; one line. A name
+   (bold) at 40% opacity in the accent; one line. A name
    too long for the screen scrolls while the row has focus: out past the left edge at 90 dp/s
    and round again, a 2.5 s pause before each pass; muted, or with animations off, it runs off
    the right edge instead. *Big name* Fitted draws it as written instead, semibold at 60%,
@@ -86,7 +86,8 @@ second input, never the only one.
    part, 48 dp side margins.
    The focused tile grows from 144 to 192 dp by layout on a spring, so its neighbors move aside;
    the others are drawn at 85% opacity. The row is 192 dp tall either way, so it doesn't shift
-   when focus goes to the dock; there the whole row fades to about 40%, as under a sheet. The focused tile is always in the first slot, the last one too:
+   when focus goes to the dock; there Home dims as under a sheet, all but the bottom row; on the row the
+   dock dims as much. The focused tile is always in the first slot, the last one too:
    each tile slides on its own no-bounce spring along a fractional slot number, and its x and
    size come from that number in the layout phase, so the gaps stay even mid-slide. Dragging
    the row by touch moves focus a slot per tile width.
@@ -397,13 +398,12 @@ off while the launcher runs, not. A force stop turns it off: found off while wan
 on by itself where WRITE_SECURE_SETTINGS was granted over adb (the row then flips it in place),
 else the first Home press shows "Standby is off: …" for 4 s, once per start.
 
-**Scaling (bonus, not a goal).** The layout is drawn on a 600 dp tall canvas at least 1032 dp
-wide (the All apps grid). On another screen the root scales the density so the canvas fits:
-the smaller of height / 600 and width / 1032, rounded to hundredths, clamped to 0.5–1.5. Every
-size scales with it, literals included. The Portal's window is the canvas, so its factor is
-exactly 1 and icons stay 1:1, at any *Display size* (360 gives 0.8: 288's pixels). A change
-applies live: the window is measured in pixels over the current density. Portrait and phones
-are unsupported.
+**Scaling (bonus, not a goal).** The canvas is 600 dp tall and at least 1032 dp wide (the All
+apps grid). The root scales the density to fit it: the smaller of height / 600 and width / 1032,
+rounded to hundredths, clamped to 0.5–1.5, literals included. On the Portal the factor is exactly
+1, icons 1:1, at any *Display size*; a change applies live (pixels over the current density).
+Portrait (auto-rotate, a rotation app) is letterboxed: Home in a box of the screen's shape turned
+sideways, full width, centered, scaled as on a landscape screen. Phones are unsupported.
 
 ## Structure
 

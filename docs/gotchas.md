@@ -45,6 +45,13 @@ Retry once, or a shorter command.
   `landscape` therefore does nothing here; landscape holds because it is the panel's natural
   rotation and rotation is locked. Lint warns about it (`DiscouragedApi`); the attribute stays
   for smaller screens.
+- So with auto-rotate on, Home can land in portrait; it letterboxes there. To try portrait:
+  `adb shell settings put system user_rotation 3`; back with `0` (auto-rotate stays off).
+
+### Reading the app's own restricted-settings op can throw
+`AppOpsManager.unsafeCheckOpNoThrow("android:access_restricted_settings", myUid, ownPackage)`
+throws SecurityException on the Portal (needs MANAGE_APPOPS), despite "NoThrow". 0.4.1 crashed
+Home on every resume with standby's service off. Catch it; the install source decides then.
 
 ### Restricted networking blocks new apps
 LineageOS's *Restricted networking mode* is on on the Portal (`settings get global

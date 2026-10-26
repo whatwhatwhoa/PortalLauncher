@@ -93,12 +93,14 @@ fun HomeScreen(state: LauncherState) {
         if (LocalMotion.current) tween(HERO_FADE) else snap(),
         label = "ghost",
     )
-    // The row steps back while the dock has focus, about as far as under Triangle's sheet (owner).
-    val rowDim by animateFloatAsState(
-        if (state.zone == Zone.Dock) ROW_IN_DOCK else 1f,
+    // On the dock, Home dims as under Triangle's sheet, all but the bottom row: only the dock is
+    // in focus (owner). Its hints stay, since they are the dock's buttons.
+    val dock by animateFloatAsState(
+        if (state.zone == Zone.Dock) 1f else 0f,
         if (LocalMotion.current) tween(HERO_FADE) else snap(),
-        label = "rowDim",
+        label = "dockScrim",
     )
+    val background = LocalPalette.current.background
     BoxWithConstraints(
         Modifier.fillMaxSize().pointerInput(Unit) {
             var travel = 0f
@@ -120,13 +122,12 @@ fun HomeScreen(state: LauncherState) {
         ) {
             BackdropLayer(state.backdrop, state.art, current)
             Hero(state.art, current)
-            // Faded as one screen-sized layer: a layer the row's size would clip the shadows (B7.3).
-            Box(Modifier.fillMaxSize().graphicsLayer { alpha = rowDim }) {
-                Carousel(state, Modifier.offset(y = rowTop))
-            }
+            Carousel(state, Modifier.offset(y = rowTop))
         }
+        Box(Modifier.fillMaxSize().drawBehind { drawRect(background, alpha = DOCK_SCRIM * dock) })
         Column(Modifier.fillMaxSize().graphicsLayer { alpha = 1f - ghost }) {
-            Box(Modifier.fillMaxWidth().height(Dimens.band)) {
+            // Drawn over the scrim, so faded by as much as it.
+            Box(Modifier.fillMaxWidth().height(Dimens.band).graphicsLayer { alpha = 1f - DOCK_SCRIM * dock }) {
                 if (current != null) {
                     when (state.look.name) {
                         NameStyle.Metro -> Name(current.label, inFocus = state.zone == Zone.Row)
@@ -137,7 +138,10 @@ fun HomeScreen(state: LauncherState) {
             Spacer(Modifier.weight(1f))
             BottomRow(state)
         }
-        CategoryLabel(state.category.label, Modifier.graphicsLayer { alpha = 1f - ghost }.endingAt(rowTop - Space.m))
+        CategoryLabel(
+            state.category.label,
+            Modifier.graphicsLayer { alpha = (1f - ghost) * (1f - DOCK_SCRIM * dock) }.endingAt(rowTop - Space.m),
+        )
     }
 }
 
@@ -160,8 +164,8 @@ private fun Modifier.endingAt(y: Dp) = layout { measurable, constraints ->
 
 private val SWIPE_UP = 96.dp
 private const val HERO_FADE = 250
-// With the tiles' own 0.85, about the 40% a sheet's 0.6 scrim leaves of them.
-private const val ROW_IN_DOCK = 0.47f
+// The options sheet's (OptionsSheet).
+private const val DOCK_SCRIM = 0.6f
 private const val NAME_ALPHA = 0.4f
 private val NAME_BLEED = Space.m
 private const val CAP_HEIGHT = 0.72f
@@ -417,7 +421,8 @@ private fun Modifier.vignette() = graphicsLayer { compositingStrategy = Composit
 private fun Name(label: String, inFocus: Boolean) {
     val p = LocalPalette.current
     val t = LocalType.current
-    val color = if (inFocus) p.accent else p.muted
+    // The accent on the dock too: the scrim dims it there, as under a sheet (owner).
+    val color = p.accent
     val scrolls = inFocus && LocalMotion.current
     // A new name starts from its first letter, after the pause.
     key(label) {
@@ -460,7 +465,8 @@ private fun Name(label: String, inFocus: Boolean) {
 private fun FittedName(label: String, inFocus: Boolean) {
     val p = LocalPalette.current
     val t = LocalType.current
-    val color = if (inFocus) p.accent else p.muted
+    // The accent on the dock too: the scrim dims it there, as under a sheet (owner).
+    val color = p.accent
     val scrolls = inFocus && LocalMotion.current
     val measurer = rememberTextMeasurer()
     BoxWithConstraints(Modifier.fillMaxWidth().padding(start = Dimens.edge, end = Dimens.edge, top = FITTED_TOP)) {
@@ -669,7 +675,20 @@ private fun BottomRow(state: LauncherState) {
 @Composable
 private fun Dock(state: LauncherState) {
     val inDock = state.zone == Zone.Dock
-    Row(horizontalArrangement = Arrangement.spacedBy(Dimens.dockGap)) {
+    // Off the dock it steps back as Home does on it (owner). Faded per draw, not as a layer: a
+    // layer the dock's size would clip the focus ring and the name above while it fades back in.
+    val rest by animateFloatAsState(
+        if (inDock) 0f else 1f,
+        if (LocalMotion.current) tween(HERO_FADE) else snap(),
+        label = "dockRest",
+    )
+    Row(
+        Modifier.graphicsLayer {
+            alpha = 1f - DOCK_SCRIM * rest
+            compositingStrategy = CompositingStrategy.ModulateAlpha
+        },
+        horizontalArrangement = Arrangement.spacedBy(Dimens.dockGap),
+    ) {
         DockButton("All apps", inDock && state.dockFocus == 0, lifted = false, onClick = { state.tapDock(0) }, onHold = null) {
             AllAppsGlyph()
         }

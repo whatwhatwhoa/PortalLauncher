@@ -154,8 +154,8 @@ sorted into categories (move through them on the left, **A** to go in, **B** to 
 ## Good to know
 
 - **Made for the Odin 2 Portal** (7" 1920×1080, landscape). Other landscape Android handhelds
-  should work, since the layout scales to fit, but only the Portal is tested. Phones and
-  portrait aren't supported.
+  should work, since the layout scales to fit, but only the Portal is tested. Phones aren't
+  supported; in portrait, Home shows letterboxed across the middle of the screen.
 - **Any display size works.** Portal fits itself to Android's *Display size* or *Smallest
   width*, whatever you set, and adjusts at once when you change it. No setup needed.
   **Tip:** set *Smallest width* to **600** (Settings → System → Developer options) and your
