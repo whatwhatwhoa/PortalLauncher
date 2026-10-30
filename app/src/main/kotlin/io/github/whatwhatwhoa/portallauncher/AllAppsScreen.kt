@@ -298,8 +298,9 @@ const val SEARCH_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#"
 /**
  * How well [label] matches [query] (lowercase letters and #), best first: 0 the label starts
  * with it, 1 one of its words does, 2 its words' initials hold it ("gta"), 3 it is anywhere in
- * it; null is no match. Accents, case, spaces and punctuation don't count, so "pokemon" finds
- * "Pokémon" and "zeldabreath" finds "Zelda: Breath…".
+ * it, from two letters on (one letter anywhere is most of the list); null is no match. Accents,
+ * case, spaces and punctuation don't count, so "pokemon" finds "Pokémon" and "zeldabreath" finds
+ * "Zelda: Breath…".
  */
 fun searchRank(label: String, query: String): Int? {
     val words = Normalizer.normalize(label, Normalizer.Form.NFD).replace(MARKS, "").lowercase()
@@ -309,7 +310,7 @@ fun searchRank(label: String, query: String): Int? {
         whole.holds(query, 0) -> 0
         words.any { it.holds(query, 0) } -> 1
         words.joinToString("") { it.take(1) }.holdsAnywhere(query) -> 2
-        whole.holdsAnywhere(query) -> 3
+        query.length > 1 && whole.holdsAnywhere(query) -> 3
         else -> null
     }
 }

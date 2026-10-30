@@ -1,5 +1,6 @@
 package io.github.whatwhatwhoa.portallauncher
 
+import android.annotation.SuppressLint
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -114,6 +115,8 @@ class Sounds(context: Context) {
     private fun isQuiet() = notifications.currentInterruptionFilter > NotificationManager.INTERRUPTION_FILTER_ALL
 
     companion object {
+        // The application's context only (built from it below), which lives as long anyway.
+        @SuppressLint("StaticFieldLeak")
         private var shared: Sounds? = null
 
         /**

@@ -35,6 +35,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -534,11 +535,12 @@ private fun SeekBar(now: NowPlaying?, modifier: Modifier, missing: Boolean, focu
         BasicText(info, style = t.caption.copy(color = p.text), maxLines = 1, overflow = TextOverflow.Ellipsis)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s)) {
             val shown = now?.takeIf { it.seekable }
-            BasicText(shown?.let { clock(it.positionMs) }.orEmpty(), Modifier.width(SEEK_TIME), style = time, maxLines = 1)
+            // At least SEEK_TIME, so the track doesn't jump as 9:59 turns 10:00; wider for 11:23 or an hour.
+            BasicText(shown?.let { clock(it.positionMs) }.orEmpty(), Modifier.widthIn(min = SEEK_TIME), style = time, maxLines = 1)
             Track(shown?.fraction ?: 0f, Modifier.weight(1f), onTap)
             BasicText(
                 shown?.let { clock(it.durationMs) }.orEmpty(),
-                Modifier.width(SEEK_TIME),
+                Modifier.widthIn(min = SEEK_TIME),
                 style = time.copy(textAlign = TextAlign.End),
                 maxLines = 1,
             )
