@@ -37,6 +37,8 @@ import android.window.SplashScreen
 class HomeHoldService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
     private var down = false
+    // A Home press that went down while standby showed, counted when it comes up short.
+    private var tap = false
     private val hold = Runnable {
         // Behind the lock screen standby would wait there for the unlock: locked, a hold is a
         // short press, so the release still goes Home.
@@ -59,17 +61,22 @@ class HomeHoldService : AccessibilityService() {
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode != KeyEvent.KEYCODE_HOME) return false
-        // While standby shows, Home is one more press toward waking, never Android's Home, and a
-        // hold does nothing more.
+        // While standby shows, a short Home press is one more toward waking, never Android's
+        // Home, and a hold does nothing: so it counts on the release, once its length is known.
+        // The hold that opened standby comes up here too, and counts no more than any hold.
         StandbyActivity.current?.let { standby ->
             handler.removeCallbacks(hold)
             down = false
             when (event.action) {
-                KeyEvent.ACTION_DOWN -> if (event.repeatCount == 0) standby.home(down = true)
-                KeyEvent.ACTION_UP -> standby.home(down = false)
+                KeyEvent.ACTION_DOWN -> if (event.repeatCount == 0) tap = true
+                KeyEvent.ACTION_UP -> if (tap) {
+                    tap = false
+                    if (event.eventTime - event.downTime < ViewConfiguration.getLongPressTimeout()) standby.home()
+                }
             }
             return true
         }
+        tap = false
         when (event.action) {
             KeyEvent.ACTION_DOWN -> if (event.repeatCount == 0) {
                 down = true

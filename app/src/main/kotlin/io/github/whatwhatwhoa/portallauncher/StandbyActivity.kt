@@ -81,7 +81,6 @@ class StandbyActivity : ComponentActivity() {
     // Out of view (the screen turned off, an app came over it): standby has done its job.
     override fun onStop() {
         super.onStop()
-        if (current === this) current = null
         leave()
     }
 
@@ -134,8 +133,14 @@ class StandbyActivity : ComponentActivity() {
         return true
     }
 
-    /** A Home press, handed over by HomeHoldService while standby shows: one more toward waking. */
-    fun home(down: Boolean) = if (down) standby.press(KeyEvent.KEYCODE_HOME) else released(KeyEvent.KEYCODE_HOME)
+    /**
+     * A short Home press, handed over by HomeHoldService on its release while standby shows: one
+     * more toward waking, already let go.
+     */
+    fun home() {
+        standby.press(KeyEvent.KEYCODE_HOME)
+        released(KeyEvent.KEYCODE_HOME)
+    }
 
     /**
      * The fourth press: the chime, and the block fades out. Standby still swallows every key
@@ -157,6 +162,9 @@ class StandbyActivity : ComponentActivity() {
     }
 
     private fun leave() {
+        // Home goes back to its own way at once, not once the window under standby draws again,
+        // which can take a game most of a second.
+        if (current === this) current = null
         if (isFinishing) return
         handler.removeCallbacksAndMessages(null)
         finish()
@@ -174,7 +182,7 @@ class StandbyActivity : ComponentActivity() {
     companion object {
         /**
          * The standby on screen, for HomeHoldService to hand Home presses to; null otherwise.
-         * Set while it is created and shown, cleared as it stops, all on the main thread.
+         * Set as it is created, cleared as it leaves (woken or stopped), all on the main thread.
          */
         @SuppressLint("StaticFieldLeak")
         var current: StandbyActivity? = null
