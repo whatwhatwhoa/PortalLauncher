@@ -99,7 +99,11 @@ class Sounds(context: Context) {
     /** Plays [sound]; [pitch] is a playback rate, 0.5 to 2. */
     fun play(sound: Sound, pitch: Float = 1f) {
         asked++
-        if (!settings.on || quiet) return
+        if (!settings.on) return
+        // A toggle may be the quick panel's Do not disturb, cued before Android announces it, so
+        // a flip asks once.
+        if (sound == Sound.ToggleOn || sound == Sound.ToggleOff) quiet = isQuiet()
+        if (quiet) return
         val now = SystemClock.uptimeMillis()
         if (now - lastAt[sound.ordinal] < sound.gap) return
         lastAt[sound.ordinal] = now

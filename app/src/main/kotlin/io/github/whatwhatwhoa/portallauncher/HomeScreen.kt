@@ -578,9 +578,6 @@ private fun Carousel(state: LauncherState, modifier: Modifier) {
                     label = "tileAlpha",
                 )
                 val art = state.art.takeIf { state.look.covers }
-                // A cover (or its placeholder) is one draw, so it fades without an offscreen pass
-                // of its own; an icon's two layers would show through each other, so it keeps one.
-                val oneDraw = art?.file(app.component.packageName, ArtKind.Cover) != null
                 // Art where it exists: a legacy icon like NTE's 192 px one can't fill a tile crisply.
                 CoverOrIcon(
                     art,
@@ -600,6 +597,11 @@ private fun Carousel(state: LauncherState, modifier: Modifier) {
                         // shadow off square at the corners (B7.3).
                         .graphicsLayer {
                             this.alpha = alpha
+                            // A cover (or its placeholder) is one draw, so it fades without an
+                            // offscreen pass of its own; an icon's two layers would show through
+                            // each other, so it keeps one. Read here, so an app's art arriving
+                            // redoes this layer only, not the whole row.
+                            val oneDraw = art?.file(app.component.packageName, ArtKind.Cover) != null
                             compositingStrategy = if (oneDraw) CompositingStrategy.ModulateAlpha else CompositingStrategy.Auto
                         }
                         .combinedClickable(

@@ -111,6 +111,8 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
     private val scenes = context.getSharedPreferences("scenes", Context.MODE_PRIVATE)
     private val sceneLooked = HashSet<String>()
     private val refetched = HashSet<String>()
+    // Matched apps whose images didn't all come (a download failed), fetched when the network is back.
+    private val unfinished = HashSet<String>()
     // Read for Fetch art when the network comes back, since only the root knows it otherwise.
     private val launcherPrefs = Prefs(context)
 
@@ -147,9 +149,11 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
         scope.launch {
             networkReturns(context.applicationContext).collectLatest {
                 delay(NETWORK_SETTLE_MS)
-                if (failedOffline && launcherPrefs.fetchArt) {
+                if (failedOffline) {
                     failedOffline = false
-                    lookUp(wanted)
+                    if (launcherPrefs.fetchArt) lookUp(wanted)
+                    // A game chosen in Art… gets the images that didn't come, whatever Fetch art says.
+                    unfinished.toList().forEach(::finish)
                 }
             }
         }
@@ -201,21 +205,13 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
 
     /**
      * Looks up every app here that has no record yet, one at a time, once per launcher start; a
-     * matched app without a scene has one looked for too, and one whose images are gone (a
-     * restored setup) has them fetched again. What failed for the network runs again when it
-     * comes back.
+     * matched app is finished ([finish]). What failed for the network runs again when it comes
+     * back.
      */
     fun lookUp(apps: List<AppEntry>) {
         wanted = apps
         val unique = apps.distinctBy { it.component.packageName }
-        unique.forEach { app ->
-            val pkg = app.component.packageName
-            val matched = records[pkg] as? ArtRecord.Matched
-            if (matched != null && !hasScene(pkg)) findScene(pkg, matched.match)
-            if (matched != null && listOf(ArtKind.Cover, ArtKind.Hero).none { "$pkg.${it.suffix}" in present }) {
-                refetch(pkg, matched.match)
-            }
-        }
+        unique.forEach { finish(it.component.packageName) }
         if (!hasKey) return
         val todo = unique.filter { it.component.packageName !in records && looked.add(it.component.packageName) }
         if (todo.isEmpty()) return
@@ -234,8 +230,9 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
                     continue
                 }
                 if (pkg in records) continue
-                // Only a lookup that truly found nothing is "no match"; a failed download is
-                // left unrecorded, so the next lookup fetches the match whole.
+                // Only a lookup that truly found nothing is "no match". A failed download keeps
+                // the match once SteamGridDB has listed its images ([use]); a failure before that
+                // leaves the app unrecorded, so the next lookup tries it whole.
                 when (if (match == null) ArtFetch.NoImages else use(pkg, match)) {
                     ArtFetch.NoImages -> save(pkg, ArtRecord.NoMatch)
                     ArtFetch.Failed -> looked.remove(pkg)
@@ -272,36 +269,73 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
 
     /**
      * Downloads [match]'s cover and hero and makes it [pkg]'s art, then looks for its scene.
-     * Another game's scene goes; the same game's stays. A cancel is passed on, not taken for a
-     * failure.
+     * Once SteamGridDB has listed images for it, a failed download still makes it the app's game,
+     * and what didn't come is fetched when the network is back ([finish]). A cancel is passed on,
+     * not taken for a failure.
      */
     suspend fun use(pkg: String, match: ArtMatch): ArtFetch = writing.withLock {
+        val before = (records[pkg] as? ArtRecord.Matched)?.match?.gameId
+        val fetched = mutableListOf<ArtKind>()
+        var listed = false
         try {
-            val before = (records[pkg] as? ArtRecord.Matched)?.match?.gameId
             val cover = best(ArtKind.Cover, match.gameId)
             val hero = best(ArtKind.Hero, match.gameId)
             if (cover == null && hero == null) return ArtFetch.NoImages
+            listed = true
             download(cover, File(dir, "$pkg.${ArtKind.Cover.suffix}"))
+            fetched += ArtKind.Cover
             download(hero, File(dir, "$pkg.${ArtKind.Hero.suffix}"))
-            if (before != match.gameId) {
-                delete(sceneFile(pkg))
-                scenes.edit { remove(pkg); remove("$pkg.url") }
-                picks.edit { remove(pickKey(pkg, ArtKind.Scene)); remove(wideKey(pkg)) }
-                // A new game (or the same one again after Use the app's icon) is looked for afresh,
-                // even if this start already looked for the old one.
-                sceneLooked.remove(pkg)
-            }
-            // A new game's first images replace whatever was picked before.
-            picks.edit { remove(pickKey(pkg, ArtKind.Cover)); remove(pickKey(pkg, ArtKind.Hero)) }
-            save(pkg, ArtRecord.Matched(match))
-            if (!hasScene(pkg)) findScene(pkg, match)
+            fetched += ArtKind.Hero
+            adopt(pkg, match, before, fetched)
+            unfinished.remove(pkg)
             ArtFetch.Done
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Log.w(TAG, "Fetching art for $pkg failed: $e", e)
             failedOffline = true
+            if (listed) {
+                adopt(pkg, match, before, fetched)
+                unfinished.add(pkg)
+                // Even when this start already fetched its images once.
+                refetched.remove(pkg)
+            }
             ArtFetch.Failed
+        }
+    }
+
+    /**
+     * Makes [match] [pkg]'s game, its [fetched] slots new. Another game's scene and picks go, and
+     * so do the slots not fetched, which were another game's or the gallery's: [refetch] fills
+     * them. The same game's stay.
+     */
+    private fun adopt(pkg: String, match: ArtMatch, before: Int?, fetched: List<ArtKind>) {
+        val changed = before != match.gameId
+        if (changed) {
+            delete(sceneFile(pkg))
+            scenes.edit { remove(pkg); remove("$pkg.url") }
+            picks.edit { remove(pickKey(pkg, ArtKind.Scene)); remove(wideKey(pkg)) }
+            // A new game (or the same one again after Use the app's icon) is looked for afresh,
+            // even if this start already looked for the old one.
+            sceneLooked.remove(pkg)
+        }
+        // A new game's first images replace whatever was picked before.
+        val replaced = if (changed) listOf(ArtKind.Cover, ArtKind.Hero) else fetched
+        replaced.filterNot { it in fetched }.forEach { delete(File(dir, "$pkg.${it.suffix}")) }
+        picks.edit { replaced.forEach { remove(pickKey(pkg, it)) } }
+        save(pkg, ArtRecord.Matched(match))
+        if (!hasScene(pkg)) findScene(pkg, match)
+    }
+
+    /**
+     * For a matched [pkg]: a scene looked for when it has none, and its images fetched again when
+     * they are gone (a restored setup) or didn't all come.
+     */
+    private fun finish(pkg: String) {
+        val matched = records[pkg] as? ArtRecord.Matched ?: return
+        if (!hasScene(pkg)) findScene(pkg, matched.match)
+        if (pkg in unfinished || listOf(ArtKind.Cover, ArtKind.Hero).none { "$pkg.${it.suffix}" in present }) {
+            refetch(pkg, matched.match)
         }
     }
 
@@ -327,6 +361,7 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
                     val sceneUrl = picks.getString(pickKey(pkg, ArtKind.Scene), null)?.takeIf { it.startsWith("http") }
                         ?: scenes.getString("$pkg.url", null)
                     if (scene.name !in present && sceneUrl != null) download(sceneUrl, scene)
+                    unfinished.remove(pkg)
                     bump(pkg)
                 } catch (e: CancellationException) {
                     refetched.remove(pkg)
@@ -364,6 +399,7 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
         records.clear()
         looked.clear()
         sceneLooked.clear()
+        unfinished.clear()
         cleared.forEach(::bump)
     }
 
