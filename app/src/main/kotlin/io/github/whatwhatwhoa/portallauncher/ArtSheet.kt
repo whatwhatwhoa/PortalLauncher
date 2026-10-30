@@ -305,13 +305,13 @@ class ArtPicker(
     suspend fun thumbnail(url: String, maxPx: Int) = art.thumbnail(url, maxPx)
 
     /**
-     * B while typing keeps what was typed, as renaming a category does: new words are searched,
-     * so the results never sit under words they aren't for; words left blank go back.
+     * B while typing ends it and keeps the results: searching there would replace them (or empty
+     * them offline). The field goes back to the words they are for, so it never shows words that
+     * weren't searched; only the keyboard's search key searches.
      */
     fun stopTyping() {
         typing = false
-        if (query.isBlank()) query = searched
-        if (query != searched) search()
+        query = searched
     }
 
     fun search() {

@@ -536,6 +536,11 @@ class LauncherState(
             Action.Open -> addLetter(searchLetter)
             Action.X -> if (drawerQuery.isNotEmpty()) searchFor(drawerQuery.dropLast(1))
             Action.Down, Action.Y, Action.Back -> searchFocused = false
+            // Triangle opens the options of the app focus goes back to, as it does in the results.
+            Action.Options -> if (drawer.isNotEmpty()) {
+                searchFocused = false
+                optionsForFocused()
+            }
             Action.Select -> openQuick()
             else -> Unit
         }

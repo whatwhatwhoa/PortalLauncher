@@ -98,12 +98,15 @@ fun AllAppsScreen(state: LauncherState) {
                 end = Dimens.edge,
             ),
             verticalAlignment = Alignment.CenterVertically,
+            // Room for the ring on the strip's first letter, clear of the count.
+            horizontalArrangement = Arrangement.spacedBy(Space.m),
         ) {
             // The strip is measured first; what it leaves goes to the title or the search.
             Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.m)) {
                 val tapSearch = Modifier.clickable(interactionSource = null, indication = null) { state.tapSearch() }
                 if (query.isEmpty()) {
-                    BasicText("All apps", tapSearch, style = t.title.copy(color = p.text), maxLines = 1)
+                    // The strip needs the title's room while it has focus; the count stays.
+                    if (!state.searchFocused) BasicText("All apps", tapSearch, style = t.title.copy(color = p.text), maxLines = 1)
                 } else {
                     // The search stands where the title was; a long one shows its end, the letters just added.
                     BasicText(
@@ -143,8 +146,14 @@ fun AllAppsScreen(state: LauncherState) {
             }
         }
         val hints = if (state.searchFocused) {
-            // In the letters X takes one back and Y goes to the results; Triangle has nothing to open.
-            listOf(Hint(SQUARE, "Quick settings"), Hint("X", "Delete", room = "Unfavorite"), Hint("Y", "Done", room = "Search"))
+            // In the letters X takes one back and Y goes to the results; the bar keeps its shape,
+            // so only the labels change.
+            listOf(
+                Hint(SQUARE, "Quick settings"),
+                Hint("X", "Delete", room = "Unfavorite"),
+                Hint("Y", "Done", room = "Search"),
+                Hint(TRIANGLE, "Options"),
+            )
         } else {
             val favorite = apps.getOrNull(focus)?.let(state::isFavorite) == true
             listOf(
@@ -200,12 +209,12 @@ private fun LetterJump(state: LauncherState) {
 private fun LetterStrip(state: LauncherState) {
     val p = LocalPalette.current
     val t = LocalType.current
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(LETTER_GAP)) {
         SEARCH_LETTERS.forEachIndexed { i, letter ->
             val focused = i == state.searchLetter
             BasicText(
                 letter.toString(),
-                // At least the cell, so a wide W at the largest font scale grows it instead of clipping.
+                // At least the cell, so a wide M or W grows it instead of clipping.
                 Modifier.widthIn(min = LETTER_CELL)
                     .focusRing(focused, Space.s)
                     .clickable(interactionSource = null, indication = null) { state.tapSearchLetter(i) },
@@ -362,5 +371,8 @@ private const val HIDDEN_ALPHA = 0.4f
 // How long a letter jump lights the letter, and its fade (the categories' focus fade).
 private const val LETTER_LIT = 1000L
 private const val LETTER_FADE = 150
-// A letter's room in the strip: the 27 fit the header beside the title and the count.
-private val LETTER_CELL = Space.xl + Space.xs
+// A letter's room in the strip, and the gap between: the focus ring, drawn Dimens.ringGap +
+// Dimens.ring outside the room, then clears the next letter even beside a W. The 27 fit the
+// header beside the count and a short search, not the title, which gives way to them.
+private val LETTER_CELL = Space.xl
+private val LETTER_GAP = Space.s
