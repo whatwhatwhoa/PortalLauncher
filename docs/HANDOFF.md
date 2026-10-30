@@ -7,7 +7,9 @@ open, delete what is resolved, never append history (git and `docs/decisions/` h
 cards ticked (F37–F45 with F11 Recent, F13 Notifications, F16 Search on Y; the session's own
 pick from an audit, `decisions/0.5.0.md`). Merged from four lanes, reviewed again as a whole
 (13 low findings fixed), lint clean but the old warning. Not released: versionName is still
-0.4.2. The Portal runs this debug build (standby's service on, the grant kept). Everything is
+0.4.2. The Portal runs the build before the last fix commit (c942581 not installed: the owner
+was using it); standby's service on, the grant kept. Auto-rotate was found on (portrait,
+`gotchas.md` *Rotation*): the owner turns it off. Everything is
 committed locally on `main` and not pushed (`git log origin/main..main`). `architecture.md` was
 split: what each screen does is now `docs/behavior.md`.
 

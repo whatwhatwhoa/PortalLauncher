@@ -34,7 +34,10 @@ Retry once, or a shorter command.
 
 ### Rotation
 - The accelerometer's axes are 90° off on this LineageOS build: held portrait, it reads as level
-  landscape. Auto-rotate therefore turns the screen the wrong way; keep it locked.
+  landscape. Auto-rotate therefore turns the screen the wrong way; keep it locked. Seen again
+  2026-10-30 with auto-rotate found on: held in landscape the sensor proposes ROTATION_180,
+  which Android refuses (`mAllowAllRotations=false`), so the screen stays in portrait
+  (`dumpsys window`, *WindowOrientationListener*).
 - Something on the device had set `wm fixed-to-user-rotation enabled`, likely to hide the sensor
   bug. With it on, apps' orientation requests (and rotation apps) are ignored. It may come back
   after a reboot via AYN's settings: check with `adb shell wm fixed-to-user-rotation`.
