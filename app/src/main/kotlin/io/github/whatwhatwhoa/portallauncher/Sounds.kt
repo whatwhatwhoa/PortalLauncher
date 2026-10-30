@@ -119,7 +119,7 @@ fun LauncherState.spot(): Spot {
         focus = listOf(
             zone, rowFocus, dockFocus, drawerFocus, sheetFocus, categoryFocus, categoryActionFocus,
             settingsGroupFocus, settingsInRows, settingsFocus, accentRow, accentColumn, quickFocus, quickColumn,
-            category.id,
+            category.id, searchFocused, searchLetter,
         ),
         switches = listOf(
             look.covers, look.effects.gradient, look.effects.glow, look.effects.depth,
@@ -131,7 +131,8 @@ fun LauncherState.spot(): Spot {
             controls.volume.toFloat() / controls.volumeMax.coerceAtLeast(1),
             controls.nowPlaying?.fraction ?: 0f,
         ),
-        values = listOf(look, home, sound, armed, deleteArmed),
+        // A letter added or taken back sounds as a choice, not as a move.
+        values = listOf(look, home, sound, armed, deleteArmed, drawerQuery),
         focusKnown = artPicker == null,
     )
 }

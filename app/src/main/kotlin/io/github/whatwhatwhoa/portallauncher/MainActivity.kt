@@ -236,7 +236,7 @@ class MainActivity : ComponentActivity() {
         }
         val action = actionFor(event) ?: return super.dispatchKeyEvent(event)
         if (event.action == KeyEvent.ACTION_DOWN && (event.repeatCount == 0 || action.repeats)) {
-            state.onAction(action)
+            state.onAction(action, repeat = event.repeatCount > 0)
         }
         return true
     }

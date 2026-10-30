@@ -137,7 +137,8 @@ private fun LauncherState.shown(setting: Setting): String {
         Setting.BatteryPercent -> onOff(home.batteryPercent)
         Setting.Hints -> onOff(home.hints)
         Setting.Wraps -> onOff(home.wraps)
-        Setting.Start -> home.start.label
+        // The category itself: Favorites only while it has apps and keeps that name.
+        Setting.Start -> if (home.start == StartOn.Favorites) startCategory.label else home.start.label
         Setting.PlayControls -> onOff(home.playControls)
         // Grayed out by Android: the next A opens App info, where ⋮ allows it (README *Standby*).
         Setting.HomeHold -> if (!homeHold && homeHoldTried && homeHoldRestricted) "Restricted: A, then ⋮ → Allow" else onOff(homeHold)
