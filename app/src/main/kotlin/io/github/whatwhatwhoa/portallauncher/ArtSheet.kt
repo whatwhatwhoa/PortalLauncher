@@ -65,6 +65,8 @@ import kotlin.math.roundToInt
 sealed interface ArtRow {
     class Result(val match: ArtMatch) : ArtRow
     data object Search : ArtRow
+    /** Without a key: Launcher Settings on the SteamGridDB key row. */
+    data object Key : ArtRow
     data object UseIcon : ArtRow
 }
 
@@ -87,6 +89,8 @@ class ArtPicker(
     private val art: Art,
     private val scope: CoroutineScope,
     private val pickImage: ((Uri?) -> Unit) -> Unit,
+    /** Opens Launcher Settings on the SteamGridDB key, for the page's row without a key. */
+    private val openKey: () -> Unit,
 ) {
     val pkg: String = app.component.packageName
     var query by mutableStateOf(app.label)
@@ -145,9 +149,9 @@ class ArtPicker(
         }
     /** The kind Home shows behind the app, for the tab's dot. */
     val wideInUse get() = art.wide(pkg)
-    /** Without a SteamGridDB key the page has only the icon; the preview still takes gallery images. */
+    /** Without a SteamGridDB key the page has the way to one and the icon; the preview still takes gallery images. */
     val hasKey get() = art.hasKey
-    private val searchRows get() = if (hasKey) results.map { ArtRow.Result(it) } + ArtRow.Search else emptyList()
+    private val searchRows get() = if (hasKey) results.map { ArtRow.Result(it) } + ArtRow.Search else listOf(ArtRow.Key)
     val rows: List<ArtRow>
         get() = searchRows + ArtRow.UseIcon
     val focus get() = index.coerceIn(0, rows.lastIndex)
@@ -325,6 +329,7 @@ class ArtPicker(
         when (val row = rows.getOrNull(i)) {
             is ArtRow.Result -> if (fetching == null && !isCurrent(row.match)) fetch(row.match)
             ArtRow.Search -> typing = true
+            ArtRow.Key -> openKey()
             ArtRow.UseIcon -> art.useIcon(pkg)
             null -> Unit
         }
@@ -422,6 +427,7 @@ fun ColumnScope.ArtPage(picker: ArtPicker) {
                         picked = picker.isCurrent(row.match),
                     )
                     ArtRow.Search -> SearchField(picker)
+                    ArtRow.Key -> Choice("SteamGridDB key…", picked = false)
                     ArtRow.UseIcon -> Choice("Use the app’s icon", picked = picker.usingIcon)
                 }
             }

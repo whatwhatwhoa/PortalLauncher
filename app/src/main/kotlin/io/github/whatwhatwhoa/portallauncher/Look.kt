@@ -203,12 +203,16 @@ data class Accent(val hue: Float?, val chroma: Float = 0f) {
 
         fun color(dark: Boolean, chroma: Float, hue: Float) = oklch(if (dark) 0.80f else 0.55f, chroma, hue)
 
+        /**
+         * The accent stored as [id], or null for anything the picker can't have made: a hand-edited
+         * setup file can say NaN or Infinity, which `toFloatOrNull` takes and oklch never finishes on.
+         */
         fun of(id: String?): Accent? {
             if (id == null) return null
             AccentPreset.entries.firstOrNull { it.name == id }?.let { return it.accent }
             val parts = id.split(':').takeIf { it.size == 3 && it[0] == "custom" } ?: return null
-            val hue = parts[1].toFloatOrNull() ?: return null
-            val chroma = parts[2].toFloatOrNull() ?: return null
+            val hue = parts[1].toFloatOrNull()?.takeIf { it in 0f..360f } ?: return null
+            val chroma = parts[2].toFloatOrNull()?.takeIf { it in MIN_CHROMA..MAX_CHROMA } ?: return null
             return Accent(hue, chroma)
         }
     }

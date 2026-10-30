@@ -3,6 +3,7 @@ package io.github.whatwhatwhoa.portallauncher
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
 import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
@@ -20,6 +21,7 @@ import android.os.UserHandle
 import android.os.UserManager
 import android.provider.Settings
 import android.util.DisplayMetrics
+import android.util.Log
 import androidx.annotation.DrawableRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +29,9 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -65,16 +70,16 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
         private set
 
     private val callback = object : LauncherApps.Callback() {
-        override fun onPackageRemoved(packageName: String, user: UserHandle) = reload()
-        override fun onPackageAdded(packageName: String, user: UserHandle) = reload()
-        override fun onPackageChanged(packageName: String, user: UserHandle) = reload()
-        override fun onPackagesAvailable(packageNames: Array<String>, user: UserHandle, replacing: Boolean) = reload()
-        override fun onPackagesUnavailable(packageNames: Array<String>, user: UserHandle, replacing: Boolean) = reload()
+        override fun onPackageRemoved(packageName: String, user: UserHandle) = reload(settle = true)
+        override fun onPackageAdded(packageName: String, user: UserHandle) = reload(settle = true)
+        override fun onPackageChanged(packageName: String, user: UserHandle) = reload(settle = true)
+        override fun onPackagesAvailable(packageNames: Array<String>, user: UserHandle, replacing: Boolean) = reload(settle = true)
+        override fun onPackagesUnavailable(packageNames: Array<String>, user: UserHandle, replacing: Boolean) = reload(settle = true)
     }
 
     fun start() {
         launcherApps.registerCallback(callback, Handler(Looper.getMainLooper()))
-        reload()
+        reload(settle = false)
     }
 
     fun stop() = launcherApps.unregisterCallback(callback)
@@ -128,27 +133,48 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
             .distinctBy { it.key }
     }
 
-    private fun reload() {
+    /**
+     * A query of every app, replacing the one running. [settle]: a package event, often one of a
+     * burst (Play's Update all, a Play services update), waits for the rest so they make one
+     * query; the first load doesn't wait.
+     */
+    private fun reload(settle: Boolean) {
         job?.cancel()
-        job = scope.launch { apps = withContext(Dispatchers.Default) { query() } }
+        job = scope.launch {
+            if (settle) delay(SETTLE_MS)
+            apps = withContext(Dispatchers.Default) { query() }
+        }
     }
 
-    private fun query(): List<AppEntry> = (screens() + userManager.userProfiles.flatMap { user ->
-        launcherApps.getActivityList(null, user)
+    // Whatever throws (a profile going away, an app replaced as it is read, a broken icon) is left
+    // out of this query, not fatal to Home; the next package event lists it again.
+    private suspend fun query(): List<AppEntry> = (safely("the settings pages") { screens() }.orEmpty() + userManager.userProfiles.flatMap { user ->
+        safely("$user") { launcherApps.getActivityList(null, user) }.orEmpty()
             .filter { it.componentName.packageName != context.packageName }
-            .map { info ->
-                AppEntry(
-                    key(info.componentName, user),
-                    info.label.toString(),
-                    info.componentName,
-                    user,
-                    system = info.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0,
-                    seed = seedCategory(info.componentName.packageName, info.applicationInfo.category),
-                    installed = info.firstInstallTime,
-                    icon = crisp(info.getIcon(DisplayMetrics.DENSITY_XXXHIGH)),
-                )
+            .mapNotNull { info ->
+                // Cancelled by a newer event: stop before loading icons nobody will see.
+                currentCoroutineContext().ensureActive()
+                safely("${info.componentName}") {
+                    AppEntry(
+                        key(info.componentName, user),
+                        info.label.toString(),
+                        info.componentName,
+                        user,
+                        system = info.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0,
+                        seed = seedCategory(info.componentName.packageName, info.applicationInfo.category),
+                        installed = info.firstInstallTime,
+                        icon = crisp(info.getIcon(DisplayMetrics.DENSITY_XXXHIGH)),
+                    )
+                }
             }
     }).sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+
+    private inline fun <T> safely(what: String, read: () -> T): T? = try {
+        read()
+    } catch (e: Exception) {
+        Log.w(TAG, "Skipping $what", e)
+        null
+    }
 
     /**
      * The [SCREENS] this device has, as apps of the main profile. They start in All apps only
@@ -188,6 +214,10 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
     }
 
     companion object {
+        private const val TAG = "AppCatalog"
+        // Long enough for a burst of package events to arrive, short enough that a new app shows at once.
+        private const val SETTLE_MS = 300L
+
         /** AYN's device settings, on the Portal only inside Android's Settings; a dock default (B7.2). */
         val AYN_SETTINGS = ComponentName("org.lineageos.settings.ayn", "org.lineageos.settings.ayn.AynSettingsActivity")
 
@@ -206,20 +236,33 @@ class Prefs(context: Context) {
     private val sp = context.getSharedPreferences("launcher", Context.MODE_PRIVATE)
 
     /**
+     * What belongs to this Portal, not to the owner's setup. Left out of Setup.PREFS and
+     * data_extraction_rules.xml on purpose (unlike every other preferences file, gotchas.md): a
+     * setup restored on a new Portal, or carried over by Android's transfer, must still ask there
+     * to be Home.
+     */
+    private val device = context.getSharedPreferences("device", Context.MODE_PRIVATE)
+
+    init {
+        // Kept in the setup before it moved to [device]; nothing reads it there now.
+        if (sp.contains(RETIRED)) sp.edit { remove(RETIRED) }
+    }
+
+    /**
      * Favorite keys in carousel order; a newline-joined string keeps the order a set loses.
      * The key keeps the British spelling it was first saved under, so existing favorites stay.
      */
     var favorites: List<String>
-        get() = sp.getString("favourites", "").orEmpty().split('\n').filter { it.isNotEmpty() }
+        get() = sp.text("favourites").orEmpty().split('\n').filter { it.isNotEmpty() }
         set(value) = sp.edit { putString("favourites", value.joinToString("\n")) }
 
     var hidden: Set<String>
-        get() = sp.getStringSet("hidden", emptySet()).orEmpty().toSet()
+        get() = sp.texts("hidden")
         set(value) = sp.edit { putStringSet("hidden", value) }
 
     /** Dock app keys in order; null until the owner first changes the dock, then the defaults apply. */
     var dock: List<String>?
-        get() = sp.getString("dock", null)?.split('\n')?.filter { it.isNotEmpty() }
+        get() = sp.text("dock")?.split('\n')?.filter { it.isNotEmpty() }
         set(value) = sp.edit { if (value == null) remove("dock") else putString("dock", value.joinToString("\n")) }
 
     /**
@@ -228,7 +271,7 @@ class Prefs(context: Context) {
      * under before categories could change, so older one-category lines still read.
      */
     var categories: Map<String, Set<String>>
-        get() = sp.getString("categories", "").orEmpty().split('\n').mapNotNull { line ->
+        get() = sp.text("categories").orEmpty().split('\n').mapNotNull { line ->
             val (key, ids) = line.split('\t').takeIf { it.size == 2 } ?: return@mapNotNull null
             key to if (ids == ALL_APPS_ONLY) emptySet() else ids.split(',').toSet()
         }.toMap()
@@ -242,7 +285,7 @@ class Prefs(context: Context) {
      */
     var categoryList: List<Category>
         get() {
-            val stored = sp.getString("categories.list", null)?.split('\n')?.mapNotNull { line ->
+            val stored = sp.text("categories.list")?.split('\n')?.mapNotNull { line ->
                 line.split('\t').takeIf { it.size == 2 }?.let { (id, label) -> Category(id, label) }
             } ?: return Category.defaults
             return listOf(stored.firstOrNull { it.isFavorites } ?: Category.defaults.first()) + stored.filterNot { it.isFavorites }
@@ -250,17 +293,25 @@ class Prefs(context: Context) {
         set(value) = sp.edit { putString("categories.list", value.joinToString("\n") { "${it.id}\t${it.label}" }) }
 
     /**
-     * When the launcher first sorted the apps into categories. Apps installed before then start in
-     * their category; ones installed after start in All apps only (owner, 2026-10-25), so a new
-     * install never changes Home by itself. Set on the first read.
+     * The apps there when the launcher first sorted them into categories, by key: they start in
+     * their category; an app installed after starts in All apps only (owner, 2026-10-25), so a new
+     * install never changes Home by itself. Null until that first sort (LauncherState). By key,
+     * not by install time, so a reinstall, a restored setup or a new Portal keeps them in place.
      */
-    val sortedAt: Long
-        get() = sp.getLong("apps.sortedAt", 0L).takeIf { it > 0 }
-            ?: System.currentTimeMillis().also { now -> sp.edit { putLong("apps.sortedAt", now) } }
+    var sorted: Set<String>?
+        get() = sp.text(SORTED)?.split('\n')?.filterTo(HashSet()) { it.isNotEmpty() }
+        set(value) = sp.edit {
+            putString(SORTED, value.orEmpty().joinToString("\n"))
+            remove(SORTED_AT)
+        }
+
+    /** Before [sorted], the time of the first sort (0.4 and earlier); read only to move to [sorted]. */
+    val sortedAt: Long?
+        get() = sp.number(SORTED_AT, 0L).takeIf { it > 0 }
 
     var askedForHome: Boolean
-        get() = sp.getBoolean("askedForHome", false)
-        set(value) = sp.edit { putBoolean("askedForHome", value) }
+        get() = device.bool("askedForHome", false)
+        set(value) = device.edit { putBoolean("askedForHome", value) }
 
     /** Settings → Look; anything not stored yet is the default, so an untouched install is unchanged. */
     var look: LookSettings
@@ -268,14 +319,14 @@ class Prefs(context: Context) {
             val d = LookSettings()
             return LookSettings(
                 theme = named("look.theme", d.theme),
-                accent = Accent.of(sp.getString("look.accent", null)) ?: d.accent,
-                backdrop = sp.getString("look.backdrop", null) ?: d.backdrop,
-                covers = sp.getBoolean("look.covers", d.covers),
+                accent = Accent.of(sp.text("look.accent")) ?: d.accent,
+                backdrop = sp.text("look.backdrop") ?: d.backdrop,
+                covers = sp.bool("look.covers", d.covers),
                 effects = Effects(
-                    gradient = sp.getBoolean("look.gradient", d.effects.gradient),
-                    glow = sp.getBoolean("look.glow", d.effects.glow),
-                    depth = sp.getBoolean("look.depth", d.effects.depth),
-                    reflection = sp.getBoolean("look.reflection", d.effects.reflection),
+                    gradient = sp.bool("look.gradient", d.effects.gradient),
+                    glow = sp.bool("look.glow", d.effects.glow),
+                    depth = sp.bool("look.depth", d.effects.depth),
+                    reflection = sp.bool("look.reflection", d.effects.reflection),
                 ),
                 pulse = named("look.pulse", d.pulse),
                 name = named("look.name", d.name),
@@ -300,11 +351,11 @@ class Prefs(context: Context) {
             val d = HomeSettings()
             return HomeSettings(
                 clock = named("home.clock", d.clock),
-                batteryPercent = sp.getBoolean("home.batteryPercent", d.batteryPercent),
-                hints = sp.getBoolean("home.hints", d.hints),
-                wraps = sp.getBoolean("home.wraps", d.wraps),
+                batteryPercent = sp.bool("home.batteryPercent", d.batteryPercent),
+                hints = sp.bool("home.hints", d.hints),
+                wraps = sp.bool("home.wraps", d.wraps),
                 start = named("home.start", d.start),
-                playControls = sp.getBoolean("home.playControls", d.playControls),
+                playControls = sp.bool("home.playControls", d.playControls),
             )
         }
         set(value) = sp.edit {
@@ -318,17 +369,17 @@ class Prefs(context: Context) {
 
     /** The id of the category Home was last on, for Start on → Where you left after a restart. */
     var lastCategory: String?
-        get() = sp.getString("home.category", null)
+        get() = sp.text("home.category")
         set(value) = sp.edit { putString("home.category", value) }
 
     /** The owner turned standby's service on and not off since, so the launcher puts it back if Android turns it off. */
     var homeHoldWanted: Boolean
-        get() = sp.getBoolean("home.holdWanted", false)
+        get() = sp.bool("home.holdWanted", false)
         set(value) = sp.edit { putBoolean("home.holdWanted", value) }
 
     /** Settings → Art: look art up without being asked; off, the launcher uses the network only from Art…. */
     var fetchArt: Boolean
-        get() = sp.getBoolean("art.fetch", true)
+        get() = sp.bool("art.fetch", true)
         set(value) = sp.edit { putBoolean("art.fetch", value) }
 
     /** Settings → Sound, stored the same way as [look]. */
@@ -336,7 +387,7 @@ class Prefs(context: Context) {
         get() {
             val d = SoundSettings()
             return SoundSettings(
-                on = sp.getBoolean("sound.on", d.on),
+                on = sp.bool("sound.on", d.on),
                 family = named("sound.family", d.family),
                 level = named("sound.level", d.level),
             )
@@ -349,15 +400,57 @@ class Prefs(context: Context) {
 
     /** Settings → Art: the owner's own SteamGridDB key, or null until one is given. */
     var artKey: String?
-        get() = sp.getString("art.key", null)
+        get() = sp.text("art.key")
         set(value) = sp.edit { putString("art.key", value) }
 
-    private companion object {
-        const val ALL_APPS_ONLY = "-"
+    companion object {
+        private const val ALL_APPS_ONLY = "-"
+        private const val SORTED = "apps.sorted"
+        private const val SORTED_AT = "apps.sortedAt"
+        private const val RETIRED = "askedForHome"
+        private val SWITCHES = setOf(
+            "look.covers", "look.gradient", "look.glow", "look.depth", "look.reflection",
+            "home.batteryPercent", "home.hints", "home.wraps", "home.playControls", "home.holdWanted",
+            "art.fetch", "sound.on",
+        )
+        private val TEXTS = setOf(
+            "favourites", "dock", "categories", "categories.list", SORTED,
+            "look.theme", "look.backdrop", "look.pulse", "look.name",
+            "home.clock", "home.start", "home.category", "sound.family", "sound.level", "art.key",
+        )
+
+        /**
+         * Whether [value] is what the launcher reads [key] as, or null for a key it doesn't read.
+         * Restore setup drops a value that doesn't fit: a hand-edited or foreign file would
+         * otherwise crash Home at every start. A new key goes in here too.
+         */
+        fun fits(key: String, value: Any): Boolean? = when (key) {
+            in SWITCHES -> value is Boolean
+            in TEXTS -> value is String
+            "look.accent" -> value is String && Accent.of(value) != null
+            "hidden" -> value is Set<*>
+            SORTED_AT -> value is Long
+            RETIRED -> false
+            else -> null
+        }
     }
 
     private inline fun <reified E : Enum<E>> named(key: String, default: E): E =
-        sp.getString(key, null)?.let { name -> enumValues<E>().firstOrNull { it.name == name } } ?: default
+        sp.text(key)?.let { name -> enumValues<E>().firstOrNull { it.name == name } } ?: default
+
+    // A value of another type than the one asked for (a hand-edited setup file) reads as the
+    // default: SharedPreferences throws on it, and these are read as Home starts.
+    private fun SharedPreferences.text(key: String): String? =
+        try { getString(key, null) } catch (e: ClassCastException) { null }
+
+    private fun SharedPreferences.texts(key: String): Set<String> =
+        try { getStringSet(key, null).orEmpty().toSet() } catch (e: ClassCastException) { emptySet() }
+
+    private fun SharedPreferences.bool(key: String, default: Boolean): Boolean =
+        try { getBoolean(key, default) } catch (e: ClassCastException) { default }
+
+    private fun SharedPreferences.number(key: String, default: Long): Long =
+        try { getLong(key, default) } catch (e: ClassCastException) { default }
 }
 
 /** A settings page listed as an app ([AppCatalog.SCREENS]). */
