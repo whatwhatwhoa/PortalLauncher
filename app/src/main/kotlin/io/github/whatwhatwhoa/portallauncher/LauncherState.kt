@@ -127,6 +127,8 @@ class LauncherState(
     private val setup: Setup? = null,
     /** Opens Android's file picker for a setup file; the reply is the chosen file, or null. */
     private val pickSetup: ((Uri?) -> Unit) -> Unit = {},
+    /** Why a request failed (offline, or Portal's network blocked); null says offline. */
+    private val connectivity: Connectivity? = null,
 ) {
     /** The quick panel (Square on Home and All apps), over everything but the settings. */
     var quickOpen by mutableStateOf(false)
@@ -271,7 +273,19 @@ class LauncherState(
     private var hidden by mutableStateOf(prefs.hidden)
     private var dockKeys by mutableStateOf(prefs.dock)
     private var categoryMoves by mutableStateOf(prefs.categories)
+    /** The apps there at the first sort ([Prefs.sorted]), which start in their category; null until it. */
+    private var sortedKeys by mutableStateOf(prefs.sorted)
+    // The first sort as a time, from before it was kept by key: read once, to move to [sortedKeys].
     private val sortedAt = prefs.sortedAt
+    // The catalog's last answer, so [settle] follows a key only to an activity that has just
+    // appeared; null until the first answer since the launcher started.
+    private var lastKeys: Set<String>? = null
+
+    init {
+        // Every answer of the catalog; the first one is the first sort (an empty list is no answer yet).
+        scope.launch { snapshotFlow { catalog.apps }.collect { if (it.isNotEmpty()) settle(it) } }
+    }
+
     var showHidden by mutableStateOf(false)
         private set
 
@@ -330,6 +344,13 @@ class LauncherState(
     /** The Hold Home row has opened Android's page since the launcher started, so a still-gray switch was seen. */
     var homeHoldTried by mutableStateOf(false)
         private set
+    /** The row's last A opened App info (to allow restricted settings), so its next A opens the switch. */
+    var homeHoldInfoShown by mutableStateOf(false)
+        private set
+    // Restricted settings allowed, as far as this run can tell: App info was opened for it, or the
+    // switch was seen on. The Portal can't read the op, so without it a cancelled switch would say
+    // Restricted again and A would open App info, whose ⋮ no longer offers it.
+    private var homeHoldAllowed = false
     // The note that standby went off shows once per start of the launcher, not at every Home press.
     private var offNoteShown = false
     /** What the Updates row says: the check's answer, then the download and install. */
@@ -444,7 +465,58 @@ class LauncherState(
     fun isIn(app: AppEntry, place: Category?) = if (place == null) categoriesOf(app).isEmpty() else place in categoriesOf(app)
 
     /** The app's seed if it was there when the launcher first sorted the apps, else All apps only. */
-    private fun startOf(app: AppEntry): String? = app.seed?.takeIf { app.installed <= sortedAt }
+    private fun startOf(app: AppEntry): String? = app.seed?.takeIf { wasSorted(app) }
+
+    // Until the first sort is kept, it is the apps there now; before it was kept by key, by time.
+    private fun wasSorted(app: AppEntry) = sortedKeys?.let { app.key in it } ?: sortedAt?.let { app.installed <= it } ?: true
+
+    /**
+     * Each answer of the catalog. The first one ever keeps the first sort ([Prefs.sorted]). Every
+     * one follows an app whose launcher activity changed (an icon switched between activity
+     * aliases, an update that renamed its main activity): a stored key whose activity is gone,
+     * while its app has exactly one now and that one has just appeared, becomes that one's, so
+     * the app keeps its places.
+     */
+    private fun settle(apps: List<AppEntry>) {
+        // A first-sort time that no app fits, not even Android's own, came with a backup of
+        // another Portal: this one sorts its apps afresh.
+        if (sortedKeys == null) saveSorted(apps.filter(::wasSorted).ifEmpty { apps }.mapTo(HashSet()) { it.key })
+        val present = apps.mapTo(HashSet()) { it.key }
+        val stored = (favorites + dockKeys.orEmpty() + categoryMoves.keys + sortedKeys.orEmpty()).toSet()
+        // Only onto an activity new since the last answer: one left out of a single answer (its
+        // icon failed mid-update) would otherwise pull its sibling's places onto the other. At a
+        // start there is no last answer, so only onto one with no places of its own.
+        val before = lastKeys
+        lastKeys = present
+        fun fresh(key: String) = if (before != null) key !in before else key !in stored && key !in hidden
+        // A settings page shares its package with an app (Android's Settings) and comes and goes
+        // with what the device resolves, so it is never followed. Nor is a hidden app: its new
+        // activity starts as a new app does, so it never vanishes from All apps by itself.
+        val byApp = apps.filter { it.action == null }.groupBy { appOf(it.key) }
+        val moved = stored
+            .filter { it !in present && it !in hidden && !isScreen(it) }
+            .mapNotNull { old -> byApp[appOf(old)]?.singleOrNull()?.key?.takeIf(::fresh)?.let { old to it } }
+            .toMap()
+        if (moved.isEmpty()) return
+        Log.i(TAG, "Following moved activities: $moved")
+        fun latest(key: String) = moved[key] ?: key
+        if (favorites.any { it in moved }) saveFavorites(favorites.map(::latest).distinct())
+        dockKeys?.takeIf { keys -> keys.any { it in moved } }?.let { saveDock(it.map(::latest).distinct()) }
+        if (categoryMoves.keys.any { it in moved }) {
+            // The new activity's own choice, if it has one, wins over the old one's.
+            val moves = categoryMoves.filterKeys { it !in moved }.toMutableMap()
+            categoryMoves.forEach { (key, ids) -> moved[key]?.let { moves.putIfAbsent(it, ids) } }
+            categoryMoves = moves
+            prefs.categories = moves
+        }
+        sortedKeys?.takeIf { keys -> keys.any { it in moved } }?.let { saveSorted(it.mapTo(HashSet(), ::latest)) }
+    }
+
+    /** The app a key belongs to, whatever its activity: its package and user ("pkg/activity#user"). */
+    private fun appOf(key: String) = key.substringBefore('/') + "#" + key.substringAfterLast('#')
+
+    /** Whether the key is one of the settings pages listed as apps ([AppCatalog.SCREENS]), there now or not. */
+    private fun isScreen(key: String) = AppCatalog.SCREENS.any { key.substringBeforeLast('#') == it.component.flattenToString() }
 
     /**
      * Favorites in the owner's order; Recent what the launcher opened, latest first; any other
@@ -945,10 +1017,18 @@ class LauncherState(
                         homeHold = sw.on
                         prefs.homeHoldWanted = homeHold
                     }
-                    // App info's ⋮ menu offers Allow restricted settings only after the switch was tried.
-                    !homeHold && homeHoldTried && homeHoldRestricted -> openSystem(sw.appInfo())
+                    // App info's ⋮ menu offers Allow restricted settings only after the switch was
+                    // tried. Whether it was allowed can't be read on the Portal (gotchas.md), so
+                    // after App info every A opens the switch, never App info twice.
+                    !homeHold && homeHoldTried && homeHoldRestricted && !homeHoldInfoShown -> {
+                        homeHoldInfoShown = true
+                        homeHoldAllowed = true
+                        homeHoldRestricted = false
+                        openSystem(sw.appInfo())
+                    }
                     else -> {
                         homeHoldTried = true
+                        homeHoldInfoShown = false
                         openSystem(sw.page())
                     }
                 }
@@ -989,15 +1069,20 @@ class LauncherState(
         }
     }
 
-    /** From the options sheet (Triangle) or Android's launcher-settings gear (MainActivity). */
-    fun openSettings() {
+    /**
+     * From the options sheet (Triangle) or Android's launcher-settings gear (MainActivity), on the
+     * categories at Look; from a page that needs one row (Art… without a key), on [at].
+     */
+    fun openSettings(at: Setting? = null) {
         // Android's gear can come mid-rename; a field left open under the panel kept the keys.
         if (categoryEdit == CategoryEdit.Renaming) finishRename()
         wallpapers = findWallpapers()
         closeSheet()
-        groupIndex = 0
-        settingsIndex = 0
-        settingsInRows = false
+        // -1: no row asked for, or one the panel doesn't have (the Art group needs art).
+        val group = at?.let { settingGroups.indexOf(it.group) } ?: -1
+        groupIndex = group.coerceAtLeast(0)
+        settingsIndex = if (at != null && group >= 0) groupSettings.indexOf(at) else 0
+        settingsInRows = group >= 0
         armed = null
         accentOpen = false
         saveNote = null
@@ -1040,7 +1125,8 @@ class LauncherState(
                 homeHold = sw.on
             }
         }
-        homeHoldRestricted = !homeHold && sw.restricted
+        if (homeHold) homeHoldAllowed = true
+        homeHoldRestricted = !homeHold && !homeHoldAllowed && sw.restricted
     }
 
     private fun checkUpdate() {
@@ -1058,7 +1144,7 @@ class LauncherState(
                 }
             } catch (e: Exception) {
                 updateCheckedAt = 0L
-                "Offline, try again"
+                failure(e)
             }
         }
     }
@@ -1086,20 +1172,27 @@ class LauncherState(
                 // Android ends this process when the update is in; the note stays meanwhile.
                 if (refusal == null) updates.install(apk)
             } catch (e: Exception) {
-                updateNote = "Offline, try again"
+                updateNote = failure(e)
             }
         }
     }
 
+    // On another thread: it asks Android about the networks, which may block.
+    private suspend fun failure(e: Exception) =
+        connectivity?.let { withContext(Dispatchers.IO) { it.failure(e) } } ?: Connectivity.OFFLINE
+
     /**
-     * The key from the clipboard: copied on SteamGridDB's site (Preferences → API), A here. It is
-     * kept only once SteamGridDB accepts it, and then the art is looked up.
+     * The key from the clipboard: copied on SteamGridDB's site (Preferences → API), A here. With
+     * none copied, A opens that page in the browser. It is kept only once SteamGridDB accepts it,
+     * and then the art is looked up.
      */
     private fun takeKey() {
         val art = art ?: return
-        val candidate = readClipboard()?.trim().orEmpty()
-        if (!KEY_SHAPE.matches(candidate)) {
-            keyNote = "Copy your key first"
+        // Anywhere in what was copied: a selection on a page often brings a label or spaces along.
+        val candidate = readClipboard()?.let { KEY_SHAPE.find(it)?.value }
+        if (candidate == null) {
+            keyNote = "Copy your key, then A"
+            openSystem(Intent(Intent.ACTION_VIEW, KEY_PAGE.toUri()))
             return
         }
         keyNote = "Checking…"
@@ -1113,7 +1206,7 @@ class LauncherState(
                     "Not accepted"
                 }
             } catch (e: Exception) {
-                "Offline, try again"
+                failure(e)
             }
         }
     }
@@ -1628,7 +1721,7 @@ class LauncherState(
             return
         }
         if (option == Option.Art) {
-            art?.let { picker = ArtPicker(app, it, scope, pickImage) }
+            art?.let { picker = ArtPicker(app, it, scope, pickImage) { openSettings(Setting.ArtKey) } }
             return
         }
         if (option == Option.ChangeCategory) {
@@ -1640,9 +1733,9 @@ class LauncherState(
         when (option) {
             Option.Move -> moving = sheet.origin
             Option.Favorite, Option.Unfavorite -> toggleFavorite(app)
-            Option.AddToDock -> saveDock(dock.map { it.key } + app.key)
+            Option.AddToDock -> saveDock(dockBase + app.key)
             Option.MoveInDock -> moveInDock(app)
-            Option.RemoveFromDock -> saveDock(dock.map { it.key } - app.key)
+            Option.RemoveFromDock -> saveDock(dockBase - app.key)
             Option.DockFull -> Unit
             Option.Hide -> hide(app)
             Option.Unhide -> saveHidden(hidden - app.key)
@@ -1681,28 +1774,38 @@ class LauncherState(
         prefs.categories = moves
     }
 
-    /** Swaps the moving tile with its neighbor; focus follows it. */
+    /**
+     * Swaps the moving tile with its neighbor; focus follows it. The two swap places in the stored
+     * list, so an app between them that isn't installed right now keeps its place for its return.
+     */
     private fun shift(by: Int) {
         when (moving) {
             Origin.Row -> {
-                val keys = row.map { it.key }.toMutableList()
                 val i = rowFocus
-                if (i + by !in keys.indices) return
-                keys.add(i + by, keys.removeAt(i))
-                saveFavorites(keys)
+                val a = row.getOrNull(i)?.key ?: return
+                val b = row.getOrNull(i + by)?.key ?: return
+                saveFavorites(favorites.map { swapped(it, a, b) })
                 rowIndex = i + by
             }
             Origin.Dock -> {
-                val keys = dock.map { it.key }.toMutableList()
                 val i = dockFocus - 1
-                if (i !in keys.indices || i + by !in keys.indices) return
-                keys.add(i + by, keys.removeAt(i))
-                saveDock(keys)
+                val a = dock.getOrNull(i)?.key ?: return
+                val b = dock.getOrNull(i + by)?.key ?: return
+                saveDock(dockBase.map { swapped(it, a, b) })
                 dockIndex = i + by + 1
             }
             Origin.Drawer, null -> Unit
         }
     }
+
+    private fun swapped(key: String, a: String, b: String) = when (key) {
+        a -> b
+        b -> a
+        else -> key
+    }
+
+    /** The dock as stored, apps not installed right now included; until the first change, the defaults. */
+    private val dockBase get() = dockKeys ?: dock.map { it.key }
 
     /** From the row or All apps: Home, focus on the app's dock button, picked up as Move does. */
     private fun moveInDock(app: AppEntry) {
@@ -1718,7 +1821,7 @@ class LauncherState(
     private fun hide(app: AppEntry) {
         saveHidden(hidden + app.key)
         if (app.key in favorites) saveFavorites(favorites - app.key)
-        if (dock.any { it.key == app.key }) saveDock(dock.map { it.key } - app.key)
+        if (app.key in dockBase) saveDock(dockBase - app.key)
     }
 
     /** Labels are sorted, so a letter's apps are adjacent; anything not starting with a letter is #. */
@@ -1767,6 +1870,11 @@ class LauncherState(
         prefs.hidden = keys
     }
 
+    private fun saveSorted(keys: Set<String>) {
+        sortedKeys = keys
+        prefs.sorted = keys
+    }
+
     private companion object {
         const val DOCK_MAX = 6
         // Recent keeps more than it shows, so apps left out (hidden, docked) don't empty the row.
@@ -1784,7 +1892,10 @@ class LauncherState(
         const val OFF_NOTE_SHOWN = 4000L
         val WALLPAPER_TYPES = setOf("jpg", "jpeg", "png", "webp")
         // SteamGridDB's API keys are 32 hex digits.
-        val KEY_SHAPE = Regex("[0-9a-fA-F]{32}")
+        val KEY_SHAPE = Regex("(?<![0-9a-fA-F])[0-9a-fA-F]{32}(?![0-9a-fA-F])")
+        // Where a SteamGridDB account makes and shows its key (sign-in with Steam first).
+        const val KEY_PAGE = "https://www.steamgriddb.com/profile/preferences/api"
+        const val TAG = "LauncherState"
         /** How long a check holds before the panel asks GitHub again. */
         const val UPDATE_CHECK_MS = 10 * 60_000L
     }

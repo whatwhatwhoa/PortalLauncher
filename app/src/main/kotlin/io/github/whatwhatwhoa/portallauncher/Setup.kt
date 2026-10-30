@@ -14,7 +14,6 @@ import android.util.Log
 import android.util.JsonReader
 import android.util.JsonToken
 import android.util.JsonWriter
-import androidx.core.content.edit
 import java.io.File
 import java.io.IOException
 import java.time.Instant
@@ -115,25 +114,45 @@ class Setup(private val context: Context) {
             return if (format > FORMAT) "Saved by a newer Portal" else "Not a Portal setup"
         }
 
-        for (name in PREFS) {
-            val sp = prefs(name)
-            val kept = if (name == LAUNCHER) sp.all.filterKeys { it in PRIVATE } else emptyMap()
-            // Committed, not applied: the process ends right after.
-            sp.edit(commit = true) {
-                clear()
-                (maps[name].orEmpty().filterKeys { name != LAUNCHER || it !in PRIVATE } + kept).forEach { (key, value) ->
-                    value?.let { putValue(key, it) }
-                }
+        try {
+            // The files first: on a full disk the setup is still the one there was.
+            val copied = staging.walkTopDown().filter { it.isFile }.mapTo(HashSet()) { file ->
+                File(context.filesDir, file.relativeTo(staging).path).apply { parentFile?.mkdirs() }
+                    .also { file.copyTo(it, overwrite = true) }
             }
+            for (name in PREFS) {
+                val sp = prefs(name)
+                val now = sp.all
+                val kept = if (name == LAUNCHER) now.filterKeys { it in PRIVATE } else emptyMap()
+                val restored = maps[name].orEmpty().filter { (key, value) ->
+                    (name != LAUNCHER || key !in PRIVATE) && fits(name, key, value, now[key])
+                }
+                (maps[name].orEmpty().keys - restored.keys).takeIf { it.isNotEmpty() }?.let { Log.w(TAG, "Dropped from $name: $it") }
+                // Committed, not applied: the process ends right after.
+                val editor = sp.edit().clear()
+                (restored + kept).forEach { (key, value) -> value?.let { editor.putValue(key, it) } }
+                if (!editor.commit()) throw IOException("Couldn't write $name")
+            }
+            // Downloaded art is fetched again for the restored choices; the file brought the rest.
+            File(context.filesDir, "art").listFiles()?.filterNot { it in copied }?.forEach { it.delete() }
+        } catch (e: Exception) {
+            Log.w(TAG, "Restoring $uri failed", e)
+            return "Couldn't restore"
+        } finally {
+            staging.deleteRecursively()
         }
-        // Downloaded art is fetched again for the restored choices; the file brings the rest.
-        File(context.filesDir, "art").listFiles()?.forEach { it.delete() }
-        staging.walkTopDown().filter { it.isFile }.forEach { file ->
-            val to = File(context.filesDir, file.relativeTo(staging).path).apply { parentFile?.mkdirs() }
-            file.copyTo(to, overwrite = true)
-        }
-        staging.deleteRecursively()
         return null
+    }
+
+    /**
+     * Whether a value from the file is of the type the launcher reads its key as ([Prefs.fits]):
+     * one that isn't, from a file edited by hand or by another tool, would crash Home at every
+     * start. A key this version doesn't read must match the type it has now, if it has one; art,
+     * picks and scenes hold text only.
+     */
+    private fun fits(name: String, key: String, value: Any, now: Any?): Boolean {
+        if (name != LAUNCHER) return value is String
+        return Prefs.fits(key, value) ?: (now == null || now.javaClass == value.javaClass || (now is Set<*> && value is Set<*>))
     }
 
     /**
@@ -233,7 +252,10 @@ class Setup(private val context: Context) {
         /** Raised when the file changes in a way an older launcher would misread. */
         private const val FORMAT = 1
         private const val LAUNCHER = "launcher"
-        /** Prefs (Prefs, Art) that make up the setup; Art's "art" holds the game each app matched. */
+        /**
+         * Prefs (Prefs, Art) that make up the setup; Art's "art" holds the game each app matched.
+         * Prefs' "device" stays out on purpose: it is this Portal's, not the owner's setup.
+         */
         private val PREFS = listOf(LAUNCHER, "art", "picks", "scenes")
         /** The SteamGridDB key is the owner's own; a restore keeps whatever key is set now. */
         private val PRIVATE = setOf("art.key")

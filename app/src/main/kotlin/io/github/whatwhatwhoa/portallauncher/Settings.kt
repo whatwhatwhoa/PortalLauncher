@@ -140,8 +140,14 @@ private fun LauncherState.shown(setting: Setting): String {
         // The category itself: Favorites only while it has apps and keeps that name.
         Setting.Start -> if (home.start == StartOn.Favorites) startCategory.label else home.start.label
         Setting.PlayControls -> onOff(home.playControls)
-        // Grayed out by Android: the next A opens App info, where ⋮ allows it (README *Standby*).
-        Setting.HomeHold -> if (!homeHold && homeHoldTried && homeHoldRestricted) "Restricted: A, then ⋮ → Allow" else onOff(homeHold)
+        // Grayed out by Android: the next A opens App info, where ⋮ allows it (README *Standby*);
+        // back from there it asks, and from then on A opens the switch and the row never says Restricted.
+        Setting.HomeHold -> when {
+            homeHold -> onOff(true)
+            homeHoldInfoShown -> "Allowed? A: switch it on"
+            homeHoldTried && homeHoldRestricted -> "Restricted: A, then ⋮ → Allow"
+            else -> onOff(false)
+        }
         Setting.SoundsOn -> onOff(sound.on)
         Setting.SoundSet -> sound.family.label
         Setting.SoundVolume -> sound.level.label
