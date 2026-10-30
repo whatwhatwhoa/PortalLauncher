@@ -280,12 +280,15 @@ class MainActivity : ComponentActivity() {
     /**
      * The app's window is revealed out of its tile: a clip that grows from the tile's rect to the
      * full screen, so the tile seems to open. Edge to edge, window pixels are screen pixels.
+     * False when it couldn't start, so Home neither sounds nor keeps it.
      */
-    private fun launch(entry: AppEntry, from: Rect?) {
+    private fun launch(entry: AppEntry, from: Rect?): Boolean {
         val options = from?.takeIf { motion }?.let {
             ActivityOptions.makeClipRevealAnimation(window.decorView, it.left, it.top, it.width(), it.height()).toBundle()
         }
-        if (!catalog.launch(entry, from, options)) Toast.makeText(this, "Couldn't open ${entry.label}", Toast.LENGTH_SHORT).show()
+        val launched = catalog.launch(entry, from, options)
+        if (!launched) Toast.makeText(this, "Couldn't open ${entry.label}", Toast.LENGTH_SHORT).show()
+        return launched
     }
 
     private fun hideSystemBars() {

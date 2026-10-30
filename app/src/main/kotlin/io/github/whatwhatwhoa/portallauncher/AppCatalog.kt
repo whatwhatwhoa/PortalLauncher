@@ -237,7 +237,7 @@ class Prefs(context: Context) {
         }
 
     /**
-     * Home's categories in the owner's order, one "id<TAB>name" per line; the built-in five until
+     * Home's categories in the owner's order, one "id<TAB>name" per line; the built-in ones until
      * they change them. Favorites always comes first, whatever was stored.
      */
     var categoryList: List<Category>
@@ -248,6 +248,16 @@ class Prefs(context: Context) {
             return listOf(stored.firstOrNull { it.isFavorites } ?: Category.defaults.first()) + stored.filterNot { it.isFavorites }
         }
         set(value) = sp.edit { putString("categories.list", value.joinToString("\n") { "${it.id}\t${it.label}" }) }
+
+    /** Recent has been put in [categoryList] once, so a Recent the owner deleted stays deleted. */
+    var recentAdded: Boolean
+        get() = sp.getBoolean("categories.recentAdded", false)
+        set(value) = sp.edit { putBoolean("categories.recentAdded", value) }
+
+    /** Recent's app keys (F11), what the launcher opened, latest first; joined as [favorites] are. */
+    var recent: List<String>
+        get() = sp.getString("recent", "").orEmpty().split('\n').filter { it.isNotEmpty() }
+        set(value) = sp.edit { putString("recent", value.joinToString("\n")) }
 
     /**
      * When the launcher first sorted the apps into categories. Apps installed before then start in
@@ -320,6 +330,11 @@ class Prefs(context: Context) {
     var lastCategory: String?
         get() = sp.getString("home.category", null)
         set(value) = sp.edit { putString("home.category", value) }
+
+    /** Where Home was when an app last opened from it, and in which boot ([HomePlace]). */
+    var place: HomePlace?
+        get() = sp.getString("home.place", null)?.let(HomePlace::parse)
+        set(value) = sp.edit { if (value == null) remove("home.place") else putString("home.place", value.stored) }
 
     /** The owner turned standby's service on and not off since, so the launcher puts it back if Android turns it off. */
     var homeHoldWanted: Boolean

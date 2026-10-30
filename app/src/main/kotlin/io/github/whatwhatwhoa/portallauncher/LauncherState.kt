@@ -3,6 +3,7 @@ package io.github.whatwhatwhoa.portallauncher
 import android.content.Intent
 import android.graphics.Rect
 import android.net.Uri
+import android.os.SystemClock
 import android.util.Log
 import android.view.KeyEvent
 import androidx.compose.runtime.derivedStateOf
@@ -10,14 +11,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 enum class Screen { Home, Drawer }
@@ -51,6 +55,35 @@ enum class Option(val label: String, val enabled: Boolean = true) {
 class Sheet(val app: AppEntry, val origin: Origin, val options: List<Option>)
 
 /**
+ * Where Home was when an app last opened from it (F5): the category, the row's focused app, the
+ * zone and the dock's focus, with the boot it happened in. Android may end the launcher while
+ * the app runs, or rebuild it; started again in the same boot, Home goes back there.
+ */
+class HomePlace(val category: String, val app: String?, val zone: Zone, val dock: Int, val boot: Long) {
+    // The boot's wall-clock instant moves only with a clock change, so a few seconds' slack.
+    val sameBoot get() = abs(boot - bootInstant()) < SAME_BOOT
+
+    val stored get() = listOf(category, app.orEmpty(), zone.name, dock, boot).joinToString("\t")
+
+    companion object {
+        private const val SAME_BOOT = 5_000L
+
+        fun bootInstant() = System.currentTimeMillis() - SystemClock.elapsedRealtime()
+
+        fun parse(stored: String): HomePlace? {
+            val (category, app, zone, dock, boot) = stored.split('\t').takeIf { it.size == 5 } ?: return null
+            return HomePlace(
+                category,
+                app.ifEmpty { null },
+                Zone.entries.firstOrNull { it.name == zone } ?: Zone.Row,
+                dock.toIntOrNull() ?: 0,
+                boot.toLongOrNull() ?: return null,
+            )
+        }
+    }
+}
+
+/**
  * All focus and navigation. Focus is our own index state, not Compose focus: a lazy row can't
  * focus tiles that aren't composed, and a console row pivots instead of moving to the nearest.
  */
@@ -60,8 +93,11 @@ class LauncherState(
     /** The app's art; its SteamGridDB lookups wait for a key ([Art.hasKey]), gallery images don't. */
     val art: Art?,
     private val scope: CoroutineScope,
-    /** Opens an app; the rect is where its tile is on screen, for the launch animation. */
-    private val launch: (AppEntry, Rect?) -> Unit,
+    /**
+     * Opens an app; the rect is where its tile is on screen, for the launch animation. False when
+     * it couldn't (MainActivity says so).
+     */
+    private val launch: (AppEntry, Rect?) -> Boolean,
     /** Opens Android's photo picker; the reply is the chosen image, or null. */
     private val pickImage: ((Uri?) -> Unit) -> Unit,
     /** Where the owner's wallpaper files are (`files/backdrops`); each is a backdrop choice. */
@@ -120,10 +156,13 @@ class LauncherState(
         }
     var screen by mutableStateOf(Screen.Home)
         private set
-    var zone by mutableStateOf(Zone.Row)
+    // Home's place at the last launch, when the launcher was ended or rebuilt since in this boot;
+    // the row's app is found once the catalog lists it (the init after [row]).
+    private val restored = prefs.place?.takeIf { it.sameBoot }
+    var zone by mutableStateOf(restored?.zone ?: Zone.Row)
         private set
     private var rowIndex by mutableIntStateOf(0)
-    private var dockIndex by mutableIntStateOf(0)
+    private var dockIndex by mutableIntStateOf(restored?.dock ?: 0)
     private var drawerIndex by mutableIntStateOf(0)
 
     /** All apps' search, typed on the letter strip; empty shows every app. */
@@ -164,13 +203,28 @@ class LauncherState(
     var categoriesOpen by mutableStateOf(false)
         private set
     private var categoryIndex by mutableIntStateOf(0)
-    /** Home's category, by id, so a rename keeps it. */
+    /**
+     * Home's category, by id, so a rename keeps it. A restart in the same boot goes back to where
+     * the last app opened from, whatever Home key goes to says; after a reboot, Where you left
+     * reopens the last one.
+     */
     private var currentCategory by mutableStateOf(
-        prefs.lastCategory.takeIf { prefs.home.start == StartOn.Left } ?: Category.FAVORITES,
+        restored?.category ?: prefs.lastCategory.takeIf { prefs.home.start == StartOn.Left } ?: Category.FAVORITES,
     )
     /** Every category, the empty ones too, in the owner's order: the layer's names. */
-    var categoryList by mutableStateOf(prefs.categoryList)
+    var categoryList by mutableStateOf(withRecent(prefs.categoryList))
         private set
+
+    /**
+     * Recent goes in after Favorites once, on an install from before it (F11); from then on the
+     * owner's list stands, so a deleted Recent stays deleted and a moved one where it was put.
+     */
+    private fun withRecent(list: List<Category>): List<Category> {
+        if (prefs.recentAdded) return list
+        prefs.recentAdded = true
+        if (list.any { it.isRecent }) return list
+        return (list.take(1) + Category(Category.RECENT, Category.RECENT) + list.drop(1)).also { prefs.categoryList = it }
+    }
 
     /**
      * The layer's edit mode (Triangle in it): every category, the empty ones too, and New category after
@@ -191,6 +245,7 @@ class LauncherState(
     private var addingCategory = false
 
     private var favorites by mutableStateOf(prefs.favorites)
+    private var recent by mutableStateOf(prefs.recent)
     private var hidden by mutableStateOf(prefs.hidden)
     private var dockKeys by mutableStateOf(prefs.dock)
     private var categoryMoves by mutableStateOf(prefs.categories)
@@ -288,9 +343,35 @@ class LauncherState(
         placed["$origin/${entry.key}"] = bounds
     }
 
+    // Only a start that worked sounds, goes in Recent and is kept as Home's place; a failed one
+    // has its toast and a bump.
     private fun launchFrom(origin: Origin, entry: AppEntry) {
+        if (!launch(entry, placed["$origin/${entry.key}"])) {
+            sounds?.play(Sound.Edge)
+            return
+        }
         sounds?.play(Sound.Launch)
-        launch(entry, placed["$origin/${entry.key}"])
+        val shown = category
+        played(entry)
+        // With Favorites empty Home shows the first category with apps; Recent filling up mustn't
+        // take the row over.
+        if (category.id != shown.id) currentCategory = shown.id
+        // On Recent the app just opened is first now; focus goes with it, so it is there on coming back.
+        if (category.isRecent && row.firstOrNull()?.key == entry.key) rowIndex = 0
+        prefs.place = HomePlace(category.id, row.getOrNull(rowFocus)?.key, zone, dockFocus, HomePlace.bootInstant())
+    }
+
+    /**
+     * An app opened from the launcher goes first in Recent, the list kept to [RECENT_KEPT]. The
+     * dock's utilities (Settings, Files, the browser) and Android's settings pages never show
+     * there, docked or not, so they aren't kept; it is written only when the first app changes.
+     */
+    private fun played(entry: AppEntry) {
+        val pkg = entry.component.packageName
+        if (entry.action != null || catalog.dockApps(catalog.apps).any { it.component.packageName == pkg }) return
+        if (recent.firstOrNull() == entry.key) return
+        recent = (listOf(entry.key) + (recent - entry.key)).take(RECENT_KEPT)
+        prefs.recent = recent
     }
 
     private val byKey by derivedStateOf { catalog.apps.associateBy { it.key } }
@@ -304,12 +385,13 @@ class LauncherState(
     val hiddenCount by derivedStateOf { catalog.apps.count { it.key in hidden } }
 
     /**
-     * Apps whose art is looked up without asking: the owner's favorites and the Games category,
-     * whatever it is called now; once deleted, favorites only. A favorite that is one of
-     * Android's own apps waits for Art… unless it is in Games.
+     * Apps whose art is looked up without asking: the owner's favorites, Recent's apps and the
+     * Games category, whatever they are called now; a deleted one adds none. A favorite or recent
+     * app that is one of Android's own waits for Art… unless it is in Games.
      */
     val artWanted: List<AppEntry> by derivedStateOf {
-        favorites.mapNotNull { byKey[it] }.filterNot { isPlatformApp(it.component.packageName) } +
+        (favorites.mapNotNull { byKey[it] } + byId(Category.RECENT)?.let(::appsIn).orEmpty())
+            .filterNot { isPlatformApp(it.component.packageName) } +
             byId(Category.GAMES)?.let(::appsIn).orEmpty()
     }
 
@@ -339,21 +421,32 @@ class LauncherState(
     /** The app's seed if it was there when the launcher first sorted the apps, else All apps only. */
     private fun startOf(app: AppEntry): String? = app.seed?.takeIf { app.installed <= sortedAt }
 
-    /** Favorites in the owner's order; any other category is its visible apps, alphabetical. */
-    private fun appsIn(category: Category): List<AppEntry> =
-        if (category.isFavorites) {
-            favorites.mapNotNull { byKey[it] }
-        } else {
-            catalog.apps.filter { it.key !in hidden && category.id in (categoryMoves[it.key] ?: setOfNotNull(startOf(it))) }
-        }
+    /**
+     * Favorites in the owner's order; Recent what the launcher opened, latest first; any other
+     * category is its visible apps, alphabetical.
+     */
+    private fun appsIn(category: Category): List<AppEntry> = when {
+        category.isFavorites -> favorites.mapNotNull { byKey[it] }
+        category.isRecent -> recentApps
+        else -> catalog.apps.filter { it.key !in hidden && category.id in (categoryMoves[it.key] ?: setOfNotNull(startOf(it))) }
+    }
+
+    // Not what is hidden, nor what is on the dock: it is a button away there already.
+    private val recentApps: List<AppEntry> by derivedStateOf {
+        val docked = dock.mapTo(HashSet()) { it.key }
+        recent.mapNotNull { byKey[it] }.filter { it.key !in hidden && it.key !in docked }.take(RECENT_SHOWN)
+    }
 
     /** The categories with something in them, in the owner's order: the ones Home shows. */
     val categories: List<Category> by derivedStateOf { categoryList.filter { appsIn(it).isNotEmpty() } }
 
     fun hasApps(category: Category) = category in categories
 
-    /** Where the sheet's Category… page can move an app: every category but Favorites, then All apps only (null). */
-    val places: List<Category?> get() = categoryList.filterNot { it.isFavorites } + null
+    /**
+     * Where the sheet's Category… page can move an app: every category but Favorites and Recent,
+     * which fill themselves, then All apps only (null).
+     */
+    val places: List<Category?> get() = categoryList.filterNot { it.isFavorites || it.isRecent } + null
 
     /** Home's category; if it has emptied, the first one that hasn't. */
     val category get() = categories.firstOrNull { it.id == currentCategory } ?: categories.firstOrNull() ?: categoryList.first()
@@ -365,6 +458,16 @@ class LauncherState(
     val layerCategories get() = if (editingCategories) categoryList else categories
 
     val row: List<AppEntry> by derivedStateOf { appsIn(shownCategory) }
+
+    init {
+        // The restored place's app, once the catalog (loading as this is built) lists the apps.
+        restored?.app?.let { key ->
+            scope.launch {
+                snapshotFlow { catalog.apps.isNotEmpty() }.first { it }
+                rowIndex = row.indexOfFirst { it.key == key }.coerceAtLeast(0)
+            }
+        }
+    }
 
     // Lists change under us (an uninstall, a new favorite), so indices are clamped on read.
     // A previewed category shows from its start.
@@ -1652,6 +1755,9 @@ class LauncherState(
 
     private companion object {
         const val DOCK_MAX = 6
+        // Recent keeps more than it shows, so apps left out (hidden, docked) don't empty the row.
+        const val RECENT_KEPT = 24
+        const val RECENT_SHOWN = 12
         // How long a player takes to start or stop after the media key, before reading it again.
         const val MEDIA_SETTLE = 400L
         // One Left or Right on the seek bar, as a player's own skip-ahead.
