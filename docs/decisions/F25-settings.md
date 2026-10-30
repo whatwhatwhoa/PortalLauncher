@@ -1,6 +1,6 @@
 # F25 — Launcher Settings in categories (2026-10-25)
 
-How it works now: `architecture.md` *Settings*. The panel before this, and why it is undimmed:
+How it works now: `behavior.md` *Settings*. The panel before this, and why it is undimmed:
 `M6-settings.md` *The panel*. Hand check: `VERIFY.md` *V-b7*.
 
 ### D25.1 · 2026-10-25 · Two columns at about 70% from the right

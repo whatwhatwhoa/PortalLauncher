@@ -1,6 +1,6 @@
 # M5 — Categories (2026-10-25)
 
-The owner's idea, the choices and why. How it works now: `architecture.md` *Categories*,
+The owner's idea, the choices and why. How it works now: `behavior.md` *Categories*,
 *Controller map*.
 
 Status: as built 2026-10-25, owner to confirm the ghost opacity and type size (*V-categories*).

@@ -12,13 +12,14 @@ board: `docs/TASKS.md`.
 | Any | `docs/HANDOFF.md` (state, next, waiting on the owner) |
 | Pick or plan work | `docs/TASKS.md`: the first open card or task under *Working on*, or the owner's explicit ask |
 | Reviewing the owner's design input | the files they point at; earlier reviews: `docs/decisions/M1-design.md` |
-| The look, layout, controller feel | `docs/architecture.md` *Goals*, *Look* |
+| The look, layout | `docs/architecture.md` *Goals*, *Look* |
+| What a screen or button does, controller feel | `docs/behavior.md` |
 | Build, SDK, adb, the device | `docs/device.md`; `docs/gotchas.md` |
 | Why something is the way it is | `docs/decisions/INDEX.md`, then the one entry |
 | Hand-testing with the owner | `docs/VERIFY.md` |
 
 **Each fact has one home.** Rules here · state → `HANDOFF.md` · tasks → `TASKS.md` · how it
-works → `architecture.md` (build and device: `device.md`) · why → `docs/decisions/` · traps → `gotchas.md` · built-not-clicked →
+works → `architecture.md`, `behavior.md` (build and device: `device.md`) · why → `docs/decisions/` · traps → `gotchas.md` · built-not-clicked →
 `docs/VERIFY.md` · reviews of the owner's design input → `docs/decisions/`. Link, don't copy.
 
 ## Hard rules
@@ -56,7 +57,7 @@ works → `architecture.md` (build and device: `device.md`) · why → `docs/dec
 1. Tick the card or task in `docs/TASKS.md` (date, one clause); its detail goes to a decision
    entry (a card's: `decisions/F<n>-<slug>.md`, or `decisions/<version>.md` for small ones).
 2. New knowledge to its one home (table above); a finished feature is described in
-   `architecture.md` in present tense, no task IDs.
+   `architecture.md` or `behavior.md` in present tense, no task IDs.
 3. Rewrite `docs/HANDOFF.md` from scratch: state ≤ 10 lines, next, waiting on the owner,
    uncommitted.
 4. Build state goes in the commit message, not the notes.

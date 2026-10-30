@@ -1,7 +1,7 @@
 # M7 — Quick settings (2026-10-25)
 
 The device's everyday controls from the controller, the ones you reach for in the pull-down
-(the launcher's own choices are `M6-settings.md`). How it works now: `architecture.md` *Quick
+(the launcher's own choices are `M6-settings.md`). How it works now: `behavior.md` *Quick
 panel*.
 
 Status: as built 2026-10-25, owner to confirm (*V-quick*, *V-b3*).

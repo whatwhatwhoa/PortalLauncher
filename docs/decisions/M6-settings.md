@@ -1,7 +1,7 @@
 # M6 — Settings and effects (2026-10-25)
 
 The owner's asks, the choices and why. How it works now: `architecture.md` *Color*, *Overlay
-effects*, *Settings*, *Accent picker*, *Motion*.
+effects*, *Motion*; `behavior.md` *Settings*, *Accent picker*.
 
 ## The owner's asks (2026-10-25)
 - A few palettes of favorite accent colors to pick from.

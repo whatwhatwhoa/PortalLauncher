@@ -35,7 +35,7 @@ close; no reverb; most under 100 ms; a 300 Hz high-pass on everything (the Porta
 
 ### D22.2 · 2026-10-25 · How they're wired
 Status: built 2026-10-25, installed, not yet heard on the Portal (`VERIFY.md` *V-sounds*).
-How it works: `architecture.md` *Sounds*. The choices, against the plan above:
+How it works: `behavior.md` *Sounds*. The choices, against the plan above:
 - **All three families ship and load at start** (36 WAVs, 1.3 MB in `assets/sounds/`, stored
   uncompressed so `openFd` works): the owner wanted the family a setting, and a new family has
   to play the moment it's picked, which a load on change (async) can't.
