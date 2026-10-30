@@ -5,4 +5,10 @@
         <item name="android:windowBackground">@color/background</item>
         <item name="android:windowShowWallpaper">false</item>
     </style>
+    <!-- Standby's window: black from its first frame, and no icon if Android shows a splash. -->
+    <style name="Theme.Portal.Standby">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowSplashScreenBackground">@android:color/black</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+    </style>
 </resources>

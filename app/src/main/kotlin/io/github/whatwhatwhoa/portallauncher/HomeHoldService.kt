@@ -2,7 +2,11 @@ package io.github.whatwhatwhoa.portallauncher
 
 import android.Manifest
 import android.accessibilityservice.AccessibilityService
+import android.annotation.SuppressLint
+import android.app.ActivityOptions
 import android.app.AppOpsManager
+import android.app.KeyguardManager
+import android.app.StatusBarManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -19,28 +23,60 @@ import android.provider.Settings
 import android.view.KeyEvent
 import android.view.ViewConfiguration
 import android.view.accessibility.AccessibilityEvent
+import android.window.SplashScreen
 
 /**
  * Holding Home opens standby (F19). Android keeps the Home key from every app, the Home app
  * included, and spends a hold on its own (Circle to Search on the Portal); an accessibility
  * service is the one place an app sees the key first, on stock Android as on LineageOS. So it
  * takes every Home press: a short one is handed back as Android's own Home, a hold opens standby.
- * Off until the owner turns it on in Android's accessibility settings; it reads no screen content.
+ * It also pulls the notification shade down for Notifications (F13), a global action that needs
+ * no more access. Off until the owner turns it on in Android's accessibility settings; it reads
+ * no screen content.
  */
 class HomeHoldService : AccessibilityService() {
     private val handler = Handler(Looper.getMainLooper())
     private var down = false
+    // A Home press that went down while standby showed, counted when it comes up short.
+    private var tap = false
     private val hold = Runnable {
+        // Behind the lock screen standby would wait there for the unlock: locked, a hold is a
+        // short press, so the release still goes Home.
+        if (getSystemService(KeyguardManager::class.java).isKeyguardLocked) return@Runnable
         down = false
+        // A plain black start, not the app's icon on a splash; its own fade is the motion.
+        val options = ActivityOptions.makeBasic()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) options.setSplashScreenStyle(SplashScreen.SPLASH_SCREEN_STYLE_SOLID_COLOR)
         startActivity(
-            Intent(this, MainActivity::class.java)
-                .setAction(MainActivity.ACTION_STANDBY)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            Intent(this, StandbyActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION),
+            options.toBundle(),
         )
+    }
+
+    override fun onServiceConnected() {
+        super.onServiceConnected()
+        connected = this
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode != KeyEvent.KEYCODE_HOME) return false
+        // While standby shows, a short Home press is one more toward waking, never Android's
+        // Home, and a hold does nothing: so it counts on the release, once its length is known.
+        // The hold that opened standby comes up here too, and counts no more than any hold.
+        StandbyActivity.current?.let { standby ->
+            handler.removeCallbacks(hold)
+            down = false
+            when (event.action) {
+                KeyEvent.ACTION_DOWN -> if (event.repeatCount == 0) tap = true
+                KeyEvent.ACTION_UP -> if (tap) {
+                    tap = false
+                    if (event.eventTime - event.downTime < ViewConfiguration.getLongPressTimeout()) standby.home()
+                }
+            }
+            return true
+        }
+        tap = false
         when (event.action) {
             KeyEvent.ACTION_DOWN -> if (event.repeatCount == 0) {
                 down = true
@@ -60,9 +96,42 @@ class HomeHoldService : AccessibilityService() {
 
     override fun onInterrupt() = Unit
 
+    override fun onUnbind(intent: Intent?): Boolean {
+        connected = null
+        return super.onUnbind(intent)
+    }
+
     override fun onDestroy() {
+        connected = null
         handler.removeCallbacks(hold)
         super.onDestroy()
+    }
+
+    companion object {
+        // The service while Android has it on; it runs in the launcher's process, on its main
+        // thread, and is let go when Android unbinds it.
+        @SuppressLint("StaticFieldLeak")
+        private var connected: HomeHoldService? = null
+
+        /**
+         * Pulls Android's notification shade down (F13): through the service while it is on,
+         * else through StatusBarManager's own call, hidden from apps but allowed with the normal
+         * EXPAND_STATUS_BAR permission. False when neither could.
+         */
+        @SuppressLint("DiscouragedPrivateApi")
+        fun openShade(context: Context): Boolean {
+            if (connected?.performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS) == true) return true
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return false
+            return try {
+                val bar = context.applicationContext.getSystemService(StatusBarManager::class.java) ?: return false
+                StatusBarManager::class.java.getMethod("expandNotificationsPanel").invoke(bar)
+                true
+            } catch (e: ReflectiveOperationException) {
+                false
+            } catch (e: RuntimeException) {
+                false
+            }
+        }
     }
 }
 

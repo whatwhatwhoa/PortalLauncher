@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notifications' app icon: the quick panel's bell on a calm slate blue. Inset further than
+     Controller settings' glyph, since the bell is tall: it sits well inside the 66 dp safe circle. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/notifications_icon" />
+    <foreground>
+        <inset android:drawable="@drawable/ic_sym_notifications" android:inset="26%" />
+    </foreground>
+</adaptive-icon>
