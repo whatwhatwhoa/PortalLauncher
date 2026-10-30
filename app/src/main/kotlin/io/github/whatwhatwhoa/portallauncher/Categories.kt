@@ -51,22 +51,25 @@ import androidx.compose.ui.unit.dp
 
 /**
  * One of Home's categories (`decisions/M5-categories.md`, F12): an id that never changes and the
- * owner's name for it, which they can change. The five built in have their first names as ids,
+ * owner's name for it, which they can change. The built-in ones have their first names as ids,
  * as stored before names could change; the owner's own get a made-up one. Favorites is always
- * first and can only be renamed. Home shows the ones with apps in them, in the owner's order.
+ * first and can only be renamed. Recent (F11) fills itself with what the launcher opened, so no
+ * app is put in it by hand. Home shows the ones with apps in them, in the owner's order.
  */
 data class Category(val id: String, val label: String) {
     val isFavorites get() = id == FAVORITES
+    val isRecent get() = id == RECENT
 
     companion object {
         const val FAVORITES = "Favorites"
+        const val RECENT = "Recent"
         const val GAMES = "Games"
         const val ENTERTAINMENT = "Entertainment"
         const val SOCIAL = "Social"
         const val UTILITIES = "Utilities"
 
         /** The categories until the owner changes them. */
-        val defaults = listOf(FAVORITES, GAMES, ENTERTAINMENT, SOCIAL, UTILITIES).map { Category(it, it) }
+        val defaults = listOf(FAVORITES, RECENT, GAMES, ENTERTAINMENT, SOCIAL, UTILITIES).map { Category(it, it) }
 
         /** An id for a category the owner adds, never one used before, so no old move points at it. */
         fun newId() = "c" + System.currentTimeMillis().toString(36)
@@ -250,7 +253,11 @@ private fun CategoryLine(state: LauncherState, i: Int, category: Category) {
                 edit == CategoryEdit.Moving -> Note("Up and down move it, A puts it down")
                 edit == CategoryEdit.Renaming -> Note("Type a name, then Done")
                 focused && state.editingCategories && !state.hasApps(category) -> Note(
-                    if (category.isFavorites) "Empty: Favorite on an app puts it here" else "Empty: Triangle → Category… on an app puts it here",
+                    when {
+                        category.isFavorites -> "Empty: Favorite on an app puts it here"
+                        category.isRecent -> "Empty: what you open shows here"
+                        else -> "Empty: Triangle → Category… on an app puts it here"
+                    },
                 )
             }
         }

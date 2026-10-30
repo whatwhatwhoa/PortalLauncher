@@ -3,20 +3,24 @@ package io.github.whatwhatwhoa.portallauncher
 import android.content.Intent
 import android.graphics.Rect
 import android.net.Uri
+import android.os.SystemClock
 import android.util.Log
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 enum class Screen { Home, Drawer }
@@ -50,6 +54,35 @@ enum class Option(val label: String, val enabled: Boolean = true) {
 class Sheet(val app: AppEntry, val origin: Origin, val options: List<Option>)
 
 /**
+ * Where Home was when an app last opened from it (F5): the category, the row's focused app, the
+ * zone and the dock's focus, with the boot it happened in. Android may end the launcher while
+ * the app runs, or rebuild it; started again in the same boot, Home goes back there.
+ */
+class HomePlace(val category: String, val app: String?, val zone: Zone, val dock: Int, val boot: Long) {
+    // The boot's wall-clock instant moves only with a clock change, so a few seconds' slack.
+    val sameBoot get() = abs(boot - bootInstant()) < SAME_BOOT
+
+    val stored get() = listOf(category, app.orEmpty(), zone.name, dock, boot).joinToString("\t")
+
+    companion object {
+        private const val SAME_BOOT = 5_000L
+
+        fun bootInstant() = System.currentTimeMillis() - SystemClock.elapsedRealtime()
+
+        fun parse(stored: String): HomePlace? {
+            val (category, app, zone, dock, boot) = stored.split('\t').takeIf { it.size == 5 } ?: return null
+            return HomePlace(
+                category,
+                app.ifEmpty { null },
+                Zone.entries.firstOrNull { it.name == zone } ?: Zone.Row,
+                dock.toIntOrNull() ?: 0,
+                boot.toLongOrNull() ?: return null,
+            )
+        }
+    }
+}
+
+/**
  * All focus and navigation. Focus is our own index state, not Compose focus: a lazy row can't
  * focus tiles that aren't composed, and a console row pivots instead of moving to the nearest.
  */
@@ -59,8 +92,11 @@ class LauncherState(
     /** The app's art; its SteamGridDB lookups wait for a key ([Art.hasKey]), gallery images don't. */
     val art: Art?,
     private val scope: CoroutineScope,
-    /** Opens an app; the rect is where its tile is on screen, for the launch animation. */
-    private val launch: (AppEntry, Rect?) -> Unit,
+    /**
+     * Opens an app; the rect is where its tile is on screen, for the launch animation. False when
+     * it couldn't (MainActivity says so).
+     */
+    private val launch: (AppEntry, Rect?) -> Boolean,
     /** Opens Android's photo picker; the reply is the chosen image, or null. */
     private val pickImage: ((Uri?) -> Unit) -> Unit,
     /** Where the owner's wallpaper files are (`files/backdrops`); each is a backdrop choice. */
@@ -140,11 +176,27 @@ class LauncherState(
         }
     var screen by mutableStateOf(Screen.Home)
         private set
-    var zone by mutableStateOf(Zone.Row)
+    // Home's place at the last launch, when the launcher was ended or rebuilt in this boot while
+    // that app ran (cleared on coming back, [refreshSettings]); the row's app is found once the
+    // catalog lists it (the init after [row]).
+    private val restored = prefs.place?.takeIf { it.sameBoot }
+    var zone by mutableStateOf(restored?.zone ?: Zone.Row)
         private set
     private var rowIndex by mutableIntStateOf(0)
-    private var dockIndex by mutableIntStateOf(0)
+    private var dockIndex by mutableIntStateOf(restored?.dock ?: 0)
     private var drawerIndex by mutableIntStateOf(0)
+
+    /** All apps' search, typed on the letter strip; empty shows every app. */
+    var drawerQuery by mutableStateOf("")
+        private set
+    /** The letter strip in All apps' header has focus, not the grid. */
+    var searchFocused by mutableStateOf(false)
+        private set
+    private var searchIndex by mutableIntStateOf(0)
+    val searchLetter get() = searchIndex.coerceIn(0, SEARCH_LETTERS.lastIndex)
+    /** Counts L1/R1 letter jumps, so the header can light the letter after each. */
+    var letterJumps by mutableIntStateOf(0)
+        private set
 
     // The last sheet stays set after it closes, so its exit animation still has something to draw.
     var sheet by mutableStateOf<Sheet?>(null)
@@ -172,13 +224,29 @@ class LauncherState(
     var categoriesOpen by mutableStateOf(false)
         private set
     private var categoryIndex by mutableIntStateOf(0)
-    /** Home's category, by id, so a rename keeps it. */
+    /**
+     * Home's category, by id, so a rename keeps it. A restart while an app opened from Home runs
+     * goes back to where it opened from, whatever Home key goes to says; any other start (a
+     * reboot, an update while Home shows) goes by Home key goes to, Where you left reopening the
+     * last one.
+     */
     private var currentCategory by mutableStateOf(
-        prefs.lastCategory.takeIf { prefs.home.start == StartOn.Left } ?: Category.FAVORITES,
+        restored?.category ?: prefs.lastCategory.takeIf { prefs.home.start == StartOn.Left } ?: Category.FAVORITES,
     )
     /** Every category, the empty ones too, in the owner's order: the layer's names. */
-    var categoryList by mutableStateOf(prefs.categoryList)
+    var categoryList by mutableStateOf(withRecent(prefs.categoryList))
         private set
+
+    /**
+     * Recent goes in after Favorites once, on an install from before it (F11); from then on the
+     * owner's list stands, so a deleted Recent stays deleted and a moved one where it was put.
+     */
+    private fun withRecent(list: List<Category>): List<Category> {
+        if (prefs.recentAdded) return list
+        prefs.recentAdded = true
+        if (list.any { it.isRecent }) return list
+        return (list.take(1) + Category(Category.RECENT, Category.RECENT) + list.drop(1)).also { prefs.categoryList = it }
+    }
 
     /**
      * The layer's edit mode (Triangle in it): every category, the empty ones too, and New category after
@@ -199,6 +267,7 @@ class LauncherState(
     private var addingCategory = false
 
     private var favorites by mutableStateOf(prefs.favorites)
+    private var recent by mutableStateOf(prefs.recent)
     private var hidden by mutableStateOf(prefs.hidden)
     private var dockKeys by mutableStateOf(prefs.dock)
     private var categoryMoves by mutableStateOf(prefs.categories)
@@ -299,25 +368,55 @@ class LauncherState(
         placed["$origin/${entry.key}"] = bounds
     }
 
+    // Only a start that worked sounds, goes in Recent and is kept as Home's place; a failed one
+    // has its toast and a bump.
     private fun launchFrom(origin: Origin, entry: AppEntry) {
+        if (!launch(entry, placed["$origin/${entry.key}"])) {
+            sounds?.play(Sound.Edge)
+            return
+        }
         sounds?.play(Sound.Launch)
-        launch(entry, placed["$origin/${entry.key}"])
+        val shown = category
+        played(entry)
+        // With Favorites empty Home shows the first category with apps; Recent filling up mustn't
+        // take the row over.
+        if (category.id != shown.id) currentCategory = shown.id
+        // On Recent the app just opened is first now; focus goes with it, so it is there on coming back.
+        if (category.isRecent && row.firstOrNull()?.key == entry.key) rowIndex = 0
+        prefs.place = HomePlace(category.id, row.getOrNull(rowFocus)?.key, zone, dockFocus, HomePlace.bootInstant())
+    }
+
+    /**
+     * An app opened from the launcher goes first in Recent, the list kept to [RECENT_KEPT]. The
+     * dock's utilities (Settings, Files, the browser) and Android's settings pages never show
+     * there, docked or not, so they aren't kept; it is written only when the first app changes.
+     */
+    private fun played(entry: AppEntry) {
+        val pkg = entry.component.packageName
+        if (entry.action != null || catalog.dockApps(catalog.apps).any { it.component.packageName == pkg }) return
+        if (recent.firstOrNull() == entry.key) return
+        recent = (listOf(entry.key) + (recent - entry.key)).take(RECENT_KEPT)
+        prefs.recent = recent
     }
 
     private val byKey by derivedStateOf { catalog.apps.associateBy { it.key } }
 
+    // A search keeps the alphabetical order, so the letter jumps still work and the grid doesn't
+    // reshuffle as letters are added; how well each matches only decides where focus starts.
     val drawer: List<AppEntry> by derivedStateOf {
-        if (showHidden) catalog.apps else catalog.apps.filter { it.key !in hidden }
+        val shown = if (showHidden) catalog.apps else catalog.apps.filter { it.key !in hidden }
+        if (drawerQuery.isEmpty()) shown else shown.filter { searchRank(it.label, drawerQuery) != null }
     }
     val hiddenCount by derivedStateOf { catalog.apps.count { it.key in hidden } }
 
     /**
-     * Apps whose art is looked up without asking: the owner's favorites and the Games category,
-     * whatever it is called now; once deleted, favorites only. A favorite that is one of
-     * Android's own apps waits for Art… unless it is in Games.
+     * Apps whose art is looked up without asking: the owner's favorites, Recent's apps and the
+     * Games category, whatever they are called now; a deleted one adds none. A favorite or recent
+     * app that is one of Android's own waits for Art… unless it is in Games.
      */
     val artWanted: List<AppEntry> by derivedStateOf {
-        favorites.mapNotNull { byKey[it] }.filterNot { isPlatformApp(it.component.packageName) } +
+        (favorites.mapNotNull { byKey[it] } + byId(Category.RECENT)?.let(::appsIn).orEmpty())
+            .filterNot { isPlatformApp(it.component.packageName) } +
             byId(Category.GAMES)?.let(::appsIn).orEmpty()
     }
 
@@ -347,21 +446,32 @@ class LauncherState(
     /** The app's seed if it was there when the launcher first sorted the apps, else All apps only. */
     private fun startOf(app: AppEntry): String? = app.seed?.takeIf { app.installed <= sortedAt }
 
-    /** Favorites in the owner's order; any other category is its visible apps, alphabetical. */
-    private fun appsIn(category: Category): List<AppEntry> =
-        if (category.isFavorites) {
-            favorites.mapNotNull { byKey[it] }
-        } else {
-            catalog.apps.filter { it.key !in hidden && category.id in (categoryMoves[it.key] ?: setOfNotNull(startOf(it))) }
-        }
+    /**
+     * Favorites in the owner's order; Recent what the launcher opened, latest first; any other
+     * category is its visible apps, alphabetical.
+     */
+    private fun appsIn(category: Category): List<AppEntry> = when {
+        category.isFavorites -> favorites.mapNotNull { byKey[it] }
+        category.isRecent -> recentApps
+        else -> catalog.apps.filter { it.key !in hidden && category.id in (categoryMoves[it.key] ?: setOfNotNull(startOf(it))) }
+    }
+
+    // Not what is hidden, nor what is on the dock: it is a button away there already.
+    private val recentApps: List<AppEntry> by derivedStateOf {
+        val docked = dock.mapTo(HashSet()) { it.key }
+        recent.mapNotNull { byKey[it] }.filter { it.key !in hidden && it.key !in docked }.take(RECENT_SHOWN)
+    }
 
     /** The categories with something in them, in the owner's order: the ones Home shows. */
     val categories: List<Category> by derivedStateOf { categoryList.filter { appsIn(it).isNotEmpty() } }
 
     fun hasApps(category: Category) = category in categories
 
-    /** Where the sheet's Category… page can move an app: every category but Favorites, then All apps only (null). */
-    val places: List<Category?> get() = categoryList.filterNot { it.isFavorites } + null
+    /**
+     * Where the sheet's Category… page can move an app: every category but Favorites and Recent,
+     * which fill themselves, then All apps only (null).
+     */
+    val places: List<Category?> get() = categoryList.filterNot { it.isFavorites || it.isRecent } + null
 
     /** Home's category; if it has emptied, the first one that hasn't. */
     val category get() = categories.firstOrNull { it.id == currentCategory } ?: categories.firstOrNull() ?: categoryList.first()
@@ -377,6 +487,16 @@ class LauncherState(
 
     val row: List<AppEntry> by derivedStateOf { appsIn(shownCategory) }
 
+    init {
+        // The restored place's app, once the catalog (loading as this is built) lists the apps.
+        restored?.app?.let { key ->
+            scope.launch {
+                snapshotFlow { catalog.apps.isNotEmpty() }.first { it }
+                rowIndex = row.indexOfFirst { it.key == key }.coerceAtLeast(0)
+            }
+        }
+    }
+
     // Lists change under us (an uninstall, a new favorite), so indices are clamped on read.
     // A previewed category shows from its start.
     val rowFocus get() = if (shownCategory != category) 0 else rowIndex.coerceIn(0, maxOf(0, row.lastIndex))
@@ -384,6 +504,8 @@ class LauncherState(
     val dockFocus get() = dockIndex.coerceIn(0, dockSettings)
     val dockSettings get() = dock.size + 1
     val drawerFocus get() = drawerIndex.coerceIn(0, maxOf(0, drawer.lastIndex))
+    /** The focused app's letter, for All apps' header; null with nothing to show. */
+    val drawerLetter get() = if (drawer.isEmpty()) null else letter(drawerFocus)
     val sheetFocus get() = sheetIndex.coerceIn(0, maxOf(0, sheetRows - 1))
     /** In edit mode [categoryList]'s size is New category, after the last name. */
     val categoryFocus get() = categoryIndex.coerceIn(0, if (editingCategories) categoryList.size else maxOf(0, categories.lastIndex))
@@ -399,7 +521,16 @@ class LauncherState(
     /** Whether + does anything where focus is now (All apps and Launcher Settings have none). */
     val focusHasOptions get() = screen == Screen.Drawer || zone == Zone.Row || dockFocus in 1..dock.size
 
-    fun onAction(action: Action) = sounding(action) {
+    /**
+     * The action under way is a held key's repeat. Moves repeat, but a held key does harm where
+     * one press is one deed (a track skipped, a category turned, a setting flipped), so those
+     * act on the first press only.
+     */
+    private var held = false
+
+    /** [repeat] is a held key's repeat (MainActivity), for [held]. */
+    fun onAction(action: Action, repeat: Boolean = false) = sounding(action) {
+        held = repeat
         when {
             settingsOpen -> onSettings(action)
             quickOpen -> onQuick(action)
@@ -429,9 +560,10 @@ class LauncherState(
             Action.Right -> if (zone == Zone.Row) rowIndex = rowStep(1) else dockIndex = dockFocus + 1
             Action.Down -> zone = Zone.Dock
             Action.Up -> zone = Zone.Row
-            // Bumpers: the categories, or with Home play controls the tracks (owner, F34).
-            Action.PagePrev -> if (home.playControls) skip(QuickMedia.Previous.key) else turnCategory(-1)
-            Action.PageNext -> if (home.playControls) skip(QuickMedia.Next.key) else turnCategory(1)
+            // Bumpers: the categories, or with Home play controls the tracks (owner, F34); once a
+            // press, as held they sent a burst of skips or turned through every category.
+            Action.PagePrev -> if (held) Unit else if (home.playControls) skip(QuickMedia.Previous.key) else turnCategory(-1)
+            Action.PageNext -> if (held) Unit else if (home.playControls) skip(QuickMedia.Next.key) else turnCategory(1)
             Action.R3 -> if (home.playControls) skip(QuickMedia.PlayPause.key)
             Action.First -> if (zone == Zone.Row) rowIndex = 0
             Action.Last -> if (zone == Zone.Row) rowIndex = row.lastIndex
@@ -489,30 +621,93 @@ class LauncherState(
     }
 
     private fun onDrawer(action: Action) {
+        if (searchFocused) return onSearch(action)
         val cols = Dimens.DRAWER_COLUMNS
         val i = drawerFocus
         when (action) {
             Action.Left -> drawerIndex = i - 1
             Action.Right -> drawerIndex = i + 1
-            Action.Up -> if (i >= cols) drawerIndex = i - cols
+            // Up from the first row goes to the letters, on a fresh press: a held Up stops at the top.
+            Action.Up -> if (i >= cols) drawerIndex = i - cols else if (!held) searchFocused = true
             Action.Down -> if (i / cols < drawer.lastIndex / cols) drawerIndex = minOf(i + cols, drawer.lastIndex)
-            Action.PagePrev -> drawerIndex = previousLetter(i)
-            Action.PageNext -> drawerIndex = nextLetter(i)
+            Action.PagePrev -> jumpTo(previousLetter(i))
+            Action.PageNext -> jumpTo(nextLetter(i))
             Action.First -> drawerIndex = 0
             Action.Last -> drawerIndex = drawer.lastIndex
             Action.Open -> drawer.getOrNull(i)?.let(::launchAndClose)
             Action.X -> drawer.getOrNull(i)?.let(::toggleFavorite)
             Action.Options -> optionsForFocused()
-            Action.Back, Action.Y -> closeDrawer()
+            // With a search, B clears it first (keeping the app in focus), and B again closes.
+            Action.Back -> if (drawerQuery.isNotEmpty()) clearSearch() else closeDrawer()
+            Action.Y -> searchFocused = true
             Action.Select -> openQuick()
             Action.R3 -> Unit
         }
         drawerIndex = drawerFocus
     }
 
+    /** An L1/R1 letter jump; the header lights the letter for a moment when it lands somewhere new. */
+    private fun jumpTo(index: Int) {
+        if (index != drawerFocus) letterJumps++
+        drawerIndex = index
+    }
+
+    /**
+     * The letter strip (Y in All apps), typing with the controller alone: left and right choose a
+     * letter (wrapping), A adds it, X takes the last one back; Down, Y or B go to the results,
+     * the search kept.
+     */
+    private fun onSearch(action: Action) {
+        val letters = SEARCH_LETTERS.length
+        when (action) {
+            Action.Left -> searchIndex = Math.floorMod(searchLetter - 1, letters)
+            Action.Right -> searchIndex = Math.floorMod(searchLetter + 1, letters)
+            Action.First -> searchIndex = 0
+            Action.Last -> searchIndex = letters - 1
+            Action.Open -> addLetter(searchLetter)
+            Action.X -> if (drawerQuery.isNotEmpty()) searchFor(drawerQuery.dropLast(1))
+            Action.Down, Action.Y, Action.Back -> searchFocused = false
+            // Triangle opens the options of the app focus goes back to, as it does in the results.
+            Action.Options -> if (drawer.isNotEmpty()) {
+                searchFocused = false
+                optionsForFocused()
+            }
+            Action.Select -> openQuick()
+            else -> Unit
+        }
+    }
+
+    private fun addLetter(index: Int) = searchFor(drawerQuery + SEARCH_LETTERS[index].lowercaseChar())
+
+    /** A new search: focus on its best match, the list itself staying alphabetical. */
+    private fun searchFor(query: String) {
+        drawerQuery = query
+        drawerIndex = if (query.isEmpty()) 0 else drawer.indices.minByOrNull { searchRank(drawer[it].label, query) ?: Int.MAX_VALUE } ?: 0
+    }
+
+    /** Every app again, the focused one still in focus. */
+    private fun clearSearch() {
+        val focused = drawer.getOrNull(drawerFocus)
+        searchFocused = false
+        if (drawerQuery.isEmpty()) return
+        drawerQuery = ""
+        drawerIndex = drawer.indexOfFirst { it.key == focused?.key }.coerceAtLeast(0)
+    }
+
+    fun tapSearch() {
+        if (screen == Screen.Drawer) searchFocused = true
+    }
+
+    fun tapSearchLetter(index: Int) {
+        searchIndex = index
+        addLetter(searchLetter)
+    }
+
     private fun onSheet(action: Action) {
         picker?.let {
-            if (!it.onAction(action)) picker = null
+            // Triangle closes the sheet from the Art… page and its grids too, as from the options.
+            if (action == Action.Options) return closeSheet()
+            if (!it.onAction(action, held)) picker = null
             return
         }
         when (action) {
@@ -562,8 +757,10 @@ class LauncherState(
             Action.Down -> settingsIndex = settingsFocus + 1
             Action.First -> settingsIndex = 0
             Action.Last -> settingsIndex = groupSettings.lastIndex
-            Action.Left -> if (!setting.acts) change(setting, -1)
-            Action.Right -> if (!setting.acts) change(setting, 1)
+            // A step a press: these lists are short, and held they flipped 20 times a second
+            // (Theme flashing light and dark). The accent's sliders, a page of their own, repeat.
+            Action.Left -> if (!setting.acts && !held) change(setting, -1)
+            Action.Right -> if (!setting.acts && !held) change(setting, 1)
             Action.Open -> if (setting == Setting.Accent) openAccent() else if (setting.acts) act(setting) else change(setting, 1)
             Action.Back -> settingsInRows = false
             else -> Unit
@@ -603,6 +800,11 @@ class LauncherState(
     private var accentColumnIndex by mutableIntStateOf(0)
     val accentRow get() = accentRowIndex.coerceIn(0, ACCENT_ROWS - 1)
     val accentColumn get() = accentColumnIndex.coerceIn(0, SWATCH_COLUMNS - 1)
+    /**
+     * The last custom accent, so a stray press onto a preset can be stepped back from: it is a
+     * stop after the presets on the Accent row. Kept while the launcher runs.
+     */
+    private var customKept: Accent? = look.accent.takeIf { it.preset == null }
 
     private fun openAccent() {
         val preset = look.accent.preset
@@ -623,8 +825,9 @@ class LauncherState(
             else -> Unit
         }
         accentRowIndex = accentRow
-        // Landing on a swatch row wears the swatch under focus, as moving along it does.
-        if (accentRow != row && accentRow < SWATCH_ROWS) wearSwatch()
+        // Landing on a swatch row wears the swatch under focus, as moving along it does; coming
+        // up from the sliders only looks, so a custom color isn't lost to one press of Up.
+        if (accentRow != row && accentRow < SWATCH_ROWS && row < SWATCH_ROWS) wearSwatch()
     }
 
     private fun stepAccent(row: Int, by: Int) {
@@ -664,14 +867,22 @@ class LauncherState(
     }
 
     private fun setAccent(accent: Accent) {
+        if (accent.preset == null) customKept = accent
         look = look.copy(accent = accent)
         prefs.look = look
+    }
+
+    /** The Accent row's next stop: the presets, then the last custom color, wrapping. */
+    private fun steppedAccent(by: Int): Accent {
+        val stops = AccentPreset.entries.map { it.accent } + listOfNotNull(customKept)
+        val i = stops.indexOf(look.accent)
+        return if (i < 0) look.accent.cycled(by) else stops[Math.floorMod(i + by, stops.size)]
     }
 
     private fun change(setting: Setting, by: Int) {
         when (setting.group) {
             SettingGroup.Look -> {
-                look = look.step(setting, by, backdrops)
+                look = if (setting == Setting.Accent) look.copy(accent = steppedAccent(by)) else look.step(setting, by, backdrops)
                 prefs.look = look
             }
             SettingGroup.Home -> {
@@ -710,8 +921,12 @@ class LauncherState(
             }
             Setting.HiddenApps -> if (hiddenCount > 0) {
                 closeSettings()
+                // The settings can be over All apps: no search may hide the hidden apps.
+                drawerQuery = ""
+                searchFocused = false
                 showHidden = true
-                drawerIndex = 0
+                // On the first hidden one, not at the top with the faded tiles somewhere below.
+                drawerIndex = drawer.indexOfFirst { it.key in hidden }.coerceAtLeast(0)
                 screen = Screen.Drawer
             }
             Setting.ResetDock -> {
@@ -776,6 +991,8 @@ class LauncherState(
 
     /** From the options sheet (Triangle) or Android's launcher-settings gear (MainActivity). */
     fun openSettings() {
+        // Android's gear can come mid-rename; a field left open under the panel kept the keys.
+        if (categoryEdit == CategoryEdit.Renaming) finishRename()
         wallpapers = findWallpapers()
         closeSheet()
         groupIndex = 0
@@ -791,6 +1008,9 @@ class LauncherState(
 
     /** The values that change outside the panel; again on coming back from Android's settings. */
     fun refreshSettings() {
+        // Home's place at a launch serves only the restart while that app runs; back in front
+        // (this runs on every resume, after [restored] is read), a later restart starts as usual.
+        prefs.place = null
         if (quickOpen) controls.read()
         checkHomeHold(watched = false)
         if (!settingsOpen) return
@@ -910,7 +1130,18 @@ class LauncherState(
         // Brightness first, always: the player's row above it is a press of Up away (owner, F21).
         quickRowIndex = QuickRow.Brightness.ordinal
         quickColumnIndex = 0
+        quickColumnsLeft.fill(0)
         quickOpen = true
+    }
+
+    // Each row's column while the panel is open, so coming back to a row lands where it was left
+    // (one shared column was clamped by the one-wide sliders on the way).
+    private val quickColumnsLeft = IntArray(QuickRow.entries.size)
+
+    private fun toQuickRow(row: Int) {
+        quickColumnsLeft[quickFocus.ordinal] = quickColumn
+        quickRowIndex = row
+        quickColumnIndex = quickColumnsLeft[quickFocus.ordinal]
     }
 
     fun closeQuick() {
@@ -920,13 +1151,19 @@ class LauncherState(
     private fun onQuick(action: Action) {
         val row = quickFocus
         when (action) {
-            Action.Up -> quickRowIndex = (row.ordinal - 1).coerceAtLeast(0)
-            Action.Down -> quickRowIndex = (row.ordinal + 1).coerceAtMost(QuickRow.entries.lastIndex)
+            // The seek bar is the top row's last stop: Up leaves it for Next, as Down leaves it below.
+            Action.Up -> if (row == QuickRow.Media && quickColumn == SEEK_COLUMN) {
+                quickColumnIndex = SEEK_COLUMN - 1
+            } else {
+                toQuickRow((row.ordinal - 1).coerceAtLeast(0))
+            }
+            Action.Down -> toQuickRow((row.ordinal + 1).coerceAtMost(QuickRow.entries.lastIndex))
             Action.Left -> quickStep(row, -1)
             Action.Right -> quickStep(row, 1)
             Action.Open -> quickOpenFocused(row, quickColumn)
-            Action.PagePrev -> skip(QuickMedia.Previous.key)
-            Action.PageNext -> skip(QuickMedia.Next.key)
+            // A skip a press, as on Home.
+            Action.PagePrev -> if (!held) skip(QuickMedia.Previous.key)
+            Action.PageNext -> if (!held) skip(QuickMedia.Next.key)
             Action.Back, Action.Select -> closeQuick()
             else -> Unit
         }
@@ -937,8 +1174,13 @@ class LauncherState(
         when (row) {
             QuickRow.Brightness -> controls.stepBrightness(by)
             QuickRow.Volume -> controls.stepVolume(by)
-            // On the seek bar, left and right seek; Up or Down leave it, as on a TV player.
-            QuickRow.Media -> if (quickColumn == SEEK_COLUMN) controls.seekBy(by * SEEK_STEP) else quickColumnIndex = quickColumn + by
+            // On the seek bar, left and right seek; Up or Down leave it, as on a TV player. With
+            // nothing to seek (no access, nothing playing, a player that can't), Left leaves too.
+            QuickRow.Media -> when {
+                quickColumn != SEEK_COLUMN -> quickColumnIndex = quickColumn + by
+                controls.canSeeMedia && controls.nowPlaying?.seekable == true -> controls.seekBy(by * SEEK_STEP)
+                by < 0 -> quickColumnIndex = SEEK_COLUMN - 1
+            }
             else -> quickColumnIndex = quickColumn + by
         }
     }
@@ -1012,14 +1254,14 @@ class LauncherState(
     }
 
     fun tapQuick(row: QuickRow, column: Int) {
-        quickRowIndex = row.ordinal
+        toQuickRow(row.ordinal)
         quickColumnIndex = column
         quickOpenFocused(row, column)
     }
 
     /** A tap on a slider's track sets it there. */
     fun tapQuickSlider(row: QuickRow, fraction: Float) {
-        quickRowIndex = row.ordinal
+        toQuickRow(row.ordinal)
         if (row == QuickRow.Media) quickColumnIndex = SEEK_COLUMN
         when (row) {
             QuickRow.Brightness -> controls.moveBrightnessTo(fraction)
@@ -1096,8 +1338,14 @@ class LauncherState(
     }
 
     fun holdDrawer(index: Int) {
+        searchFocused = false
         drawerIndex = index
         optionsForFocused()
+    }
+
+    /** A touch scroll left the focus off screen: it moves to a tile in view, and nothing opens. */
+    fun focusDrawer(index: Int) {
+        drawerIndex = index.coerceIn(0, maxOf(0, drawer.lastIndex))
     }
 
     fun tapSheet(index: Int) = if (choosingCategory) chooseCategory(index) else choose(index)
@@ -1114,8 +1362,15 @@ class LauncherState(
         categoryAction(categoryActions[categoryActionFocus])
     }
 
+    /**
+     * All apps always opens on every app, on the one last in focus. The last search is dropped
+     * here rather than on closing, so the grid sinks away as it was.
+     */
     fun openDrawer() {
-        if (!categoriesOpen) screen = Screen.Drawer
+        if (categoriesOpen) return
+        clearSearch()
+        searchIndex = 0
+        screen = Screen.Drawer
     }
 
     fun closeDrawer() {
@@ -1262,17 +1517,24 @@ class LauncherState(
             editingCategories -> stopEditingCategories()
             else -> closeCategories()
         }
+        // In All apps as with B: out of the letters, then the search cleared, then closed.
+        searchFocused -> searchFocused = false
+        drawerQuery.isNotEmpty() && screen == Screen.Drawer -> clearSearch()
         else -> closeDrawer()
     }
 
     val backHandled get() = settingsOpen || quickOpen || sheetOpen || moving != null || categoriesOpen || screen == Screen.Drawer
 
     /**
-     * The Home key: closes everything. While already home (not on the way back from an app), it
-     * also goes back to the first category's start, as the Switch does, unless Home key goes to
-     * is Where you left. Coming back from an app makes no sound; pressed at home it sounds as B.
+     * The Home key: closes everything, keeping the place on the row. Pressed while already home
+     * with nothing open (not on the way back from an app), it goes back to the first category's
+     * start, as the Switch does, unless Home key goes to is Where you left. Coming back from an
+     * app makes no sound; pressed at home it sounds as B.
      */
     fun onHomePressed(alreadyHome: Boolean) = sounding(Action.Back.takeIf { alreadyHome }) { goHome(alreadyHome) }
+
+    /** Where Home key goes to Favorites takes Home: the first category it shows, whatever it is called. */
+    val startCategory get() = categories.firstOrNull() ?: categoryList.first()
 
     private fun goHome(alreadyHome: Boolean) {
         if (homeHold) {
@@ -1281,14 +1543,18 @@ class LauncherState(
             offNoteShown = true
             flashStandbyHint(OFF_NOTE, OFF_NOTE_SHOWN)
         }
+        // A press that closes something only closes it, as Launcher3's and the Switch's do; the
+        // owner was somewhere on the row and wants to stay there.
+        val layered = settingsOpen || quickOpen || sheetOpen || moving != null || categoriesOpen || screen == Screen.Drawer
         closeSettings()
         closeQuick()
         closeSheet()
         moving = null
-        categoriesOpen = false
+        // Not only hidden: a rename left open kept its field taking the keys with nothing shown.
+        closeCategories()
         screen = Screen.Home
-        if (!alreadyHome || home.start == StartOn.Left) return
-        currentCategory = (categories.firstOrNull() ?: categoryList.first()).id
+        if (!alreadyHome || layered || home.start == StartOn.Left) return
+        currentCategory = startCategory.id
         prefs.lastCategory = currentCategory
         zone = Zone.Row
         rowIndex = 0
@@ -1503,6 +1769,9 @@ class LauncherState(
 
     private companion object {
         const val DOCK_MAX = 6
+        // Recent keeps more than it shows, so apps left out (hidden, docked) don't empty the row.
+        const val RECENT_KEPT = 24
+        const val RECENT_SHOWN = 12
         // How long a player takes to start or stop after the media key, before reading it again.
         const val MEDIA_SETTLE = 400L
         // One Left or Right on the seek bar, as a player's own skip-ahead.

@@ -4,7 +4,9 @@ import android.view.KeyEvent
 
 /**
  * What a key means, independent of the screen. X and Y are named by face position; the screens
- * decide what they do. Only movement repeats when held, so a held A never launches twice.
+ * decide what they do. Only movement repeats when held, so a held A never launches twice; where
+ * one press is one deed (a skipped track, a settings value) the state acts on the first press
+ * only (LauncherState.held).
  */
 enum class Action(val repeats: Boolean = false) {
     Left(true), Right(true), Up(true), Down(true),

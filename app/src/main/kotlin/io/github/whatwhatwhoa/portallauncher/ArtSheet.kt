@@ -34,6 +34,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -91,6 +92,8 @@ class ArtPicker(
 ) {
     val pkg: String = app.component.packageName
     var query by mutableStateOf(app.label)
+    // The words the results are for.
+    private var searched = app.label
     var results by mutableStateOf<List<ArtMatch>>(emptyList())
         private set
     var searching by mutableStateOf(false)
@@ -163,10 +166,10 @@ class ArtPicker(
         if (hasKey) search()
     }
 
-    /** False when B leaves the page. */
-    fun onAction(action: Action): Boolean {
+    /** False when B leaves the page. [held] is a held key's repeat. */
+    fun onAction(action: Action, held: Boolean = false): Boolean {
         if (browsing != null) {
-            onBrowse(action)
+            onBrowse(action, held)
             return true
         }
         if (previewing) {
@@ -222,14 +225,16 @@ class ArtPicker(
         loadingImages = false
     }
 
-    private fun onBrowse(action: Action) {
+    private fun onBrowse(action: Action, held: Boolean) {
         val kind = browsing ?: return
         val columns = columns(kind)
         when (action) {
             Action.Left -> imageIndex = imageFocus - 1
             Action.Right -> imageIndex = imageFocus + 1
-            Action.Up -> imageIndex = imageFocus - columns
-            Action.Down -> imageIndex = imageFocus + columns
+            // Up and down stay in their column: clamped, they slid sideways onto the gallery tile
+            // or the last image. Up from the top row goes back to the preview, on a fresh press.
+            Action.Up -> if (imageFocus >= columns) imageIndex = imageFocus - columns else if (!held) stopBrowsing()
+            Action.Down -> if (imageFocus / columns < (tiles - 1) / columns) imageIndex = minOf(imageFocus + columns, tiles - 1)
             Action.First -> imageIndex = 0
             Action.Last -> imageIndex = tiles - 1
             Action.PagePrev -> if (kind == ArtKind.Scene && matched != null) browse(ArtKind.Hero)
@@ -310,12 +315,19 @@ class ArtPicker(
 
     suspend fun thumbnail(url: String, maxPx: Int) = art.thumbnail(url, maxPx)
 
+    /**
+     * B while typing ends it and keeps the results: searching there would replace them (or empty
+     * them offline). The field goes back to the words they are for, so it never shows words that
+     * weren't searched; only the keyboard's search key searches.
+     */
     fun stopTyping() {
         typing = false
+        query = searched
     }
 
     fun search() {
         typing = false
+        searched = query
         searchJob?.cancel()
         searchJob = scope.launch {
             searching = true
@@ -460,11 +472,12 @@ private fun ColumnScope.ImageGrid(picker: ArtPicker, kind: ArtKind) {
     val columns = ArtPicker.columns(kind)
     val focus = picker.imageFocus
     val motion = LocalMotion.current
+    val follow = remember { GridFollow() }
     LaunchedEffect(focus, picker.images) {
         if (picker.images.isEmpty()) return@LaunchedEffect
-        // One row of context above the focused image.
-        val target = ((focus / columns - 1) * columns).coerceAtLeast(0)
-        if (motion) gridState.animateScrollToItem(target) else gridState.scrollToItem(target)
+        // One row of context above the focused image. New images (the grid opening, a tab
+        // turned) open on the image in use without scrolling to it; held moves glide.
+        follow.to(gridState, focus, columns, motion, contents = picker.images)
     }
     val name = when (kind) {
         ArtKind.Cover -> "Covers"
@@ -622,6 +635,9 @@ private fun SearchField(picker: ArtPicker) {
             focusManager.clearFocus()
         }
     }
+    // Leaving the page while typing (Home, a tap outside) takes the field away with typing still
+    // on, so it hides the keyboard itself, as the category name's field does.
+    DisposableEffect(Unit) { onDispose { keyboard?.hide() } }
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Space.s)) {
         BasicText("Search:", style = t.body.copy(color = p.muted), maxLines = 1)
         BasicTextField(
