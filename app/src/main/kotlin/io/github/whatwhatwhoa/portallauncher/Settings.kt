@@ -149,7 +149,7 @@ private fun LauncherState.shown(setting: Setting): String {
         Setting.ClearArt -> artBytes?.let(::megabytes).orEmpty()
         Setting.HiddenApps -> if (hiddenCount == 0) "None" else "$hiddenCount"
         Setting.ResetDock -> if (dockChanged) "" else "Default"
-        Setting.HomeApp -> if (isHomeApp) "Portal" else "Not set"
+        Setting.HomeApp -> if (isHomeApp) "Portal" else if (homeElsewhere) "Another app" else "Not set"
         Setting.AndroidSettings -> ""
         Setting.Updates -> updateNote.orEmpty()
         Setting.SaveSetup -> saveNote.orEmpty()

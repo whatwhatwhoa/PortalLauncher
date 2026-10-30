@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -64,6 +65,10 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
     var apps by mutableStateOf<List<AppEntry>>(emptyList())
         private set
 
+    /** The first list is in (or failed): Home's first frame waits for it (MainActivity). */
+    var loaded = false
+        private set
+
     private val callback = object : LauncherApps.Callback() {
         override fun onPackageRemoved(packageName: String, user: UserHandle) = reload()
         override fun onPackageAdded(packageName: String, user: UserHandle) = reload()
@@ -80,7 +85,13 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
     fun stop() = launcherApps.unregisterCallback(callback)
 
     fun launch(entry: AppEntry, bounds: Rect?, options: Bundle?): Boolean = try {
-        if (entry.action != null) {
+        if (entry.action == SHADE) {
+            // Nothing to start: the shade comes down, or with no way to pull it, the page of the
+            // service that can opens instead.
+            if (!HomeHoldService.openShade(context)) {
+                context.startActivity(HomeHoldSwitch(context).page().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }
+        } else if (entry.action != null) {
             val intent = Intent(entry.action).setComponent(entry.component).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent.apply { sourceBounds = bounds }, options)
         } else {
@@ -130,7 +141,14 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
 
     private fun reload() {
         job?.cancel()
-        job = scope.launch { apps = withContext(Dispatchers.Default) { query() } }
+        job = scope.launch {
+            try {
+                apps = withContext(Dispatchers.Default) { query() }
+            } finally {
+                // A failed query lets Home draw too; a cancelled one hands over to the next.
+                if (isActive) loaded = true
+            }
+        }
     }
 
     private fun query(): List<AppEntry> = (screens() + userManager.userProfiles.flatMap { user ->
@@ -151,13 +169,28 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
     }).sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
 
     /**
-     * The [SCREENS] this device has, as apps of the main profile. They start in All apps only
-     * (no seed), so one never changes Home by itself.
+     * Notifications, then the [SCREENS] this device has, as apps of the main profile. They start
+     * in All apps only (no seed), so one never changes Home by itself.
      */
     private fun screens(): List<AppEntry> {
         val pm = context.packageManager
         val me = Process.myUserHandle()
-        return SCREENS.mapNotNull { (component, action, label, icon) ->
+        // The notification shade as an app (F13), so Triangle → Add to dock can hold it. The
+        // component is a name only, under System UI's package, whose shade it is: no Uninstall,
+        // App info opens System UI's, and as one of Android's own it gets no art unasked.
+        val shadeKey = ComponentName(SYSTEM_UI, SHADE)
+        val shade = AppEntry(
+            key(shadeKey, me),
+            "Notifications",
+            shadeKey,
+            me,
+            system = true,
+            seed = null,
+            installed = pm.getPackageInfo(context.packageName, 0).firstInstallTime,
+            icon = context.getDrawable(R.drawable.ic_app_notifications)!!,
+            action = SHADE,
+        )
+        return listOf(shade) + SCREENS.mapNotNull { (component, action, label, icon) ->
             val info = pm.resolveActivity(Intent(action).setComponent(component), 0)?.activityInfo
                 ?.takeIf { it.exported } ?: return@mapNotNull null
             AppEntry(
@@ -199,6 +232,10 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
         val SCREENS = listOf(
             SettingsPage(AYN_SETTINGS, "com.android.settings.action.IA_SETTINGS", "Controller settings", R.drawable.ic_app_controller_settings),
         )
+
+        /** Notifications' action and the name in its key: [launch] pulls the shade down for it. */
+        const val SHADE = "io.github.whatwhatwhoa.portallauncher.NOTIFICATIONS"
+        private const val SYSTEM_UI = "com.android.systemui"
     }
 }
 

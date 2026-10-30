@@ -27,6 +27,9 @@
          that an update to the launcher itself goes in without a second confirm. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
+    <!-- Notifications pulls the shade down through Android's own call when the Home button
+         service is off (HomeHoldService.openShade); a normal permission, nothing to grant. -->
+    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
 
     <!-- Android's backup carries the setup, not the art (data_extraction_rules, F26). -->
     <application
@@ -39,7 +42,7 @@
 
         <activity
             android:name=".MainActivity"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density|fontScale|fontWeightAdjustment|locale|layoutDirection"
             android:excludeFromRecents="true"
             android:exported="true"
             android:launchMode="singleTask"
@@ -64,7 +67,20 @@
             </intent-filter>
         </activity>
 
-        <!-- Holding Home opens standby (HomeHoldService); off until turned on in Android's
+        <!-- Standby, in a task of its own over whatever was showing, so finishing it returns
+             there; out of Recents and history, never over the lock screen (StandbyActivity). -->
+        <activity
+            android:name=".StandbyActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density|fontScale|fontWeightAdjustment|locale|layoutDirection"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Portal.Standby" />
+
+        <!-- The Home button and notifications helper (HomeHoldService): a hold of Home opens
+             standby, Notifications pulls the shade down. Off until turned on in Android's
              accessibility settings. Bound only by the system. -->
         <service
             android:name=".HomeHoldService"

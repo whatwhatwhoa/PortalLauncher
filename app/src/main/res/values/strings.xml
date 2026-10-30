@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Portal</string>
-    <string name="home_hold_label">Portal: hold Home for standby</string>
+    <string name="home_hold_label">Portal: Home button and notifications</string>
     <string name="media_listener_label">Portal: seek bar for what is playing</string>
-    <string name="home_hold_description">Holding the Home button opens Portal\'s standby: the clock on black, the screen kept on, without locking. Four presses of the same button leave it; touches, the sticks and the triggers don\'t count. A short press of Home works as always. Portal reads only the Home button, nothing on the screen.</string>
+    <string name="home_hold_description">Holding the Home button opens Portal\'s standby: the clock on black, the screen kept on, without locking. Four presses of the same button leave it; touches, the sticks and the triggers don\'t count. A short press of Home works as always. Portal\'s Notifications button also uses it to pull the notification shade down. Portal reads only the Home button, nothing on the screen.</string>
 </resources>

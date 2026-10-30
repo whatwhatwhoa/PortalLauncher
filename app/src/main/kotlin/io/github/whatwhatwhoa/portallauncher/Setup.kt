@@ -1,5 +1,6 @@
 package io.github.whatwhatwhoa.portallauncher
 
+import android.app.role.RoleManager
 import android.content.ComponentName
 import android.content.ContentUris
 import android.content.ContentValues
@@ -135,9 +136,20 @@ class Setup(private val context: Context) {
         return null
     }
 
-    /** Starts the launcher afresh, so it reads the restored setup. */
+    /**
+     * Starts the launcher afresh, so it reads the restored setup. As Home, through Android's Home
+     * intent: an explicit start would make a second launcher beside the Home one (MainActivity).
+     */
     fun restart() {
-        context.startActivity(Intent.makeRestartActivityTask(ComponentName(context, MainActivity::class.java)))
+        val home = context.getSystemService(RoleManager::class.java).isRoleHeld(RoleManager.ROLE_HOME)
+        context.startActivity(
+            if (home) {
+                Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).setPackage(context.packageName)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            } else {
+                Intent.makeRestartActivityTask(ComponentName(context, MainActivity::class.java))
+            },
+        )
         Runtime.getRuntime().exit(0)
     }
 

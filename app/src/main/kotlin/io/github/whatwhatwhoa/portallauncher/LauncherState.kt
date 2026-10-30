@@ -4,7 +4,6 @@ import android.content.Intent
 import android.graphics.Rect
 import android.net.Uri
 import android.util.Log
-import android.view.KeyEvent
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -70,6 +69,14 @@ class LauncherState(
     private val openSystem: (Intent) -> Unit,
     /** Whether the launcher holds the Home role now. */
     private val holdsHome: () -> Boolean,
+    /** Whether another app holds it now; with none, Android asks at the next Home press. */
+    private val otherHome: () -> Boolean = { false },
+    /** Android's own "use as Home?" dialog; MainActivity takes its answer. */
+    private val requestHome: () -> Unit = {},
+    /** A short note in a toast, for something Android refused. */
+    private val say: (String) -> Unit = {},
+    /** Pulls Android's notification shade down; false when nothing could (HomeHoldService.openShade). */
+    private val openShade: () -> Boolean = { false },
     /** The Home-hold service's switch (HomeHoldService); null leaves standby off. */
     private val holdSwitch: HomeHoldSwitch? = null,
     /** Brightness, volume and the rest, for the quick panel. */
@@ -97,9 +104,18 @@ class LauncherState(
     private fun quickColumns(row: QuickRow) = when (row) {
         QuickRow.Media -> QuickMedia.entries.size + 1
         QuickRow.Toggles -> QuickToggle.entries.size
-        QuickRow.Links -> QuickLink.entries.size
+        QuickRow.Links -> controls.links.size
         else -> 1
     }
+
+    /**
+     * Notification access is a restricted setting too for an APK from a downloaded file: once its
+     * page has been opened and Android still grays the switch, the next A opens App info, whose ⋮
+     * menu allows it, and the one after the page again, as the Hold Home row does.
+     */
+    private var mediaRestricted by mutableStateOf(false)
+    /** Nothing could pull the shade down (the Home button service off, Android's call refused). */
+    private var shadeMissing by mutableStateOf(false)
 
     /** The line under the panel: what the focused control needs, or else the focused button's name. */
     val quickNote: String
@@ -110,12 +126,16 @@ class LauncherState(
                 "Auto brightness needs Android's “Modify system settings” for the launcher, once"
             quickFocus == QuickRow.Toggles && quickColumn == QuickToggle.Quiet.ordinal && !controls.canQuiet ->
                 "Do not disturb needs Android's “Do Not Disturb access” for the launcher, once"
+            quickFocus == QuickRow.Media && quickColumn == SEEK_COLUMN && !controls.canSeeMedia && mediaRestricted ->
+                "Switch grayed out? A opens App info: ⋮ → Allow restricted settings"
             quickFocus == QuickRow.Media && quickColumn == SEEK_COLUMN && !controls.canSeeMedia ->
                 "The seek bar needs Android's “Notification access” for the launcher, once"
             quickFocus == QuickRow.Media && quickColumn == SEEK_COLUMN -> "Seek"
             quickFocus == QuickRow.Media -> QuickMedia.entries[quickColumn].label
             quickFocus == QuickRow.Toggles -> QuickToggle.entries[quickColumn].label
-            quickFocus == QuickRow.Links -> QuickLink.entries[quickColumn].label
+            quickFocus == QuickRow.Links && controls.links[quickColumn] == QuickLink.Notifications && shadeMissing ->
+                "Notifications: switch on “Portal: Home button and notifications”, once"
+            quickFocus == QuickRow.Links -> controls.links[quickColumn].label
             else -> ""
         }
     var screen by mutableStateOf(Screen.Home)
@@ -228,6 +248,9 @@ class LauncherState(
     var artBytes by mutableStateOf<Long?>(null)
         private set
     var isHomeApp by mutableStateOf(false)
+        private set
+    /** Another app is Home (the Home app row says so rather than Not set). */
+    var homeElsewhere by mutableStateOf(false)
         private set
     /** Whether holding Home opens standby (HomeHoldService on); kept current by [checkHomeHold]. */
     var homeHold by mutableStateOf(false)
@@ -693,7 +716,9 @@ class LauncherState(
                 prefs.dock = null
                 dockIndex = 0
             }
-            Setting.HomeApp -> openSystem(Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS))
+            // Not Home: Android's own dialog, one A (MainActivity falls back to the page). Home: the
+            // Default apps page, where another launcher can be picked back.
+            Setting.HomeApp -> if (isHomeApp) openSystem(Intent(android.provider.Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)) else requestHome()
             Setting.HomeHold -> holdSwitch?.let { sw ->
                 when {
                     // Granted over adb: A flips it here, without Android's page.
@@ -767,6 +792,7 @@ class LauncherState(
         checkHomeHold(watched = false)
         if (!settingsOpen) return
         isHomeApp = holdsHome()
+        homeElsewhere = !isHomeApp && otherHome()
         scope.launch { artBytes = art?.bytes() }
         // Asked again after a while, or at once after a failed check; never while one runs.
         val stale = System.currentTimeMillis() - updateCheckedAt > UPDATE_CHECK_MS
@@ -938,7 +964,7 @@ class LauncherState(
         when (row) {
             QuickRow.Media -> when {
                 column < SEEK_COLUMN -> press(QuickMedia.entries[column])
-                !controls.canSeeMedia -> openSystem(mediaGrant())
+                !controls.canSeeMedia -> openMediaGrant()
             }
             QuickRow.Brightness -> if (!controls.canWrite) openSystem(writeSettingsGrant())
             QuickRow.Volume -> Unit
@@ -946,7 +972,39 @@ class LauncherState(
                 QuickToggle.AutoBrightness -> if (controls.canWrite) controls.toggleAutoBrightness() else openSystem(writeSettingsGrant())
                 QuickToggle.Quiet -> if (controls.canQuiet) controls.toggleQuiet() else openSystem(quietGrant())
             }
-            QuickRow.Links -> openSystem(QuickLink.entries[column].intent())
+            QuickRow.Links -> controls.links[column].intent?.let { openSystem(it()) } ?: openNotifications()
+        }
+    }
+
+    // Alternates with App info while Android grays the switch out ([mediaRestricted]).
+    private fun openMediaGrant() {
+        val sw = holdSwitch
+        if (mediaRestricted && sw != null) {
+            mediaRestricted = false
+            openSystem(sw.appInfo())
+        } else {
+            mediaRestricted = sw?.restricted == true
+            openSystem(mediaGrant())
+        }
+    }
+
+    /**
+     * Notifications: the panel closes and Android's shade comes down over Home. With no way to
+     * pull it, the panel stays and Android's page for the Home button service opens (App info
+     * once the switch was seen grayed out), and the line under the panel says what it needs.
+     */
+    private fun openNotifications() {
+        if (openShade()) {
+            shadeMissing = false
+            return closeQuick()
+        }
+        shadeMissing = true
+        val sw = holdSwitch ?: return
+        if (homeHoldTried && homeHoldRestricted) {
+            openSystem(sw.appInfo())
+        } else {
+            homeHoldTried = true
+            openSystem(sw.page())
         }
     }
 
@@ -963,7 +1021,7 @@ class LauncherState(
         when (row) {
             QuickRow.Brightness -> controls.moveBrightnessTo(fraction)
             QuickRow.Volume -> controls.moveVolumeTo((fraction * controls.volumeMax).roundToInt())
-            QuickRow.Media -> if (controls.canSeeMedia) controls.seekTo(fraction) else openSystem(mediaGrant())
+            QuickRow.Media -> if (controls.canSeeMedia) controls.seekTo(fraction) else openMediaGrant()
             else -> Unit
         }
     }
@@ -1187,7 +1245,6 @@ class LauncherState(
 
     /** Back as a gesture: closes the innermost layer. */
     fun back() = when {
-        standby -> Unit
         settingsOpen -> closeSettings()
         quickOpen -> closeQuick()
         picker?.typing == true -> picker?.stopTyping()
@@ -1205,7 +1262,7 @@ class LauncherState(
         else -> closeDrawer()
     }
 
-    val backHandled get() = standby || settingsOpen || quickOpen || sheetOpen || moving != null || categoriesOpen || screen == Screen.Drawer
+    val backHandled get() = settingsOpen || quickOpen || sheetOpen || moving != null || categoriesOpen || screen == Screen.Drawer
 
     /**
      * The Home key: closes everything. While already home (not on the way back from an app), it
@@ -1215,7 +1272,6 @@ class LauncherState(
     fun onHomePressed(alreadyHome: Boolean) = sounding(Action.Back.takeIf { alreadyHome }) { goHome(alreadyHome) }
 
     private fun goHome(alreadyHome: Boolean) {
-        if (standby) return standbyPress(KeyEvent.KEYCODE_HOME)
         if (homeHold) {
             flashStandbyHint(HOLD_HINT, HINT_SHOWN)
         } else if (prefs.homeHoldWanted && !offNoteShown) {
@@ -1235,17 +1291,6 @@ class LauncherState(
         rowIndex = 0
     }
 
-    /**
-     * Standby (F19): a rest that doesn't lock, over whatever was showing, which is still there
-     * after. Opened by holding Home (HomeHoldService).
-     */
-    var standby by mutableStateOf(false)
-        private set
-    /** Presses so far toward leaving standby, 0 until [WAKE_PRESSES]; the dots show them. */
-    var wakePresses by mutableIntStateOf(0)
-        private set
-    val wakePressesNeeded = WAKE_PRESSES
-    private var wakeWindow: Job? = null
     /** "Hold Home for standby", shown briefly on each Home press while holding Home opens it. */
     var standbyHint by mutableStateOf(false)
         private set
@@ -1253,45 +1298,6 @@ class LauncherState(
     var standbyHintText by mutableStateOf(HOLD_HINT)
         private set
     private var hintTimer: Job? = null
-
-    fun openStandby() {
-        standbyHint = false
-        endWakeWindow()
-        standby = true
-    }
-
-    /** Leaving without the presses: the launcher went out of view (the screen off, an app over it). */
-    fun endStandby() {
-        endWakeWindow()
-        standby = false
-    }
-
-    /**
-     * A button press in standby, [button] its key code (not a touch, a stick or a trigger:
-     * MainActivity swallows those). [WAKE_PRESSES] of the same button within [WAKE_WINDOW] of the
-     * first leave it, so a bump in a bag, which presses whatever it presses, doesn't; another
-     * button starts the count again from one (owner).
-     */
-    fun standbyPress(button: Int) {
-        if (button != wakeButton) endWakeWindow()
-        wakeButton = button
-        if (++wakePresses >= WAKE_PRESSES) {
-            sounds?.play(Sound.Wake)
-            return endStandby()
-        }
-        if (wakePresses == 1) wakeWindow = scope.launch {
-            delay(WAKE_WINDOW)
-            wakePresses = 0
-            wakeButton = null
-        }
-    }
-    private var wakeButton: Int? = null
-
-    private fun endWakeWindow() {
-        wakeWindow?.cancel()
-        wakePresses = 0
-        wakeButton = null
-    }
 
     private fun flashStandbyHint(text: String, shown: Long) {
         hintTimer?.cancel()
@@ -1372,8 +1378,8 @@ class LauncherState(
             Option.Hide -> hide(app)
             Option.Unhide -> saveHidden(hidden - app.key)
             Option.Art, Option.ChangeCategory -> Unit
-            Option.Info -> catalog.showInfo(app)
-            Option.Uninstall -> catalog.uninstall(app)
+            Option.Info -> if (!catalog.showInfo(app)) say("Couldn't open App info")
+            Option.Uninstall -> if (!catalog.uninstall(app)) say("Couldn't uninstall ${app.label}")
             Option.ShowHidden -> showHidden = true
             Option.HideHidden -> showHidden = false
             Option.Settings -> openSettings()
@@ -1498,8 +1504,6 @@ class LauncherState(
         const val MEDIA_SETTLE = 400L
         // One Left or Right on the seek bar, as a player's own skip-ahead.
         const val SEEK_STEP = 10_000L
-        const val WAKE_PRESSES = 4
-        const val WAKE_WINDOW = 2_000L
         // The owner's "0.5 or so seconds", plus the fades.
         const val HINT_SHOWN = 600L
         const val HOLD_HINT = "Hold Home for standby"

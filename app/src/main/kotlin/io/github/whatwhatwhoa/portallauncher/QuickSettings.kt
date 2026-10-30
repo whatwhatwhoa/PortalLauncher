@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.MediaMetadata
 import android.media.session.MediaController
@@ -114,6 +115,15 @@ class DeviceControls(private val context: Context) {
         private set
     var nowPlaying by mutableStateOf<NowPlaying?>(null)
         private set
+
+    /**
+     * The panel's shortcuts this device has: a page no activity open to others answers (AYN's on
+     * another handheld, or not exported) is left out rather than shown as a dead button.
+     */
+    val links: List<QuickLink> = QuickLink.entries.filter { link ->
+        val intent = link.intent ?: return@filter true
+        context.packageManager.resolveActivity(intent(), PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.exported == true
+    }
 
     // While the launcher is shown, Android tells it when the track or the playing changes, so
     // the status band's artist (F27) follows without polling; the panel still polls the position.
@@ -297,15 +307,18 @@ enum class QuickToggle(val label: String, @DrawableRes val icon: Int) {
     Quiet("Do not disturb", R.drawable.ic_sym_dnd),
 }
 
-/** Shortcuts to the system's own pages, for what a launcher may not change itself. */
-enum class QuickLink(val label: String, @DrawableRes val icon: Int, val intent: () -> Intent) {
+/**
+ * Shortcuts: the notification shade, then the system's own pages for what a launcher may not
+ * change itself. Only the ones the device has show ([DeviceControls.links]).
+ */
+enum class QuickLink(val label: String, @DrawableRes val icon: Int, val intent: (() -> Intent)?) {
+    // No page: the shade itself, pulled down by HomeHoldService (F13).
+    Notifications("Notifications", R.drawable.ic_sym_notifications, null),
     Wifi("Wi-Fi", R.drawable.ic_sym_wifi, { Intent(Settings.ACTION_WIFI_SETTINGS) }),
     Bluetooth("Bluetooth", R.drawable.ic_sym_bluetooth, { Intent(Settings.ACTION_BLUETOOTH_SETTINGS) }),
     Battery("Battery", R.drawable.ic_sym_battery, { Intent(Intent.ACTION_POWER_USAGE_SUMMARY) }),
     // AYN's performance, fan and controller settings; it has no launcher entry of its own.
-    Ayn("Controller settings", R.drawable.ic_sym_portal, {
-        Intent().setComponent(ComponentName("org.lineageos.settings.ayn", "org.lineageos.settings.ayn.AynSettingsActivity"))
-    }),
+    Ayn("Controller settings", R.drawable.ic_sym_portal, { Intent().setComponent(AppCatalog.AYN_SETTINGS) }),
     Android("Android settings", R.drawable.ic_sym_settings, { Intent(Settings.ACTION_SETTINGS) }),
 }
 
@@ -413,7 +426,7 @@ fun AnimatedVisibilityScope.QuickPanel(state: LauncherState) {
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(Space.l)) {
-                QuickLink.entries.forEachIndexed { i, link ->
+                controls.links.forEachIndexed { i, link ->
                     IconChip(link.icon, on = false, focused = focusedRow == QuickRow.Links && i == state.quickColumn) {
                         state.tapQuick(QuickRow.Links, i)
                     }

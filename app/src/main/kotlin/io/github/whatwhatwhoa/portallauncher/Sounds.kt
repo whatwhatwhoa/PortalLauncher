@@ -85,7 +85,15 @@ class Sounds(context: Context) {
         pool.play(ids[settings.family.ordinal][sound.ordinal], gain, gain, 1, 0, pitch.coerceIn(0.5f, 2f))
     }
 
-    fun release() = pool.release()
+    companion object {
+        private var shared: Sounds? = null
+
+        /**
+         * One set for the whole process, Home's and standby's chime alike: the 36 load once and
+         * live as long as it does, from the application, so no activity is held by them.
+         */
+        fun shared(context: Context): Sounds = shared ?: Sounds(context.applicationContext).also { shared = it }
+    }
 }
 
 /**

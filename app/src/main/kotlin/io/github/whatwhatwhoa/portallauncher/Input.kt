@@ -15,7 +15,8 @@ enum class Action(val repeats: Boolean = false) {
 /**
  * The one key table. On the owner's Portal A is the bottom button (Xbox layout), which Android
  * reports as BUTTON_A; a Nintendo-style swap is a change here only. The left stick and the hat
- * need no entry: Android turns unhandled joystick motion into D-pad keys, with repeat.
+ * need no entry: both arrive as D-pad keys, the hat through Android's own conversion of joystick
+ * motion, the stick through [Stick].
  */
 private val keyActions = mapOf(
     KeyEvent.KEYCODE_DPAD_LEFT to Action.Left,

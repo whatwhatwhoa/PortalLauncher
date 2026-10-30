@@ -3,4 +3,6 @@
     <color name="background">#FFEBEBEB</color>
     <!-- AYN's own settings icon is this teal; ours keeps it so the owner still finds it. -->
     <color name="controller_settings_icon">#FF3F7F84</color>
+    <!-- Notifications in All apps and the dock: a quiet slate blue, apart from AYN's teal. -->
+    <color name="notifications_icon">#FF56708C</color>
 </resources>
