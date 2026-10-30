@@ -20,8 +20,8 @@ android {
         applicationId = "io.github.whatwhatwhoa.portallauncher"
         minSdk = 31
         targetSdk = 37
-        versionCode = 6
-        versionName = "0.4.2"
+        versionCode = 7
+        versionName = "0.5.0"
         // Where Updates asks for the latest release (F18).
         buildConfigField("String", "UPDATE_URL", "\"$GITHUB_LATEST\"")
     }

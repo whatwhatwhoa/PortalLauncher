@@ -3,22 +3,18 @@
 Current state only. **Rewrite this file at the end of every session**: carry forward what is
 open, delete what is resolved, never append history (git and `docs/decisions/` hold it).
 
-**State (2026-10-30, morning):** **0.5.0 — Steady and quick** is built, under *Working on*, all
-cards ticked (F37–F45 with F11 Recent, F13 Notifications, F16 Search on Y; the session's own
-pick from an audit, `decisions/0.5.0.md`). Merged from four lanes, reviewed again as a whole
-(13 low findings fixed), lint clean but the old warning. Not released: versionName is still
-0.4.2. The Portal runs this build (installed 10:34, standby's service on, the grant kept),
-landscape, auto-rotate off: it had been found on and stuck in portrait; `user_rotation` set back
-to 0 at the owner's ask (`gotchas.md` *Rotation*). Everything is
-committed locally on `main` and not pushed (`git log origin/main..main`). `architecture.md` was
-split: what each screen does is now `docs/behavior.md`.
+**State (2026-10-30):** **0.5.0 — Steady and quick is released**: versionCode 7, tag and GitHub
+release v0.5.0 with `PortalLauncher-0.5.0.apk` (now "latest", what Updates offers). Before it the
+R8 check build ran fresh on the Portal (start, Home role ask backed out, resume, keys; no crash),
+then was uninstalled; the Portal holds the Home role and standby's service as before, running the
+0.5.0 debug build. Nothing under *Working on*: the owner plans next. Its hand checks went to
+*Candidates* as T37.2 (`VERIFY.md` *V-0.5.0*). `architecture.md` and `behavior.md` describe the
+screens; `decisions/0.5.0.md` the why.
 
 ## Next
 1. The owner tries **`VERIFY.md` *V-0.5.0*** on the Portal, the stick and standby over a game
    first (the agent could only drive keys over adb and a virtual Home key).
-2. Then release 0.5.0 on the owner's word: versionCode 7, versionName 0.5.0, the release APK
-   (`TASKS.md` rules), the R8 check build run fresh first (`decisions/0.4.2.md` lesson); "commit
-   to github" and the GitHub release are the owner's to ask for.
+2. The owner picks the next release from the *Feature list*.
 3. Older VERIFY rounds T2.3, T5.3, T7.3, T6.5, T35.1, T36.1 (*Candidates*) still need hands.
 4. The promo video (jim-13): when it is on YouTube, add its link under the README's hero shot.
 
@@ -46,7 +42,7 @@ split: what each screen does is now `docs/behavior.md`.
   Q-javahome (`JAVA_HOME` for the user); the agent's test category **Test** may still be there.
 
 ## Uncommitted
-Nothing.
+Nothing; `main` = `origin/main`.
 
 ## Watch out (this week only)
 - **The history was rewritten** for the purge (2026-10-25): other clones must be cloned again. The

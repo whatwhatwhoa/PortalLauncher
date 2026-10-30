@@ -3,7 +3,7 @@
 Built but not yet clicked on the device. Each check is one line: what to do, what should
 happen. Ticked checks leave this file (their result goes in the commit or a decision entry).
 
-## V-0.5.0 (F37–F45, F11, F13, F16, built 2026-10-30)
+## V-0.5.0 (F37–F45, F11, F13, F16, released 2026-10-30)
 The agent saw on the Portal (debug build, keys over adb and a virtual Home key): Recent fills
 and shows second, the L1/R1 glyphs, the search strip, the quick panel's bell pulling the shade,
 standby opening from a Home hold and waking back to DroidDeck or to Home as it was, extra wake
