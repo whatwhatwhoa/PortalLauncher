@@ -129,7 +129,9 @@ are looked up by label when they appear (Android's own apps, by package, only in
 art only on a close match; any other app keeps its
 icon until the owner picks. Only a lookup that finds no close match, or a match with no images,
 records "no art"; a download that fails (offline, a timeout, an HTTP error) records nothing and
-runs again when the network comes back (3 s after it settles) or at the next start. Art… says
+runs again when the network comes back (3 s after it settles) or at the next start (the apps
+still owed an image are kept in `art.pending`, outside the setup); each image comes on its own,
+and a picked one SteamGridDB no longer has (404) gives way to the automatic one. Art… says
 which: "No art for <game>" or "Couldn't reach SteamGridDB". *Art…* in the options sheet turns the panel into a picker: a
 preview of the art in use at the top (the 120 dp cover, beside it as tall the strip: the hero or
 the scene, whichever fills Home behind the app), then the matches for the label, *Search* (the keyboard; B ends
@@ -243,7 +245,8 @@ Two activities (Home, standby) and Compose screens, in `app/src/main/kotlin/io/g
   system dialog and can pick Launcher3 back the same way. There is one launcher: Android makes an
   activity Home only from its Home intent with no component, so any other start while Portal is
   Home (its icon in another launcher, `am start -n`, the settings gear) hands over to Home through
-  that intent (`EXTRA_OPEN`: settings or home) and finishes before anything is built. A cold start
+  that intent (`EXTRA_OPEN`: settings or home) and finishes before anything is built; a copy
+  opened before Portal became Home ends once Home is built, or hands over when it comes back. A cold start
   shows the backdrop's own color, then the first frame once the app list is in (at most 1 s).
   Font size, bold text and locale changes don't rebuild it (`configChanges`).
   `StandbyActivity` is standby: its own task (`taskAffinity ""`, `singleInstance`), out of
@@ -326,7 +329,8 @@ Two activities (Home, standby) and Compose screens, in `app/src/main/kotlin/io/g
   ("Not a Portal setup", "Saved by a newer Portal"); then it copies the files in first (on a
   full disk the old setup stands), replaces the four preferences (keeping the current key; a
   value not of its key's type is dropped and logged, the rest kept), deletes the other files in
-  `files/art/` and restarts the process as Home; a failure part way says "Couldn't restore".
+  `files/art/` and restarts the process as Home; a failure part way puts the preferences and
+  the replaced files back and says "Couldn't restore".
   `Art.lookUp` fetches the images again for a matched app with neither cover nor hero on disk:
   a picked or scored URL as is, otherwise SteamGridDB's first one (needs the key), once per
   start. Android's backup (`res/xml/data_extraction_rules.xml`) carries the same four

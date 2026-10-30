@@ -26,8 +26,8 @@ restored setup or a new Portal keeps them placed); an app first installed later 
 in All apps only, so a new install never changes Home by itself. Triangle → *Category…* puts it
 in or takes it out of any number of categories, or All apps only takes it out of all; only a
 change is stored, so putting it back where it started forgets it. An app can be a favorite and
-in several categories at once. Favorites, the dock, hidden apps and category choices are kept
-by app key, so an app uninstalled for now keeps its places and has them back when reinstalled;
+in several categories at once. Favorites, Recent, the dock, hidden apps and category choices
+are kept by app key, so an app uninstalled for now keeps its places and has them back when reinstalled;
 a key whose activity is gone follows its package's one launchable activity (an icon switched
 by alias), never a guess between two. Art is looked up for favorites, Recent's apps and the
 Games category whatever its name. **B on Home opens the categories layer**: the names stacked on the content
