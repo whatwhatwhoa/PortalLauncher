@@ -139,7 +139,9 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
 
     // Whether a lookup, scene or refetch failed since the network last came back, and for which
     // apps, so its return can run them again (lookUp skips what already succeeded).
-    private var failedOffline = false
+    // Set at start while apps are still owed images, so the network's first report (at
+    // registering) fetches them whatever Fetch art says.
+    private var failedOffline = unfinished.isNotEmpty()
     private var wanted: List<AppEntry> = emptyList()
 
     init {
@@ -354,9 +356,13 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
             writing.withLock {
                 // Each slot on its own, so one that fails leaves the others to come, and whatever
                 // came is drawn.
+                // Still this game's: the icon or another game may have been chosen meanwhile
+                // (Use the app's icon doesn't wait for the lock), and then nothing lands.
+                fun current() = (records[pkg] as? ArtRecord.Matched)?.match?.gameId == match.gameId
+                if (!current()) return@withLock
                 var landed = false
                 var failed = false
-                suspend fun slot(to: File, key: String, auto: suspend () -> String?) {
+                suspend fun slot(to: File, key: String, gone: () -> Unit, auto: suspend () -> String?) {
                     if (to.name in present) return
                     val picked = picks.getString(key, null)?.takeIf { it.startsWith("http") }
                     try {
@@ -368,9 +374,13 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
                             picks.edit { remove(key) }
                             download(auto() ?: return, to)
                         }
-                        landed = true
+                        if (current()) landed = true else delete(to)
                     } catch (e: CancellationException) {
                         throw e
+                    } catch (e: HttpError) {
+                        Log.w(TAG, "Fetching ${to.name} again failed: $e")
+                        // Gone for good is no failure to try again: there is nothing to fetch.
+                        if (e.code in GONE) gone() else failed = true
                     } catch (e: Exception) {
                         // Offline: again when the network is back, or next start.
                         Log.w(TAG, "Fetching ${to.name} again failed: $e", e)
@@ -379,9 +389,16 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
                 }
                 try {
                     for (kind in listOf(ArtKind.Cover, ArtKind.Hero)) {
-                        slot(File(dir, "$pkg.${kind.suffix}"), pickKey(pkg, kind)) { if (hasKey) best(kind, match.gameId) else null }
+                        slot(File(dir, "$pkg.${kind.suffix}"), pickKey(pkg, kind), gone = {}) {
+                            if (hasKey) best(kind, match.gameId) else null
+                        }
                     }
-                    slot(sceneFile(pkg), pickKey(pkg, ArtKind.Scene)) { scenes.getString("$pkg.url", null) }
+                    // A scored shot Steam took down: the scene is looked for again, from today's shots.
+                    slot(sceneFile(pkg), pickKey(pkg, ArtKind.Scene), gone = {
+                        scenes.edit { remove(pkg); remove("$pkg.url") }
+                        sceneLooked.remove(pkg)
+                        findScene(pkg, match)
+                    }) { scenes.getString("$pkg.url", null) }
                 } catch (e: CancellationException) {
                     refetched.remove(pkg)
                     throw e
@@ -392,7 +409,7 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
                     refetched.remove(pkg)
                     failedOffline = true
                 }
-                unfinish(pkg, failed)
+                if (current()) unfinish(pkg, failed)
             }
         }
     }
@@ -808,14 +825,23 @@ private val PLATFORM_PREFIXES = listOf("com.android.", "com.google.", "org.linea
  * last image stays until the next is decoded, so a crossfade has no gap.
  */
 @Composable
-fun rememberArt(art: Art?, pkg: String, kind: ArtKind, maxPx: Int): ImageBitmap? {
+fun rememberArt(art: Art?, pkg: String, kind: ArtKind, maxPx: Int): ImageBitmap? = rememberArtOfKind(art, pkg, kind, maxPx)?.second
+
+/**
+ * As [rememberArt], with the kind each image was decoded for: the last image that stays while
+ * the next decodes (or a decode that lands just after focus moved on) can be another kind's.
+ */
+@Composable
+fun rememberArtOfKind(art: Art?, pkg: String, kind: ArtKind, maxPx: Int): Pair<ArtKind, ImageBitmap>? {
     val revision = art?.revision(pkg) ?: 0
     val file = art?.file(pkg, kind)
-    val hit = remember(art, file, revision, maxPx) { if (art != null && file != null) art.cached(file, kind, maxPx, revision) else null }
-    val bitmap by produceState(hit, art, file, revision, maxPx) {
-        value = hit ?: if (art != null && file != null) art.bitmap(pkg, file, kind, maxPx, revision) else null
+    val hit = remember(art, file, revision, maxPx) {
+        if (art != null && file != null) art.cached(file, kind, maxPx, revision)?.let { kind to it } else null
     }
-    return if (file == null) null else hit ?: bitmap
+    val decoded by produceState(hit, art, file, revision, maxPx) {
+        value = hit ?: if (art != null && file != null) art.bitmap(pkg, file, kind, maxPx, revision)?.let { kind to it } else null
+    }
+    return if (file == null) null else hit ?: decoded
 }
 
 // Covers decode two at a time, so a new row's dozen doesn't take every core from its slide.

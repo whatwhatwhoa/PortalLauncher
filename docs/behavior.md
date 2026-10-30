@@ -87,7 +87,8 @@ or Unhide (not from the dock), Art…,
 App info, Uninstall (not for system apps; the system asks to confirm), Show or Hide hidden apps (All
 apps only), and last, always, *Launcher settings…* (*Settings*). Hiding an app also
 takes it off the row and the dock. *Move* picks the tile up: it
-grows to 1.14 with a steady ring, left and right shift it, A or B puts it down. An App info or
+grows to 1.14 with a steady ring, left and right shift it; A, B, Triangle, a tap or a swipe up
+puts it down. An App info or
 Uninstall that Android refuses says so in a toast.
 
 ## Settings and sounds
@@ -228,7 +229,8 @@ place (category, focused app, row or dock, `home.place`) with the boot it happen
 launcher started again in that boot reopens it, and back in front the place is dropped. Keys
 and touches that come while Home isn't in front (between a launch and the app's window, under
 Android's dialogs and the pickers) do nothing. Touch: tap opens, long press opens options, drag
-scrolls, swipe up opens All apps, back closes the top layer (if any).
+scrolls, swipe up opens All apps (with a tile picked up, it puts it down), back closes the top
+layer (if any).
 
 ## Standby
 

@@ -146,7 +146,7 @@ strip's grid has two tabs, *Hero* and *Scene*, drawn between the L1 and R1 bumpe
 with *Button hints* off): the one browsed underlined in the accent, a dot on the one Home shows.
 It opens on that one; L1/R1 or a tap turn the tab. Taking an image in a tab makes that kind the
 app's (`<package>.wide` in `picks`; without one, the hero, or the scene when there is no hero);
-A on the other tab's dotted image only switches; the icon or another game drops the choice. A
+A on the other tab's dotted image only switches (or fetches it again if its file is gone); the icon or another game drops the choice. A
 tap on the preview opens its grid. The dot marks the owner's pick, else the automatic one;
 picks are kept per slot by url (`picks`) until another game or the icon is chosen. With art,
 the sheet's header and the Home tiles show the cover instead of the icon, and the hero fills
@@ -331,9 +331,10 @@ Two activities (Home, standby) and Compose screens, in `app/src/main/kotlin/io/g
   value not of its key's type is dropped and logged, the rest kept), deletes the other files in
   `files/art/` and restarts the process as Home; a failure part way puts the preferences and
   the replaced files back and says "Couldn't restore".
-  `Art.lookUp` fetches the images again for a matched app with neither cover nor hero on disk:
-  a picked or scored URL as is, otherwise SteamGridDB's first one (needs the key), once per
-  start. Android's backup (`res/xml/data_extraction_rules.xml`) carries the same four
+  `Art.lookUp` fetches the images again for a matched app with neither cover nor hero on disk,
+  or one in `art.pending`: each image on its own, a picked URL as is (one that answers 404/410
+  gives way to the automatic one), otherwise the scored or first one (needs the key); a scored
+  scene Steam took down is looked for again. Android's backup (`res/xml/data_extraction_rules.xml`) carries the same four
   preferences to the cloud and, in a device-to-device transfer, the art and wallpapers too.
 - **Launches.** Every tile reports where it was laid out (`launchesFrom`), keyed by where it sits
   (row, dock, All apps) and the app; opening an app passes that rect to `startMainActivity` as

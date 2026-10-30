@@ -120,8 +120,8 @@ class MainActivity : ComponentActivity() {
             return
         }
         // A copy opened before Portal became Home (in Android's Default apps, say) can still be
-        // running, stopped: Home, once built, ends it, so two launchers never share the setup.
-        if (isHome) copy?.get()?.finish() else copy = WeakReference(this)
+        // running, stopped: Home ends it when it comes to the front (onResume).
+        if (!isHome) copy = WeakReference(this)
         enableEdgeToEdge()
         hideSystemBars()
         prefs = Prefs(this)
@@ -233,6 +233,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Built now or brought back by a Home intent, Home in front ends a copy still running, so
+        // two launchers never share the setup.
+        if (isHome) copy?.get()?.finish()
         // A copy coming back after Portal became Home (Back from Default apps) hands over now.
         if (!isHome && !isFinishing && holdsHome()) {
             forwardHome(if (state.settingsOpen) OPEN_SETTINGS else OPEN_HOME)

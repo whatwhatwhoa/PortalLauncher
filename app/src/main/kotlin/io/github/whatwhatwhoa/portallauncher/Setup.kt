@@ -92,7 +92,7 @@ class Setup(private val context: Context) {
                         r.beginObject()
                         while (r.hasNext()) {
                             val name = r.nextName()
-                            if (!FILE_PATH.matches(name)) {
+                            if (!FILE_PATH.matches(name) || name.endsWith(KEPT)) {
                                 r.skipValue()
                                 continue
                             }
@@ -121,10 +121,15 @@ class Setup(private val context: Context) {
         val replaced = ArrayList<Pair<File, File?>>()
         val written = ArrayList<Pair<SharedPreferences, Map<String, *>>>()
         try {
+            // What a restore killed part way left aside: the files there now are the setup.
+            listOf("art", "backdrops").forEach { dir ->
+                File(context.filesDir, dir).listFiles()?.filter { it.name.endsWith(KEPT) }?.forEach { it.delete() }
+            }
             // The files first: on a full disk the setup is still the one there was.
             val copied = staging.walkTopDown().filter { it.isFile }.mapTo(HashSet()) { file ->
                 val target = File(context.filesDir, file.relativeTo(staging).path).apply { parentFile?.mkdirs() }
-                val before = File(target.path + KEPT).takeIf { target.exists() && target.renameTo(it) }
+                val before = if (target.exists()) File(target.path + KEPT) else null
+                if (before != null && !target.renameTo(before)) throw IOException("Couldn't set $target aside")
                 replaced += target to before
                 file.copyTo(target, overwrite = true)
             }
@@ -147,15 +152,16 @@ class Setup(private val context: Context) {
             File(context.filesDir, "art").listFiles()?.filterNot { it in copied }?.forEach { it.delete() }
         } catch (e: Exception) {
             Log.w(TAG, "Restoring $uri failed", e)
-            written.forEach { (sp, before) ->
-                sp.edit(commit = true) {
-                    clear()
-                    before.forEach { (key, value) -> value?.let { putValue(key, it) } }
-                }
-            }
-            replaced.forEach { (target, before) ->
+            // The files first, last in first out, so the room the new copies took is free again
+            // for the preferences.
+            replaced.asReversed().forEach { (target, before) ->
                 target.delete()
                 before?.renameTo(target)
+            }
+            written.forEach { (sp, before) ->
+                val back = sp.edit().clear()
+                before.forEach { (key, value) -> value?.let { back.putValue(key, it) } }
+                if (!back.commit()) Log.w(TAG, "Couldn't put the old values back in $sp")
             }
             return "Couldn't restore"
         } finally {
@@ -200,7 +206,8 @@ class Setup(private val context: Context) {
         // A gallery pick is stored as its content: URI under the art file's own name.
         val gallery = prefs("picks").all.filterValues { (it as? String)?.startsWith("content:") == true }.keys
             .map { "art/$it" to File(art, it) }
-        val wallpapers = File(context.filesDir, "backdrops").listFiles().orEmpty().map { "backdrops/${it.name}" to it }
+        val wallpapers = File(context.filesDir, "backdrops").listFiles().orEmpty()
+            .filterNot { it.name.endsWith(KEPT) }.map { "backdrops/${it.name}" to it }
         return (gallery + wallpapers).filter { (_, file) -> file.isFile }
     }
 

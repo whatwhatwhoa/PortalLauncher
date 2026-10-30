@@ -256,10 +256,10 @@ private fun Hero(art: Art?, app: AppEntry?) {
         // rememberArt keeps the last image while the next decodes, so the crossfade has no gap.
         val pkg = app?.component?.packageName
         val kind = pkg?.let { art?.wide(it) }
-        val image = kind?.let { rememberArt(art, pkg, it, constraints.maxWidth) }
-        // Made again only for a new image: while the last one stays, it keeps its own kind, so a
-        // hero is never shown as the next app's scene (or a scene squeezed into the band).
-        val shown = remember(image) { image?.let { Shown(it, full = kind == ArtKind.Scene) } }
+        // Each image with the kind it was decoded for: while the last one stays, it is drawn as
+        // what it is, so a hero is never shown as the next app's scene (or a scene in the band).
+        val image = kind?.let { rememberArtOfKind(art, pkg, it, constraints.maxWidth) }
+        val shown = image?.let { (decodedAs, bitmap) -> Shown(bitmap, full = decodedAs == ArtKind.Scene) }
         Crossfade(shown, animationSpec = if (LocalMotion.current) tween(HERO_FADE) else snap(), label = "hero") {
             when {
                 it == null -> Unit

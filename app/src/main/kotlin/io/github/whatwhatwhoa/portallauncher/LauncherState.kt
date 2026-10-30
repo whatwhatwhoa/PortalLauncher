@@ -489,19 +489,18 @@ class LauncherState(
      * the app keeps its places.
      */
     private fun settle(apps: List<AppEntry>) {
-        if (sortedKeys == null) {
-            // A first-sort time from before this launcher was installed here, that none of the
-            // owner's own apps fits (Android's always do: theirs is the system image's), came with
-            // a backup of another Portal: this one sorts its apps afresh.
-            val fit = apps.filter(::wasSorted)
-            val at = sortedAt
-            val foreign = at != null && catalog.installedAt > at && fit.none { !it.system && it.action == null }
-            if (foreign) {
-                sortedAt = null
-                prefs.forgetSortedAt()
-            }
-            saveSorted((if (foreign) apps else fit).mapTo(HashSet()) { it.key })
+        // A 0.4 first-sort time from before this launcher was installed here, that none of the
+        // owner's own apps fits (Android's always do: theirs is the system image's), came with a
+        // setup or backup of another Portal: forgotten, checked at each start's first answer.
+        val at = sortedAt
+        if (lastKeys == null && at != null && catalog.installedAt > at &&
+            apps.none { !it.system && it.action == null && it.installed <= at }
+        ) {
+            sortedAt = null
+            prefs.forgetSortedAt()
         }
+        // The first sort ever: the apps there now, or those a 0.4 time fits.
+        if (sortedKeys == null) saveSorted(apps.filter(::wasSorted).mapTo(HashSet()) { it.key })
         val present = apps.mapTo(HashSet()) { it.key }
         val stored = (favorites + recent + dockKeys.orEmpty() + categoryMoves.keys + sortedKeys.orEmpty()).toSet()
         // Only onto an activity new since the last answer: one left out of a single answer (its
@@ -1105,6 +1104,8 @@ class LauncherState(
     fun openSettings(at: Setting? = null) {
         // Android's gear can come mid-rename; a field left open under the panel kept the keys.
         if (categoryEdit == CategoryEdit.Renaming) finishRename()
+        // Or mid-move: a tile left picked up would take the keys of All apps opened from here.
+        moving = null
         wallpapers = findWallpapers()
         closeSheet()
         // -1: no row asked for, or one the panel doesn't have (the Art group needs art).
