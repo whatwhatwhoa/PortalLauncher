@@ -70,6 +70,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import java.io.File
+import java.lang.ref.WeakReference
 import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
@@ -118,6 +119,9 @@ class MainActivity : ComponentActivity() {
             finish()
             return
         }
+        // A copy opened before Portal became Home (in Android's Default apps, say) can still be
+        // running, stopped: Home, once built, ends it, so two launchers never share the setup.
+        if (isHome) copy?.get()?.finish() else copy = WeakReference(this)
         enableEdgeToEdge()
         hideSystemBars()
         prefs = Prefs(this)
@@ -229,6 +233,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // A copy coming back after Portal became Home (Back from Default apps) hands over now.
+        if (!isHome && !isFinishing && holdsHome()) {
+            forwardHome(if (state.settingsOpen) OPEN_SETTINGS else OPEN_HOME)
+            return finish()
+        }
         state.refreshSettings()
         state.controls.watchMedia(true)
     }
@@ -242,6 +251,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         // A copy that handed over to Home (onCreate) built nothing to take down.
         if (!::state.isInitialized) return super.onDestroy()
+        if (copy?.get() === this) copy = null
         contentResolver.unregisterContentObserver(motionWatcher)
         holdSwitch.stop()
         catalog.stop()
@@ -427,6 +437,8 @@ class MainActivity : ComponentActivity() {
         const val OPEN_HOME = "home"
         /** The most Home's first frame waits for the app list. */
         const val FIRST_FRAME_WAIT = 1_000L
+        /** A copy started as an app (not Home), while it lives; Home finishes it when built. */
+        var copy: WeakReference<MainActivity>? = null
     }
 }
 

@@ -74,6 +74,9 @@ class AppCatalog(private val context: Context, private val scope: CoroutineScope
     var loaded = false
         private set
 
+    /** When this launcher was first installed here: a first-sort time after it came from another device. */
+    val installedAt: Long by lazy { context.packageManager.getPackageInfo(context.packageName, 0).firstInstallTime }
+
     private val callback = object : LauncherApps.Callback() {
         override fun onPackageRemoved(packageName: String, user: UserHandle) = reload(settle = true)
         override fun onPackageAdded(packageName: String, user: UserHandle) = reload(settle = true)
@@ -279,8 +282,15 @@ class Prefs(context: Context) {
     private val device = context.getSharedPreferences("device", Context.MODE_PRIVATE)
 
     init {
-        // Kept in the setup before it moved to [device]; nothing reads it there now.
-        if (sp.contains(RETIRED)) sp.edit { remove(RETIRED) }
+        // Kept in the setup before it moved to [device]. An update carries the answer over (it
+        // was given on this Portal); a restore onto a new install drops it, so it asks there.
+        if (sp.contains(RETIRED)) {
+            val info = context.packageManager.getPackageInfo(context.packageName, 0)
+            if (info.lastUpdateTime > info.firstInstallTime && !device.contains(RETIRED)) {
+                device.edit { putBoolean(RETIRED, sp.bool(RETIRED, false)) }
+            }
+            sp.edit { remove(RETIRED) }
+        }
     }
 
     /**
@@ -345,14 +355,17 @@ class Prefs(context: Context) {
      */
     var sorted: Set<String>?
         get() = sp.text(SORTED)?.split('\n')?.filterTo(HashSet()) { it.isNotEmpty() }
-        set(value) = sp.edit {
-            putString(SORTED, value.orEmpty().joinToString("\n"))
-            remove(SORTED_AT)
-        }
+        set(value) = sp.edit { putString(SORTED, value.orEmpty().joinToString("\n")) }
 
-    /** Before [sorted], the time of the first sort (0.4 and earlier); read only to move to [sorted]. */
+    /**
+     * Before [sorted], the time of the first sort (0.4 and earlier). Moved to [sorted] once and
+     * kept beside it, so an app left out of that one answer (disabled then) still starts in its
+     * category; forgotten when it came from another device ([forgetSortedAt]).
+     */
     val sortedAt: Long?
         get() = sp.number(SORTED_AT, 0L).takeIf { it > 0 }
+
+    fun forgetSortedAt() = sp.edit { remove(SORTED_AT) }
 
     var askedForHome: Boolean
         get() = device.bool("askedForHome", false)

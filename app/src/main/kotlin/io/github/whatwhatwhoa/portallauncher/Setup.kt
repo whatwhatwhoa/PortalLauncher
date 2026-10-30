@@ -14,6 +14,7 @@ import android.util.Log
 import android.util.JsonReader
 import android.util.JsonToken
 import android.util.JsonWriter
+import androidx.core.content.edit
 import java.io.File
 import java.io.IOException
 import java.time.Instant
@@ -114,15 +115,23 @@ class Setup(private val context: Context) {
             return if (format > FORMAT) "Saved by a newer Portal" else "Not a Portal setup"
         }
 
+        // What was there before, so a restore that fails part way puts it all back rather than
+        // leaving half a setup: each file it replaced (null where there was none), each
+        // preferences file it wrote. A failed commit still changes the values in memory.
+        val replaced = ArrayList<Pair<File, File?>>()
+        val written = ArrayList<Pair<SharedPreferences, Map<String, *>>>()
         try {
             // The files first: on a full disk the setup is still the one there was.
             val copied = staging.walkTopDown().filter { it.isFile }.mapTo(HashSet()) { file ->
-                File(context.filesDir, file.relativeTo(staging).path).apply { parentFile?.mkdirs() }
-                    .also { file.copyTo(it, overwrite = true) }
+                val target = File(context.filesDir, file.relativeTo(staging).path).apply { parentFile?.mkdirs() }
+                val before = File(target.path + KEPT).takeIf { target.exists() && target.renameTo(it) }
+                replaced += target to before
+                file.copyTo(target, overwrite = true)
             }
             for (name in PREFS) {
                 val sp = prefs(name)
                 val now = sp.all
+                written += sp to now
                 val kept = if (name == LAUNCHER) now.filterKeys { it in PRIVATE } else emptyMap()
                 val restored = maps[name].orEmpty().filter { (key, value) ->
                     (name != LAUNCHER || key !in PRIVATE) && fits(name, key, value, now[key])
@@ -133,10 +142,21 @@ class Setup(private val context: Context) {
                 (restored + kept).forEach { (key, value) -> value?.let { editor.putValue(key, it) } }
                 if (!editor.commit()) throw IOException("Couldn't write $name")
             }
+            replaced.forEach { (_, before) -> before?.delete() }
             // Downloaded art is fetched again for the restored choices; the file brought the rest.
             File(context.filesDir, "art").listFiles()?.filterNot { it in copied }?.forEach { it.delete() }
         } catch (e: Exception) {
             Log.w(TAG, "Restoring $uri failed", e)
+            written.forEach { (sp, before) ->
+                sp.edit(commit = true) {
+                    clear()
+                    before.forEach { (key, value) -> value?.let { putValue(key, it) } }
+                }
+            }
+            replaced.forEach { (target, before) ->
+                target.delete()
+                before?.renameTo(target)
+            }
             return "Couldn't restore"
         } finally {
             staging.deleteRecursively()
@@ -252,6 +272,8 @@ class Setup(private val context: Context) {
         /** Raised when the file changes in a way an older launcher would misread. */
         private const val FORMAT = 1
         private const val LAUNCHER = "launcher"
+        /** Beside a file a restore replaces, until it is done (then deleted, or put back). */
+        private const val KEPT = ".before"
         /**
          * Prefs (Prefs, Art) that make up the setup; Art's "art" holds the game each app matched.
          * Prefs' "device" stays out on purpose: it is this Portal's, not the owner's setup.

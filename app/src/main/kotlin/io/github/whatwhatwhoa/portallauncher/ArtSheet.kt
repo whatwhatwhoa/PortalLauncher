@@ -289,7 +289,7 @@ class ArtPicker(
     private fun pick(image: ArtImage) {
         val kind = browsing ?: return
         if (picking != null) return
-        if (isPicked(kind, image)) {
+        if (isPicked(kind, image) && art.file(pkg, kind) != null) {
             // Already downloaded: taking it again only makes its kind the one Home shows.
             if (kind != ArtKind.Cover && art.wide(pkg) != kind) art.useWide(pkg, kind)
             return
@@ -353,7 +353,13 @@ class ArtPicker(
 
     private fun choose(i: Int) {
         when (val row = rows.getOrNull(i)) {
-            is ArtRow.Result -> if (fetching == null && !isCurrent(row.match)) fetch(row.match)
+            is ArtRow.Result -> when {
+                fetching != null -> Unit
+                !isCurrent(row.match) -> fetch(row.match)
+                // The game in use with an image missing (a download failed): A fetches what is
+                // missing, keeping the owner's picks.
+                art.file(pkg, ArtKind.Cover) == null || art.file(pkg, ArtKind.Hero) == null -> art.retry(pkg)
+            }
             ArtRow.Search -> typing = true
             ArtRow.Key -> openKey()
             ArtRow.UseIcon -> art.useIcon(pkg)

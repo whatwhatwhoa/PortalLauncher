@@ -257,7 +257,9 @@ private fun Hero(art: Art?, app: AppEntry?) {
         val pkg = app?.component?.packageName
         val kind = pkg?.let { art?.wide(it) }
         val image = kind?.let { rememberArt(art, pkg, it, constraints.maxWidth) }
-        val shown = image?.let { Shown(it, full = kind == ArtKind.Scene) }
+        // Made again only for a new image: while the last one stays, it keeps its own kind, so a
+        // hero is never shown as the next app's scene (or a scene squeezed into the band).
+        val shown = remember(image) { image?.let { Shown(it, full = kind == ArtKind.Scene) } }
         Crossfade(shown, animationSpec = if (LocalMotion.current) tween(HERO_FADE) else snap(), label = "hero") {
             when {
                 it == null -> Unit

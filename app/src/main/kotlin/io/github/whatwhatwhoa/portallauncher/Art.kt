@@ -111,8 +111,11 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
     private val scenes = context.getSharedPreferences("scenes", Context.MODE_PRIVATE)
     private val sceneLooked = HashSet<String>()
     private val refetched = HashSet<String>()
-    // Matched apps whose images didn't all come (a download failed), fetched when the network is back.
-    private val unfinished = HashSet<String>()
+    // Matched apps whose images didn't all come (a download failed), fetched when the network is
+    // back or at the next start. On disk for that, in a file of its own outside the setup: after a
+    // restore every image is fetched again anyway.
+    private val pending = context.getSharedPreferences("art.pending", Context.MODE_PRIVATE)
+    private val unfinished = HashSet<String>(pending.getStringSet(PENDING, null).orEmpty())
     // Read for Fetch art when the network comes back, since only the root knows it otherwise.
     private val launcherPrefs = Prefs(context)
 
@@ -287,7 +290,7 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
             download(hero, File(dir, "$pkg.${ArtKind.Hero.suffix}"))
             fetched += ArtKind.Hero
             adopt(pkg, match, before, fetched)
-            unfinished.remove(pkg)
+            unfinish(pkg, false)
             ArtFetch.Done
         } catch (e: CancellationException) {
             throw e
@@ -296,7 +299,7 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
             failedOffline = true
             if (listed) {
                 adopt(pkg, match, before, fetched)
-                unfinished.add(pkg)
+                unfinish(pkg, true)
                 // Even when this start already fetched its images once.
                 refetched.remove(pkg)
             }
@@ -349,31 +352,61 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
         if (!refetched.add(pkg)) return
         scope.launch {
             writing.withLock {
+                // Each slot on its own, so one that fails leaves the others to come, and whatever
+                // came is drawn.
+                var landed = false
+                var failed = false
+                suspend fun slot(to: File, key: String, auto: suspend () -> String?) {
+                    if (to.name in present) return
+                    val picked = picks.getString(key, null)?.takeIf { it.startsWith("http") }
+                    try {
+                        try {
+                            download(picked ?: auto() ?: return, to)
+                        } catch (e: HttpError) {
+                            // A picked image SteamGridDB no longer has: the automatic one instead.
+                            if (picked == null || e.code !in GONE) throw e
+                            picks.edit { remove(key) }
+                            download(auto() ?: return, to)
+                        }
+                        landed = true
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        // Offline: again when the network is back, or next start.
+                        Log.w(TAG, "Fetching ${to.name} again failed: $e", e)
+                        failed = true
+                    }
+                }
                 try {
                     for (kind in listOf(ArtKind.Cover, ArtKind.Hero)) {
-                        val to = File(dir, "$pkg.${kind.suffix}")
-                        if (to.name in present) continue
-                        val url = picks.getString(pickKey(pkg, kind), null)?.takeIf { it.startsWith("http") }
-                            ?: if (hasKey) best(kind, match.gameId) else null
-                        url?.let { download(it, to) }
+                        slot(File(dir, "$pkg.${kind.suffix}"), pickKey(pkg, kind)) { if (hasKey) best(kind, match.gameId) else null }
                     }
-                    val scene = sceneFile(pkg)
-                    val sceneUrl = picks.getString(pickKey(pkg, ArtKind.Scene), null)?.takeIf { it.startsWith("http") }
-                        ?: scenes.getString("$pkg.url", null)
-                    if (scene.name !in present && sceneUrl != null) download(sceneUrl, scene)
-                    unfinished.remove(pkg)
-                    bump(pkg)
+                    slot(sceneFile(pkg), pickKey(pkg, ArtKind.Scene)) { scenes.getString("$pkg.url", null) }
                 } catch (e: CancellationException) {
                     refetched.remove(pkg)
                     throw e
-                } catch (e: Exception) {
-                    // Offline: again when the network is back, or next start.
-                    Log.w(TAG, "Fetching $pkg's art again failed: $e", e)
+                } finally {
+                    if (landed) bump(pkg)
+                }
+                if (failed) {
                     refetched.remove(pkg)
                     failedOffline = true
                 }
+                unfinish(pkg, failed)
             }
         }
+    }
+
+    /** Art…'s A on the game in use while an image is missing: fetches what is missing, now. */
+    fun retry(pkg: String) {
+        val matched = records[pkg] as? ArtRecord.Matched ?: return
+        refetched.remove(pkg)
+        refetch(pkg, matched.match)
+    }
+
+    private fun unfinish(pkg: String, yes: Boolean) {
+        val changed = if (yes) unfinished.add(pkg) else unfinished.remove(pkg)
+        if (changed) pending.edit { putStringSet(PENDING, HashSet(unfinished)) }
     }
 
     fun useIcon(pkg: String) {
@@ -400,6 +433,7 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
         looked.clear()
         sceneLooked.clear()
         unfinished.clear()
+        pending.edit { clear() }
         cleared.forEach(::bump)
     }
 
@@ -673,13 +707,19 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
     }
 
     private inline fun <T> HttpURLConnection.useConnection(read: (HttpURLConnection) -> T): T = try {
-        if (responseCode != HttpURLConnection.HTTP_OK) throw IOException("HTTP $responseCode")
+        if (responseCode != HttpURLConnection.HTTP_OK) throw HttpError(responseCode)
         read(this)
     } finally {
         disconnect()
     }
 
+    /** An answer other than 200, by its code (a picked image's 404 drops the pick). */
+    private class HttpError(val code: Int) : IOException("HTTP $code")
+
     private companion object {
+        const val PENDING = "unfinished"
+        /** Gone for good: a picked URL answering these falls back to the automatic image. */
+        val GONE = setOf(HttpURLConnection.HTTP_NOT_FOUND, HttpURLConnection.HTTP_GONE)
         const val TAG = "Art"
         const val BASE = "https://www.steamgriddb.com/api/v2"
         const val TIMEOUT_MS = 15_000

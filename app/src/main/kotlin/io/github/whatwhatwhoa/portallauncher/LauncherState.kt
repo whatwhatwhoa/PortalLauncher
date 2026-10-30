@@ -275,8 +275,8 @@ class LauncherState(
     private var categoryMoves by mutableStateOf(prefs.categories)
     /** The apps there at the first sort ([Prefs.sorted]), which start in their category; null until it. */
     private var sortedKeys by mutableStateOf(prefs.sorted)
-    // The first sort as a time, from before it was kept by key: read once, to move to [sortedKeys].
-    private val sortedAt = prefs.sortedAt
+    // The first sort as a time, from before it was kept by key ([Prefs.sortedAt]).
+    private var sortedAt = prefs.sortedAt
     // The catalog's last answer, so [settle] follows a key only to an activity that has just
     // appeared; null until the first answer since the launcher started.
     private var lastKeys: Set<String>? = null
@@ -474,8 +474,12 @@ class LauncherState(
     /** The app's seed if it was there when the launcher first sorted the apps, else All apps only. */
     private fun startOf(app: AppEntry): String? = app.seed?.takeIf { wasSorted(app) }
 
-    // Until the first sort is kept, it is the apps there now; before it was kept by key, by time.
-    private fun wasSorted(app: AppEntry) = sortedKeys?.let { app.key in it } ?: sortedAt?.let { app.installed <= it } ?: true
+    // Until the first sort is kept, it is the apps there now; from before it was kept by key, by
+    // time too.
+    private fun wasSorted(app: AppEntry): Boolean {
+        val byTime = sortedAt?.let { app.installed <= it }
+        return sortedKeys?.let { app.key in it || byTime == true } ?: byTime ?: true
+    }
 
     /**
      * Each answer of the catalog. The first one ever keeps the first sort ([Prefs.sorted]). Every
@@ -485,11 +489,21 @@ class LauncherState(
      * the app keeps its places.
      */
     private fun settle(apps: List<AppEntry>) {
-        // A first-sort time that no app fits, not even Android's own, came with a backup of
-        // another Portal: this one sorts its apps afresh.
-        if (sortedKeys == null) saveSorted(apps.filter(::wasSorted).ifEmpty { apps }.mapTo(HashSet()) { it.key })
+        if (sortedKeys == null) {
+            // A first-sort time from before this launcher was installed here, that none of the
+            // owner's own apps fits (Android's always do: theirs is the system image's), came with
+            // a backup of another Portal: this one sorts its apps afresh.
+            val fit = apps.filter(::wasSorted)
+            val at = sortedAt
+            val foreign = at != null && catalog.installedAt > at && fit.none { !it.system && it.action == null }
+            if (foreign) {
+                sortedAt = null
+                prefs.forgetSortedAt()
+            }
+            saveSorted((if (foreign) apps else fit).mapTo(HashSet()) { it.key })
+        }
         val present = apps.mapTo(HashSet()) { it.key }
-        val stored = (favorites + dockKeys.orEmpty() + categoryMoves.keys + sortedKeys.orEmpty()).toSet()
+        val stored = (favorites + recent + dockKeys.orEmpty() + categoryMoves.keys + sortedKeys.orEmpty()).toSet()
         // Only onto an activity new since the last answer: one left out of a single answer (its
         // icon failed mid-update) would otherwise pull its sibling's places onto the other. At a
         // start there is no last answer, so only onto one with no places of its own.
@@ -509,6 +523,10 @@ class LauncherState(
         fun latest(key: String) = moved[key] ?: key
         if (favorites.any { it in moved }) saveFavorites(favorites.map(::latest).distinct())
         dockKeys?.takeIf { keys -> keys.any { it in moved } }?.let { saveDock(it.map(::latest).distinct()) }
+        if (recent.any { it in moved }) {
+            recent = recent.map(::latest).distinct()
+            prefs.recent = recent
+        }
         if (categoryMoves.keys.any { it in moved }) {
             // The new activity's own choice, if it has one, wins over the old one's.
             val moves = categoryMoves.filterKeys { it !in moved }.toMutableMap()
@@ -883,7 +901,8 @@ class LauncherState(
      * The last custom accent, so a stray press onto a preset can be stepped back from: it is a
      * stop after the presets on the Accent row. Kept across restarts, in the setup too.
      */
-    private var customKept: Accent? = look.accent.takeIf { it.preset == null } ?: prefs.customAccent
+    private var customKept: Accent? = look.accent.takeIf { it.preset == null }
+        ?.also { if (prefs.customAccent != it) prefs.customAccent = it } ?: prefs.customAccent
 
     private fun openAccent() {
         val preset = look.accent.preset
@@ -1471,6 +1490,12 @@ class LauncherState(
      */
     fun openDrawer() {
         if (categoriesOpen) return
+        // A swipe up while a tile is picked up puts it down, as a tap does, rather than moving it
+        // unseen behind the grid.
+        if (moving != null) {
+            moving = null
+            return
+        }
         clearSearch()
         searchIndex = 0
         screen = Screen.Drawer

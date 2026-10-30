@@ -157,6 +157,7 @@ class DeviceControls(private val context: Context) {
      * every return, since notification access may have been turned on in between.
      */
     fun watchMedia(on: Boolean) {
+        shown = on
         if (on && !watching && notifications.isNotificationListenerAccessGranted(listener)) {
             watching = try {
                 sessions.addOnActiveSessionsChangedListener(sessionsChanged, listener, main)
@@ -170,6 +171,9 @@ class DeviceControls(private val context: Context) {
         }
         readMedia()
     }
+
+    // Home is in front (watchMedia), so the panel's tick has someone to show the time to.
+    private var shown = false
 
     // The followed player's last report, so the panel's tick counts on from it without a call.
     private var lastState: PlaybackState? = null
@@ -207,6 +211,9 @@ class DeviceControls(private val context: Context) {
      * Without a followed player it reads again, as it always did.
      */
     fun tickMedia() {
+        // Under a game, standby or Android's settings the panel stays open but unseen: nothing to
+        // read until Home is back (which reads again).
+        if (!shown) return
         if (watched == null) return readMedia()
         val state = lastState ?: return
         nowPlaying = nowPlaying?.copy(positionMs = positionOf(state, lastDuration))

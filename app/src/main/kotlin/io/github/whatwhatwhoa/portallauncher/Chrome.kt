@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.InspectorInfo
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
@@ -493,7 +494,9 @@ fun Clock(modifier: Modifier = Modifier, style: TextStyle = LocalType.current.bo
         now = System.currentTimeMillis()
         onPauseOrDispose {}
     }
-    val format = remember(context, clock, zone, settingsChanged) {
+    // A new language changes the system format (12 or 24 hours) without rebuilding Home.
+    val locales = LocalConfiguration.current.locales
+    val format = remember(context, clock, zone, settingsChanged, locales) {
         (clock.pattern?.let { SimpleDateFormat(it, Locale.getDefault()) } ?: DateFormat.getTimeFormat(context)).apply { timeZone = zone }
     }
     BasicText(
