@@ -398,12 +398,15 @@ class LauncherState(
         }
         sounds?.play(Sound.Launch)
         val shown = category
+        val before = recent
         played(entry)
         // With Favorites empty Home shows the first category with apps; Recent filling up mustn't
         // take the row over.
         if (category.id != shown.id) currentCategory = shown.id
         // On Recent the app just opened is first now; focus goes with it, so it is there on coming back.
         if (category.isRecent && row.firstOrNull()?.key == entry.key) rowIndex = 0
+        // Under the app's reveal the row puts its tiles in their new places at once, not sliding.
+        if (category.isRecent && recent != before) rowJumps++
         prefs.place = HomePlace(category.id, row.getOrNull(rowFocus)?.key, zone, dockFocus, HomePlace.bootInstant())
     }
 
@@ -419,6 +422,10 @@ class LauncherState(
         recent = (listOf(entry.key) + (recent - entry.key)).take(RECENT_KEPT)
         prefs.recent = recent
     }
+
+    /** Counts the row's reorders that its tiles take without sliding (a launch from Recent). */
+    var rowJumps by mutableIntStateOf(0)
+        private set
 
     private val byKey by derivedStateOf { catalog.apps.associateBy { it.key } }
 
@@ -874,9 +881,9 @@ class LauncherState(
     val accentColumn get() = accentColumnIndex.coerceIn(0, SWATCH_COLUMNS - 1)
     /**
      * The last custom accent, so a stray press onto a preset can be stepped back from: it is a
-     * stop after the presets on the Accent row. Kept while the launcher runs.
+     * stop after the presets on the Accent row. Kept across restarts, in the setup too.
      */
-    private var customKept: Accent? = look.accent.takeIf { it.preset == null }
+    private var customKept: Accent? = look.accent.takeIf { it.preset == null } ?: prefs.customAccent
 
     private fun openAccent() {
         val preset = look.accent.preset
@@ -939,7 +946,10 @@ class LauncherState(
     }
 
     private fun setAccent(accent: Accent) {
-        if (accent.preset == null) customKept = accent
+        if (accent.preset == null) {
+            customKept = accent
+            prefs.customAccent = accent
+        }
         look = look.copy(accent = accent)
         prefs.look = look
     }

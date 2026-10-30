@@ -329,12 +329,12 @@ class Prefs(context: Context) {
 
     /** Recent has been put in [categoryList] once, so a Recent the owner deleted stays deleted. */
     var recentAdded: Boolean
-        get() = sp.getBoolean("categories.recentAdded", false)
+        get() = sp.bool("categories.recentAdded", false)
         set(value) = sp.edit { putBoolean("categories.recentAdded", value) }
 
     /** Recent's app keys (F11), what the launcher opened, latest first; joined as [favorites] are. */
     var recent: List<String>
-        get() = sp.getString("recent", "").orEmpty().split('\n').filter { it.isNotEmpty() }
+        get() = sp.text("recent").orEmpty().split('\n').filter { it.isNotEmpty() }
         set(value) = sp.edit { putString("recent", value.joinToString("\n")) }
 
     /**
@@ -390,6 +390,11 @@ class Prefs(context: Context) {
             putString("look.name", value.name.name)
         }
 
+    /** The last custom accent, a stop on the Accent row while a preset is worn (LauncherState). */
+    var customAccent: Accent?
+        get() = Accent.of(sp.text("look.customAccent"))
+        set(value) = sp.edit { putString("look.customAccent", value?.id) }
+
     /** Settings → Home, stored the same way as [look]. */
     var home: HomeSettings
         get() {
@@ -419,7 +424,7 @@ class Prefs(context: Context) {
 
     /** Where Home was when an app last opened from it, and in which boot ([HomePlace]); gone once Home is back. */
     var place: HomePlace?
-        get() = sp.getString("home.place", null)?.let(HomePlace::parse)
+        get() = sp.text("home.place")?.let(HomePlace::parse)
         set(value) = sp.edit { if (value == null) remove("home.place") else putString("home.place", value.stored) }
 
     /** The owner turned standby's service on and not off since, so the launcher puts it back if Android turns it off. */
@@ -461,12 +466,12 @@ class Prefs(context: Context) {
         private val SWITCHES = setOf(
             "look.covers", "look.gradient", "look.glow", "look.depth", "look.reflection",
             "home.batteryPercent", "home.hints", "home.wraps", "home.playControls", "home.holdWanted",
-            "art.fetch", "sound.on",
+            "art.fetch", "sound.on", "categories.recentAdded",
         )
         private val TEXTS = setOf(
-            "favourites", "dock", "categories", "categories.list", SORTED,
+            "favourites", "dock", "categories", "categories.list", SORTED, "recent",
             "look.theme", "look.backdrop", "look.pulse", "look.name",
-            "home.clock", "home.start", "home.category", "sound.family", "sound.level", "art.key",
+            "home.clock", "home.start", "home.category", "home.place", "sound.family", "sound.level", "art.key",
         )
 
         /**
@@ -477,7 +482,7 @@ class Prefs(context: Context) {
         fun fits(key: String, value: Any): Boolean? = when (key) {
             in SWITCHES -> value is Boolean
             in TEXTS -> value is String
-            "look.accent" -> value is String && Accent.of(value) != null
+            "look.accent", "look.customAccent" -> value is String && Accent.of(value) != null
             "hidden" -> value is Set<*>
             SORTED_AT -> value is Long
             RETIRED -> false

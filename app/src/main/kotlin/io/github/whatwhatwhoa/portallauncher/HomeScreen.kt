@@ -558,13 +558,20 @@ private fun Carousel(state: LauncherState, modifier: Modifier) {
     val grow = animateFloatAsState(if (state.zone == Zone.Row) 1f else 0f, if (motion) SLIDE else snap(), label = "grow")
     // Picked up to move, the grown tile lifts a little more, by scale.
     val liftScale = Dimens.LIFT_SCALE / Dimens.FOCUS_SCALE
+    val jumps = state.rowJumps
     Box(modifier.fillMaxWidth().height(Dimens.tileFocused).dragsAlong(state)) {
         apps.forEachIndexed { i, app ->
             key(shown, app.key) {
                 val target = (i - focus).toFloat()
                 val slot = remember { Animatable(target + enter) }
-                // A new target mid-slide carries the current speed on, so holding a direction glides.
-                LaunchedEffect(target, motion) { if (motion) slot.animateTo(target, SLIDE) else slot.snapTo(target) }
+                val jumped = remember { intArrayOf(jumps) }
+                // A new target mid-slide carries the current speed on, so holding a direction glides;
+                // a reorder under a launch's reveal ([LauncherState.rowJumps]) lands at once.
+                LaunchedEffect(target, motion, jumps) {
+                    val jump = jumps != jumped[0]
+                    jumped[0] = jumps
+                    if (motion && !jump) slot.animateTo(target, SLIDE) else slot.snapTo(target)
+                }
                 val focused = state.zone == Zone.Row && i == focus
                 val lifted = focused && state.moving == Origin.Row
                 val lift by animateFloatAsState(

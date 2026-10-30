@@ -143,6 +143,7 @@ class MainActivity : ComponentActivity() {
             sounds = sounds,
             setup = Setup(this),
             pickSetup = ::pickSetup,
+            connectivity = Connectivity(this),
         )
         catalog.start()
         holdSwitch.watch { state.checkHomeHold(watched = true) }
