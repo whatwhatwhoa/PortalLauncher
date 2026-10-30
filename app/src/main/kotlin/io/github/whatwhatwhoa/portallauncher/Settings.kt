@@ -140,7 +140,7 @@ private fun LauncherState.shown(setting: Setting): String {
         Setting.Start -> home.start.label
         Setting.PlayControls -> onOff(home.playControls)
         // Grayed out by Android: the next A opens App info, where ⋮ allows it (README *Standby*);
-        // back from there, the next A opens the switch again.
+        // back from there it asks, and from then on A opens the switch and the row never says Restricted.
         Setting.HomeHold -> when {
             homeHold -> onOff(true)
             homeHoldInfoShown -> "Allowed? A: switch it on"
