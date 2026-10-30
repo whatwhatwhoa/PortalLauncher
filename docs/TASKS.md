@@ -10,7 +10,7 @@ Rules:
 - **Work** on the first open card or task under *Working on*, or the owner's explicit ask; one
   per session unless the owner bundles several.
 - **IDs never change when a card moves.** A new card is **F<n>**, numbered on from the last
-  milestone M8 (F9 first; next free F37), so its tasks are T<n>.1, T<n>.2 … and its decision
+  milestone M8 (F9 first; next free F46), so its tasks are T<n>.1, T<n>.2 … and its decision
   entries D<n>.1 …, clashing with no milestone's. A card that came out of a milestone keeps its
   task IDs. Owner bug and tweak batches stay **B<n>** (B13 next). A follow-up gets an F number
   when it is planned.
@@ -31,7 +31,35 @@ Rules:
 
 ## Working on
 
-Nothing: 0.4.2 is released; the owner plans next.
+### 0.5.0 — Steady and quick
+The owner's ask of 2026-10-30 (night): "Ease of use, a slick controller interface, and launcher
+reliability is first … You are the boss tonight"; the session picked the cards from an audit
+(`decisions/0.5.0.md`). All built, linted and run on the Portal (debug); the owner's hand checks:
+`VERIFY.md` *V-0.5.0*. Not released: versionName is still 0.4.2.
+- [x] **F37 Standby in its own window** (2026-10-30; D37.1): waking returns to the game that was
+  under it, extra presses land nowhere, Home stops drawing underneath, never over the lock screen.
+- [x] **F38 One Home, cleaner starts** (2026-10-30; D38.1): any other start hands over to Home
+  (no second launcher); the Home dialog from Settings; no gray flash on a cold start.
+- [x] **F39 Input that can't misfire** (2026-10-30; D39.1): no keys while an app starts; Home
+  mid-rename no longer kills the controller; held bumpers and settings values act once.
+- [x] **F40 The left stick** (2026-10-30; D40.1): the dominant axis only, faster the further
+  it is pushed.
+- [x] **F11 Recently played** (2026-10-30; D11.1, D11.2): a Recent category, second; Home's place
+  kept when Android ends the launcher mid-game.
+- [x] **F13 Notification shade button** (2026-10-30; D13.1): a bell first in the quick panel, and
+  *Notifications* in All apps for the dock.
+- [x] **F16 Search on Y** (2026-10-30; D16.1): a letter strip in All apps, no keyboard; the
+  focused letter in the header.
+- [x] **F41 Controller polish** (2026-10-30; D41.1): the first Home press only closes; grids open
+  at their focus and glide; the quick panel's rows keep their columns; Art…'s grids.
+- [x] **F42 Smoother Home** (2026-10-30; D42.1): a category's row glides in from its side, L1/R1
+  glyphs by the name, decoded art kept in memory, fewer redraws and system calls.
+- [x] **F43 Art that recovers** (2026-10-30; D43.1): a failed download is retried when the
+  network returns, never "no art" for good.
+- [x] **F44 Data that holds** (2026-10-30; D44.1): a bad setup file can't crash Home; places kept
+  for uninstalled apps; the first sort by key; the clock right after sleep.
+- [x] **F45 Easier setup** (2026-10-30; D45.1): the art key from the controller; the Hold Home
+  row no longer loops; Offline, Blocked or No answer.
 
 ## Planned
 
@@ -49,18 +77,27 @@ No release planned yet: the owner picks a version, a theme and the cards from th
 ## Feature list
 
 ### Big
-- **F11 Recently played** (2026-10-25): recently played ordering (perhaps as a category).
-- **F13 Notification shade button** (2026-10-25): a dock button that opens the notification shade directly (needs an accessibility service or a hidden API; the swipe works meanwhile).
 - **F14 Monochrome icons** (2026-10-25): a monochrome icon style from Android 13's themed-icon layer (often vector).
 
 ### Small
-- **F16 Search on Y** (2026-10-25): search on Y.
 - **F17 Work-profile badges** (2026-10-25): work-profile badges on tiles.
+- **Bring back a deleted built-in category** (2026-10-30, audit E11): a deleted Games or Recent
+  can't come back; *New category* can't make a built-in one.
+- **New installs marked** (2026-10-30, audit F7): All apps opens on a new app and marks it until
+  it is opened or placed.
 
 ### Follow-ups
 Not scheduled; a line or two each; an F number when planned.
 - **Focused icons at their scaled size**: the 1.08 focus scale resamples the tile and dock icon,
-  a little soft on the dock (`decisions/M2-skeleton.md` *First device run*).
+  a little soft on the dock (`decisions/M2-skeleton.md` *First device run*). Needs the focused
+  tile to grow by layout (0.5.0's lane found the renderer alone can't).
+- **Search from a keyboard** (2026-10-30): a hardware keyboard's letters type into All apps'
+  search (D16.1).
+- **Art…'s own network note** (2026-10-30): Art… still says "Couldn't reach SteamGridDB" where
+  the settings row says Blocked; A on a Blocked note could open App info (D45.1).
+- **Speed, if it is ever felt** (2026-10-30, audit S3, S8, S10, S6): every D-pad step recomposes
+  every carousel tile; the reflection's shader per hero; the empty row until icons load after a
+  restart; launch rects from layout coordinates.
 
 ### Waiting for data
 - **Odin 3 Portal**: confirm panel size and density when it exists; `Dimens` should cover it.

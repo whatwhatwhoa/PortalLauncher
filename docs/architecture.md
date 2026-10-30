@@ -49,7 +49,8 @@ second input, never the only one.
     └─────────────────────────────────────────────────────────────┘
 ```
 1. *Status*, tighter into the corners than the content (10.5 dp from the top, 14.5 from the
-   side): the clock in body type top-left; Wi-Fi and battery top-right, 12 dp apart. Drawn once
+   side): the clock in body type top-left (on Android's minute tick, read again on a time,
+   zone or 12/24-hour change and as the screen comes on); Wi-Fi and battery top-right, 12 dp apart. Drawn once
    by the root over both screens, so it stays put while All apps slides in. Wi-Fi is the modern filled wedge (a
    quarter-circle sector, apex down, 18 dp tall, every corner rounded 2 dp): the whole wedge in
    the text color at 30%, the signal filled from the apex in four steps; no Wi-Fi network
@@ -82,8 +83,10 @@ second input, never the only one.
    the right edge instead. *Big name* Fitted draws it as written instead, semibold at 60%,
    48 dp from the top between the margins, at 36% of the display size shrunk with the name's
    width to 20% at least; longer still, it scrolls the same way or ends in an ellipsis.
-3. *Carousel*: the current category's apps in one row (*Categories*), named above the row on
-   the content margin in muted title type, 12 dp clear of the grown tile; its center line at 52%
+3. *Carousel*: the current category's apps in one row (`behavior.md` *Categories*), named above
+   the row on the content margin in muted title type, 12 dp clear of the grown tile, between the
+   drawn L1 and R1 bumpers at the name's 60% (with *Button hints* on and play controls off; none
+   before the first category or after the last); its center line at 52%
    of the screen's height (placed by that line, not by its neighbors) and over the band's lower
    part, 48 dp side margins.
    The focused tile grows from 144 to 192 dp by layout on a spring, so its neighbors move aside;
@@ -92,7 +95,9 @@ second input, never the only one.
    dock dims as much. The focused tile is always in the first slot, the last one too:
    each tile slides on its own no-bounce spring along a fractional slot number, and its x and
    size come from that number in the layout phase, so the gaps stay even mid-slide. Dragging
-   the row by touch moves focus a slot per tile width.
+   the row by touch moves focus a slot per tile width. Each category's row has tiles of its own:
+   on a turn the new row glides in from one slot aside, from the right for a later category
+   (R1, down in the layer) and the left for an earlier one, and the name crossfades.
 4. *Bottom row*, 24 dp from the bottom, everything bottom-aligned. In the middle of the screen
    the dock: round 56 dp buttons, 24 dp apart: All apps first, then up to six apps the owner
    picks (Triangle → Add to dock), in their order, then Launcher Settings: the launcher's own icon with
@@ -119,10 +124,13 @@ cover instead, cropped to the tile's mask and decoded at the lifted size (1.14×
 upscales it. The dock and All apps keep the icons.
 
 **Art.** Square covers and 1920×620 heroes from SteamGridDB, downloaded once per app and never
-upscaled (`decisions/M4-art.md`). The owner's favorites and the Games category are
-looked up by label when they appear (Android's own apps, by package, only in Games) and take
+upscaled (`decisions/M4-art.md`). The owner's favorites, Recent's apps and the Games category
+are looked up by label when they appear (Android's own apps, by package, only in Games) and take
 art only on a close match; any other app keeps its
-icon until the owner picks. *Art…* in the options sheet turns the panel into a picker: a
+icon until the owner picks. Only a lookup that finds no close match, or a match with no images,
+records "no art"; a download that fails (offline, a timeout, an HTTP error) records nothing and
+runs again when the network comes back (3 s after it settles) or at the next start. Art… says
+which: "No art for <game>" or "Couldn't reach SteamGridDB". *Art…* in the options sheet turns the panel into a picker: a
 preview of the art in use at the top (the 120 dp cover, beside it as tall the strip: the hero or
 the scene, whichever fills Home behind the app), then the matches for the label, *Search* (the keyboard; B ends
 typing) and *Use the app's icon*; the one in use has an accent dot. A match is downloaded when
@@ -146,7 +154,7 @@ one of its Steam store screenshots, found by the SteamGridDB name in Steam's sto
 key), only 16:9 shots at least 1920 wide (the size is in the file name). The shot is picked from
 the 600 px copies sampled at 64×36: mean saturation less twice the distance of mean luma from 73
 (0–255), so rich and mid-dark, and text reads on it. Looked for once; "not on Steam" is
-remembered (`scenes` preferences), a network failure retries next start. *Use the app's icon*
+remembered (`scenes` preferences), a network failure retries as a download does. *Use the app's icon*
 deletes it; a match with another game replaces it; the same game keeps it. The scene grid
 lists the game's qualifying Steam shots and a pick replaces the scored one; the scored shot's
 url is kept (`<package>.url` in `scenes`) so the grid can dot it.
@@ -205,7 +213,8 @@ all three as they are):
   All apps tiles.
 
 **Motion.** Short and springy, never decorative: focus scale on a spring, the row and grid
-scroll animated to the focused item. Everything that comes and goes (All apps, the categories
+scroll animated to the focused item (a held direction glides a grid at an even speed instead of
+stepping it). Everything that comes and goes (All apps, the categories
 layer, the options sheet, the quick panel, the settings) uses one timing, `Transit`: in over
 240 ms decelerating, out over 180 ms accelerating (then stretched by Android's duration scale;
 the Portal's is 0.5). All apps rises 1/8 of the screen and fades in, sinks 1/16 and fades out,
@@ -226,29 +235,49 @@ sideways, full width, centered, scaled as on a landscape screen. Phones are unsu
 
 ## Structure
 
-One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhatwhoa/portallauncher/`.
+Two activities (Home, standby) and Compose screens, in `app/src/main/kotlin/io/github/whatwhatwhoa/portallauncher/`.
 
 - **Launcher contract.** `MainActivity` has the HOME + DEFAULT intent filter (and LAUNCHER, so
   it can be tried from Launcher3), `singleTask`, `excludeFromRecents`, `stateNotNeeded`. On its
   first start it asks once for the Home role through `RoleManager`; the owner answers in the
-  system dialog and can pick Launcher3 back the same way.
+  system dialog and can pick Launcher3 back the same way. There is one launcher: Android makes an
+  activity Home only from its Home intent with no component, so any other start while Portal is
+  Home (its icon in another launcher, `am start -n`, the settings gear) hands over to Home through
+  that intent (`EXTRA_OPEN`: settings or home) and finishes before anything is built. A cold start
+  shows the backdrop's own color, then the first frame once the app list is in (at most 1 s).
+  Font size, bold text and locale changes don't rebuild it (`configChanges`).
+  `StandbyActivity` is standby: its own task (`taskAffinity ""`, `singleInstance`), out of
+  Recents and history, never over the lock screen; `HomeHoldService` starts it and routes Home
+  presses to it while it shows (`StandbyActivity.current`).
 - **App catalog** (`AppCatalog.kt`). `LauncherApps` lists the launchable activities of every
   profile on a background thread and pushes add/remove/change callbacks, so the screens update
   without a restart. An `AppEntry` is keyed by component + user serial. `SCREENS` adds settings pages with no launcher icon (AYN's, as *Controller settings*),
   opened by Settings' action, in All apps only, each with a name and icon of ours (AYN's: the
-  Portal glyph on its teal, `ic_app_controller_settings`). It also picks the
-  dock's utility apps and launches through `startMainActivity`.
+  Portal glyph on its teal, `ic_app_controller_settings`), and *Notifications* (`SHADE`: a
+  launch pulls the shade down, under System UI's package). It also picks the
+  dock's utility apps and launches through `startMainActivity`, saying whether the start
+  succeeded. A package event waits 300 ms for the rest of its burst (Play's Update all) before
+  one query; a newer event stops the running one; an app, profile or page that throws while
+  read is left out and logged, never fatal to Home.
 - **Input layer** (`Input.kt`). `dispatchKeyEvent` turns gamepad and keyboard keys into
-  `Action`s and swallows both edges of a mapped key; only movement repeats when held. The stick
-  and hat arrive as D-pad keys (Android synthesizes them from unhandled joystick motion).
+  `Action`s and swallows both edges of a mapped key; only movement repeats when held, and the
+  state is told which press is a repeat (a held bumper or settings value acts once). Not while
+  the activity isn't resumed: then a mapped key or a touch begun there does nothing. The hat
+  arrives as D-pad keys (Android synthesizes them from unhandled joystick motion); the left
+  stick is read by `Stick.kt` only while the hat rests and Android holds no stick push of its
+  own, and turned into D-pad steps that pass every gate a key does.
 - **State** (`LauncherState.kt`). Screen (Home, All apps), zone (row, dock) and three focus
   indices, all our own state rather than Compose focus: a lazy row can't focus tiles that
   aren't composed, and a console row pivots instead of moving to the nearest. Indices are
   clamped on read, so lists can change under them. The settings panel, the quick panel, the
   options sheet and move mode are layers on top that take input first, in that order, then the
   categories layer. Favorites, hidden apps, the dock, category moves, the last category and the
-  settings persist in `SharedPreferences` (`Prefs`). Android's own screens open through one
-  hook from `MainActivity`, which shows a toast if one is missing. The row is derived from the category
+  settings persist in `SharedPreferences` (`Prefs`), each read through a getter that falls
+  back to the default on a value of the wrong type; `Prefs.fits` holds every key's type for
+  Restore setup. Android's own screens open through one
+  hook from `MainActivity`, which shows a toast if one is missing or refused. Home's place at a
+  launch (`HomePlace`, with the boot's instant) reopens Home in a launcher restarted in the same
+  boot. The row is derived from the category
   on show, which is the layer's focused one while it is open.
 - **Screens.** `HomeScreen.kt` (carousel, dock, hint bar), `AllAppsScreen.kt` (grid),
   `OptionsSheet.kt` (the options panel and its Category… page), `Categories.kt` (the categories, their
@@ -256,7 +285,7 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
   `Settings.kt` (the panel, its rows and how each steps), `QuickSettings.kt` (the quick panel
   and `DeviceControls`, which reads and writes brightness, volume, Do not disturb and the media key),
   `Status.kt` (clock, Wi-Fi, battery: the sticky battery broadcast and a Wi-Fi network callback),
-  `StandbyScreen.kt` (standby and its hint; `HomeHoldService.kt` opens it);
+  `StandbyScreen.kt` (standby's screen and wake count, in `StandbyActivity`);
   shared drawing in `Chrome.kt` (icon renderer, focus ring and glow, depth, hint bar, clock, All
   apps glyph); tokens, fonts, palette and the settings' types in `Look.kt`. The root
   (`MainActivity`) provides the scaled density, the palette (from *Theme*, *Accent* and the
@@ -277,7 +306,13 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
   `update.url` from `local.properties` instead, for a stand-in (`gotchas.md` *Trying an update*).
 - **Art** (`Art.kt`). Lookups, downloads and records (one per package, in their own
   `SharedPreferences`; images in `files/art/`), plain `HttpURLConnection` and `org.json` on the
-  IO dispatcher; `rememberArt` decodes a file scaled down to the size it is drawn. The
+  IO dispatcher; `rememberArt` decodes a file scaled down to the size it is drawn, covers two
+  at a time and heroes and scenes one at a time (a step already passed drops out), and keeps
+  what it decoded in two 24 MB memory caches (covers; heroes and scenes), so a turned-to row or
+  a hero seen before draws on its first frame; trimmed when Android asks. Composition never
+  reads the disk: the art files are listed once and kept current, and a change redraws only
+  that app's tiles. A default-network callback reruns failed lookups when the network
+  returns. The
   SteamGridDB key is the owner's, from *Settings → Art* (`art.key` in the `launcher`
   preferences); a debug build falls back to `steamgriddb.apiKey` from `local.properties` through
   `BuildConfig`, a release build carries none. Without a key nothing is looked up and Art…
@@ -288,8 +323,10 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
   fetch again, gallery picks (`files/art/`, a pick stored as a `content:` URI) and wallpapers
   (`files/backdrops/`), in base64. *Restore setup* (a second A) opens Android's file picker,
   reads the whole file into `cache/setup/` first and refuses a broken, foreign or newer one
-  ("Not a Portal setup", "Saved by a newer Portal"); then it replaces the four preferences
-  (keeping the current key), empties `files/art/`, copies the files in and restarts the process.
+  ("Not a Portal setup", "Saved by a newer Portal"); then it copies the files in first (on a
+  full disk the old setup stands), replaces the four preferences (keeping the current key; a
+  value not of its key's type is dropped and logged, the rest kept), deletes the other files in
+  `files/art/` and restarts the process as Home; a failure part way says "Couldn't restore".
   `Art.lookUp` fetches the images again for a matched app with neither cover nor hero on disk:
   a picked or scored URL as is, otherwise SteamGridDB's first one (needs the key), once per
   start. Android's backup (`res/xml/data_extraction_rules.xml`) carries the same four
@@ -297,6 +334,9 @@ One activity and two Compose screens, in `app/src/main/kotlin/io/github/whatwhat
 - **Launches.** Every tile reports where it was laid out (`launchesFrom`), keyed by where it sits
   (row, dock, All apps) and the app; opening an app passes that rect to `startMainActivity` as
   the source bounds and as a clip-reveal `ActivityOptions`.
+- **Network notes** (`Network.kt`). After a failed request (the key check, Updates),
+  `Connectivity` looks once at every network: none validated is "Offline", a validated one with
+  an unknown host is "Blocked" (Android's per-app network block), anything else "No answer".
 - **Build.** Gradle wrapper, one module, Compose foundation and ui only (no Material: every
   surface is ours), no Hilt, no navigation library. A release build is minified and signed with
   the release key, which lives outside the repo; `local.properties` names it (the `release.*`

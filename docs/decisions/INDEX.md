@@ -3,7 +3,7 @@
 One line per entry, newest at the bottom. The entry holds the why; `architecture.md` holds the
 what. IDs: D<n>.k is milestone n up to M8, card F<n> from F9 on (`TASKS.md`, the feature board,
 since 2026-10-25); a big card's file is `F<n>-<slug>.md`, a release's small ones go in
-`<version>.md`. Owner batches are B<n>, B10 next. Every entry carries a `Status:` line; settled
+`<version>.md`. Owner batches are B<n>, B13 next. Every entry carries a `Status:` line; settled
 2026-10-25 (the stories cut back to choice and why, the what moved to `architecture.md`).
 
 - `M1-design.md` (2026-10-25) — concept review: Switch 2 mock-up anatomy, flat Switch theme for
@@ -79,3 +79,8 @@ since 2026-10-25); a big card's file is `F<n>-<slug>.md`, a release's small ones
   adb grant that puts it back by itself); the README names the menu buttons by shape (B10).
 - `0.4.2.md` (2026-10-25) — brightness straight, as the Portal's slider
   counts (why the 2.2 gamma was off; AOSP's HLG curve rejected) (B11); Home dims while the dock has focus (D36.1); portrait letterboxed, a resume crash with standby off (B12).
+- `0.5.0.md` (2026-10-30) — Steady and quick, the session's own pick from an audit: standby in
+  its own window (D37.1), one Home (D38.1), input gates and held keys (D39.1), the left stick
+  (D40.1), Recent and Home's place across a restart (D11.1, D11.2), Notifications (D13.1),
+  search on Y (D16.1), controller polish (D41.1), smoother Home (D42.1), art that recovers
+  (D43.1), data that holds (D44.1), easier setup (D45.1); what the audit left out and why.

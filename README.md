@@ -35,14 +35,15 @@ pick the old one. Portal stays installed until you uninstall it.
 | Button | On Home | In All apps |
 |---|---|---|
 | **A** | Open the app | Open the app |
-| **B** | Categories: pick one, or **Triangle** to edit them | Back to Home |
-| **Y** | All apps | Back to Home |
+| **B** | Categories: pick one, or **Triangle** to edit them | Back to Home (clears a search first) |
+| **Y** | All apps | Search: pick letters across the top |
 | **X** | — | Favorite / unfavorite |
 | **Triangle** (Start) | Options for this app: favorite, move, dock, category, hide, art, uninstall | Same |
 | **Square** (Select) | Quick settings | Quick settings |
-| **L1 / R1** | Previous / next category (or tracks, with *Home screen play controls*) | Jump to the previous / next letter |
+| **L1 / R1** | Previous / next category (or a track, with *Home screen play controls*) | Jump to the previous / next letter |
 | **L2 / R2** | First / last app | First / last app |
 | **R3** | Play / pause, with *Home screen play controls* | — |
+| **Home** | Closes what is open; again, back to the start | Same |
 | **Hold Home** | [Standby](#standby), from anywhere, once switched on | Same |
 
 Touch works everywhere too: tap to open, long-press for options, swipe up for All apps.
@@ -52,10 +53,13 @@ Touch works everywhere too: tap to open, long-press for options, swipe up for Al
 - **The dock** along the bottom holds up to six everyday apps (mail, files, the store).
   **Triangle → Add to dock** on any app (grayed out once the dock is full); **Triangle → Move in dock** changes
   the order. The gear at the end opens **Launcher Settings**.
-- **Categories:** Home shows one at a time: Favorites, Games, Entertainment, Social, Utilities.
-  Games, video and music apps sort themselves; move any app with **Triangle → Category…** (it can be in
-  several). Press **B** for the list, then **Triangle** to rename, reorder or delete a category, or to
+- **Categories:** Home shows one at a time: Favorites, Recent (what you opened last, newest
+  first), Games, Entertainment, Social, Utilities. The games, video and music apps you have when
+  you install Portal are sorted for you; an app you install later waits in All apps until you
+  put it somewhere with **Triangle → Category…** (an app can be in several). Press **B** for the list, then **Triangle** to rename, reorder or delete a category, or to
   add your own.
+- **Search:** in All apps press **Y**, pick letters along the top with the D-pad and **A**
+  (**X** takes one back); "gta" finds Grand Theft Auto. **Down** goes to the results.
 - **Hide** an app you never open with **Triangle → Hide**. Launcher Settings → Apps → *Hidden apps*
   shows them again.
 
@@ -70,8 +74,9 @@ page. It needs a free SteamGridDB key, which is yours and stays on your Portal:
 2. Open [Preferences → API](https://www.steamgriddb.com/profile/preferences/api), create a key,
    and **copy** it.
 3. Back on Home, open **Launcher Settings** (the gear at the end of the dock), go to
-   **Art → SteamGridDB key** and press **A**. It reads the key you copied and checks it. When the
-   row says **Set**, you're done.
+   **Art → SteamGridDB key** and press **A**. It finds the key you copied and checks it. When the
+   row says **Set**, you're done. (Press **A** there with nothing copied and it opens the
+   SteamGridDB page for you.)
 
 Art then arrives on its own for your favorites and games. For any other app, or to pick a
 different picture, press **Triangle → Art…**: the art in use is at the top, the matches below. Go up
@@ -79,14 +84,17 @@ to the preview, pick the cover or the wide picture, and press **A** to browse ev
 it; **L1 / R1** switch the wide one between a header and a full-screen scene. You can also use
 any picture from your gallery as a cover or scene (the *Gallery…* tile), with or without a key.
 
-**No art showing up?** If your Portal runs LineageOS, new apps may be kept offline. Open
-**App info → Portal → Mobile data & Wi-Fi** and turn **Network access** on.
+**No art showing up?** If your Portal runs LineageOS, new apps may be kept offline; the key
+row then says *Blocked: App info*. Open **App info → Portal → Mobile data & Wi-Fi** and turn
+**Network access** on. A game that couldn't be reached gets its art when the network is back.
 
 ## Quick settings
 
 Press **Square** for the music player (previous, play/pause, next, and a seek bar), brightness,
-volume, auto-brightness and Do not disturb, plus shortcuts to Wi-Fi, Bluetooth, battery, AYN's
-settings (*Controller settings*) and Android's settings. **L1** and **R1** skip tracks while the
+volume, auto-brightness and Do not disturb, plus shortcuts to your notifications (the bell
+pulls Android's notification shade down), Wi-Fi, Bluetooth, battery, AYN's settings
+(*Controller settings*) and Android's settings. *Notifications* is in All apps too, so you can
+put it in the dock. **L1** and **R1** skip tracks while the
 panel is open; on the seek bar, left and right jump 10 seconds.
 The first time you use brightness, Do not disturb or the seek bar, Portal opens the Android page
 that lets it change them. Switch Portal on there once, then press **B** to come back. The seek
@@ -97,17 +105,19 @@ notifications. With it, what is playing also shows beside the clock on Home.
 
 Hold **Home** for a rest that doesn't lock the Portal: the clock and battery on black, the
 screen kept on, whatever you were doing (a game too) waiting underneath. Press the **same
-button four times** to come back; touches, the sticks and the triggers don't count, so it won't
-wake in a bag. A short press of Home works as always.
+button four times** and you're back in it, exactly where you were; touches, the sticks and the
+triggers don't count, so it won't wake in a bag, and the extra presses of a quick fourth don't
+reach your game. A short press of Home works as always.
 
 To switch it on: **Launcher Settings → Home → Hold Home for standby**, press **A**, and turn on
-**Portal: hold Home for standby** in the Android list that opens (its row flashes). Android warns
+**Portal: Home button and notifications** in the Android list that opens (its row flashes). Android warns
 that an accessibility service can see your screen and control the device. This one is only allowed to
-receive the Home button: it can't read anything on the screen, and the code is here to check.
+receive the Home button (and to pull the notification shade down for the bell): it can't read
+anything on the screen, and the code is here to check.
 
 **Switch grayed out?** Android restricts it for apps installed from a downloaded file. Come back
 to Launcher Settings: the row says *Restricted*. Press **A** for Portal's App info, then
-**⋮ → Allow restricted settings**, and switch it on as above.
+**⋮ → Allow restricted settings**, come back and press **A** again to switch it on as above.
 
 **Off again by itself?** Android switches it off whenever Portal is force-stopped. The next
 time you press Home, a note at the top says so; switch it on again as above. To have Portal turn
@@ -145,7 +155,7 @@ sorted into categories (move through them on the left, **A** to go in, **B** to 
 | ![Home with Stardew Valley's scene](docs/screenshots/home-stardew.jpg) | ![Choosing a category](docs/screenshots/categories.jpg) |
 | *Home: the focused game's scene fills the screen* | *B: switch category* |
 | ![All apps grid](docs/screenshots/all-apps.png) | ![Quick settings panel](docs/screenshots/quick-settings.jpg) |
-| *Y: every app, A–Z* | *−: quick settings* |
+| *Y: every app, A–Z* | *Square: quick settings* |
 | ![Options for an app](docs/screenshots/options.jpg) | ![Picking art](docs/screenshots/art.jpg) |
 | *Triangle: options for any app* | *Triangle → Art…: pick a cover, header or scene* |
 | ![Launcher Settings](docs/screenshots/settings.jpg) | |

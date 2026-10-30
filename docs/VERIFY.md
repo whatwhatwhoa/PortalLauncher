@@ -3,6 +3,46 @@
 Built but not yet clicked on the device. Each check is one line: what to do, what should
 happen. Ticked checks leave this file (their result goes in the commit or a decision entry).
 
+## V-0.5.0 (F37–F45, F11, F13, F16, built 2026-10-30)
+The agent saw on the Portal (debug build, keys over adb and a virtual Home key): Recent fills
+and shows second, the L1/R1 glyphs, the search strip, the quick panel's bell pulling the shade,
+standby opening from a Home hold and waking back to DroidDeck or to Home as it was, extra wake
+presses landing nowhere, `am start -n` and the gear reusing the one Home. These need hands:
+- [ ] Standby over a game: hold Home, black at once, the clock fades in; four A: back in the
+      same game, no Home in between. Hold Home on the lock screen: no standby (Home as usual).
+- [ ] Standby: press A six times fast: the game (or Home) gets none. Hold the D-pad's fourth
+      push: standby goes when you let go. Four short Home presses wake it; holding Home does nothing.
+- [ ] Standby: the power button, then on again: standby is gone, you are where you were.
+- [ ] The left stick on Home and in All apps: a diagonal moves one way only (no drop into the
+      dock), a small push steps slowly, a full push runs fast; the D-pad and hat feel as before.
+      Too fast, too slow, or the dead zone wrong?
+- [ ] Open an app and press A again at once (before it shows): nothing else opens.
+- [ ] Rename a category, press Home while typing: the name is kept, Home works at once.
+- [ ] Hold R1 on Home: one category, then bumps. With play controls on: one track. In
+      Launcher Settings hold Right on Theme: it changes once.
+- [ ] Home key: open the quick panel (or All apps, a sheet, the layer), press Home: it closes and
+      the row keeps its place; press Home again: the first category's start.
+- [ ] Recent: is second the right place, and *Recent* the right name? Play Store stays out of it
+      (it is a dock utility): right?
+- [ ] Recent: open its 3rd app: the tiles don't slide under the opening; back, that app is first
+      and focused.
+- [ ] All apps: Y, pick letters with A, X deletes, Down to the results; B drops the search, B
+      again closes. Does the strip fit at the Portal's font scale (1.15)? "gta"-style initials?
+- [ ] All apps: hold Down: the grid glides with the focus; fling it by touch: focus lands in view.
+- [ ] L1/R1 in All apps: the letter between the glyphs lights for a second.
+- [ ] Quick panel: the bell pulls the shade. With standby's service off: does it still?
+- [ ] Turn categories with R1/L1: the new row glides in from that side; covers show at once on a
+      row seen before (no icon flash).
+- [ ] Settings → Art → SteamGridDB key with nothing copied: the SteamGridDB page opens; copy the
+      key, B, A: Set. With Wi-Fi off: "Offline, try again". With the launcher's network blocked
+      (App info → Network access off): "Blocked: App info".
+- [ ] Art offline: Clear all art with Wi-Fi off, then Wi-Fi on: covers arrive within seconds,
+      no game stuck on its icon.
+- [ ] Settings → System → Home app while Launcher3 is Home: A shows Android's "use as Home?".
+- [ ] A custom accent, then step the Accent row to a preset: *Custom* is one step back, also
+      after a restart.
+- [ ] Save setup, Restore setup: everything comes back (Recent too).
+
 ## V-0.4.2 (B11.2, B12, released 2026-10-25)
 - [ ] Brightness set to an odd level in Android (say 22%): Right goes to 25%, Left to 20%; then 5% a step.
 - [ ] Turned to portrait (a rotation app's tile): Home, All apps, the sheets and the quick panel

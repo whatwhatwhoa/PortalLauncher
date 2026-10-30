@@ -116,6 +116,29 @@ own hold action (`key_home_long_press_action` in `content://lineagesettings/syst
 works (it replaces the row). On the owner's Portal it is 0 since 2026-10-25 (it was unset:
 Circle to Search).
 
+### Testing a Home hold: `input keyevent` never reaches the service
+A Home key sent with `adb shell input keyevent KEYCODE_HOME` (`--longpress` or `--duration 1500`
+too) goes straight to Android's Home, past `HomeHoldService`'s key filter, so a scripted hold
+never opens standby; `sendevent` on the controller's node is refused (SELinux). A virtual key
+device made with Android's `uinput` tool goes the real way (2026-10-30). Push this as
+`/data/local/tmp/homehold.json`, then `adb shell uinput /data/local/tmp/homehold.json` (the
+device goes away when the command ends; standby shows about 3 s after the start):
+```
+{"id":1,"command":"register","name":"Agent Home key","vid":6353,"pid":43981,"bus":"usb","configuration":[{"type":"UI_SET_EVBIT","data":["EV_KEY"]},{"type":"UI_SET_KEYBIT","data":["KEY_HOMEPAGE"]}]}
+{"id":1,"command":"delay","duration":1500}
+{"id":1,"command":"inject","events":["EV_KEY","KEY_HOMEPAGE",1,"EV_SYN","SYN_REPORT",0]}
+{"id":1,"command":"delay","duration":1300}
+{"id":1,"command":"inject","events":["EV_KEY","KEY_HOMEPAGE",0,"EV_SYN","SYN_REPORT",0]}
+{"id":1,"command":"delay","duration":2500}
+```
+
+### Only the Home intent makes Home
+Android gives an activity the HOME type only when it is started by the Home intent with no
+component. `am start -n …/.MainActivity`, Portal's icon in another launcher and the Default apps
+gear start it in a plain task: before 0.5.0 that was a second launcher whose setup in memory
+wrote over Home's. `MainActivity` now hands such a start over to Home while Portal holds the
+role (`architecture.md` *Launcher contract*), so `am start -n` is a fine way to bring Home up.
+
 ### A force stop turns the hold-Home service off
 Android drops a package's accessibility services from `enabled_accessibility_services` when it
 is force-stopped (seen on the Portal 2026-10-25: the list went empty at once), and an
@@ -191,4 +214,13 @@ Check a new font's `fvar` defaults before blaming the font.
 The setup file and Android's backup each list the preferences they carry: `Setup.PREFS` and
 `res/xml/data_extraction_rules.xml` (`launcher`, `art`, `picks`, `scenes`). A setting kept in a
 new `getSharedPreferences` name, or a new folder the owner fills, is silently left out of both
-until it is added to the two lists.
+until it is added to the two lists. A new key in the `launcher` file also goes into
+`Prefs.fits` (`SWITCHES`, `TEXTS` or a branch) and is read through Prefs' safe getters, or
+Restore setup can't check its type. The `device` file (the one-time Home ask) is left out of
+both on purpose: a restored setup on a new Portal must still ask there.
+
+### Art files changed by hand aren't seen until a restart
+`Art` lists `files/art/` once at start and keeps that set current as it downloads, saves and
+deletes, so composition never reads the disk. A file pushed or deleted over adb while the
+launcher runs isn't seen until the process restarts (`am force-stop`, then Home; mind *A force
+stop turns the hold-Home service off*).
