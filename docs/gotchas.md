@@ -37,7 +37,10 @@ Retry once, or a shorter command.
   landscape. Auto-rotate therefore turns the screen the wrong way; keep it locked. Seen again
   2026-10-30 with auto-rotate found on: held in landscape the sensor proposes ROTATION_180,
   which Android refuses (`mAllowAllRotations=false`), so the screen stays in portrait
-  (`dumpsys window`, *WindowOrientationListener*).
+  (`dumpsys window`, *WindowOrientationListener*). Turning auto-rotate off then locks that
+  portrait (`user_rotation` 1), and the sensor never offers landscape to lock first; the owner
+  can't fix it from the device. Back to landscape: `adb shell settings put system user_rotation 0`
+  (done 2026-10-30 at the owner's ask; auto-rotate stays off).
 - Something on the device had set `wm fixed-to-user-rotation enabled`, likely to hide the sensor
   bug. With it on, apps' orientation requests (and rotation apps) are ignored. It may come back
   after a reboot via AYN's settings: check with `adb shell wm fixed-to-user-rotation`.
