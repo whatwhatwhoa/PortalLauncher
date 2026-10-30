@@ -413,6 +413,7 @@ class Art(context: Context, private val scope: CoroutineScope, key: String) {
         ArtKind.entries.forEach { delete(File(dir, "$pkg.${it.suffix}")) }
         scenes.edit { remove(pkg); remove("$pkg.url") }
         picks.edit { ArtKind.entries.forEach { remove(pickKey(pkg, it)) }; remove(wideKey(pkg)) }
+        unfinish(pkg, false)
         save(pkg, ArtRecord.Icon)
     }
 
