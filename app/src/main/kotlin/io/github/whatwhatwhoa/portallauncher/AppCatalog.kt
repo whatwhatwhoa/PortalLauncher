@@ -331,7 +331,7 @@ class Prefs(context: Context) {
         get() = sp.getString("home.category", null)
         set(value) = sp.edit { putString("home.category", value) }
 
-    /** Where Home was when an app last opened from it, and in which boot ([HomePlace]). */
+    /** Where Home was when an app last opened from it, and in which boot ([HomePlace]); gone once Home is back. */
     var place: HomePlace?
         get() = sp.getString("home.place", null)?.let(HomePlace::parse)
         set(value) = sp.edit { if (value == null) remove("home.place") else putString("home.place", value.stored) }

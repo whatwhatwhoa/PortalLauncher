@@ -156,8 +156,9 @@ class LauncherState(
         }
     var screen by mutableStateOf(Screen.Home)
         private set
-    // Home's place at the last launch, when the launcher was ended or rebuilt since in this boot;
-    // the row's app is found once the catalog lists it (the init after [row]).
+    // Home's place at the last launch, when the launcher was ended or rebuilt in this boot while
+    // that app ran (cleared on coming back, [refreshSettings]); the row's app is found once the
+    // catalog lists it (the init after [row]).
     private val restored = prefs.place?.takeIf { it.sameBoot }
     var zone by mutableStateOf(restored?.zone ?: Zone.Row)
         private set
@@ -204,9 +205,10 @@ class LauncherState(
         private set
     private var categoryIndex by mutableIntStateOf(0)
     /**
-     * Home's category, by id, so a rename keeps it. A restart in the same boot goes back to where
-     * the last app opened from, whatever Home key goes to says; after a reboot, Where you left
-     * reopens the last one.
+     * Home's category, by id, so a rename keeps it. A restart while an app opened from Home runs
+     * goes back to where it opened from, whatever Home key goes to says; any other start (a
+     * reboot, an update while Home shows) goes by Home key goes to, Where you left reopening the
+     * last one.
      */
     private var currentCategory by mutableStateOf(
         restored?.category ?: prefs.lastCategory.takeIf { prefs.home.start == StartOn.Left } ?: Category.FAVORITES,
@@ -978,6 +980,9 @@ class LauncherState(
 
     /** The values that change outside the panel; again on coming back from Android's settings. */
     fun refreshSettings() {
+        // Home's place at a launch serves only the restart while that app runs; back in front
+        // (this runs on every resume, after [restored] is read), a later restart starts as usual.
+        prefs.place = null
         if (quickOpen) controls.read()
         checkHomeHold(watched = false)
         if (!settingsOpen) return
