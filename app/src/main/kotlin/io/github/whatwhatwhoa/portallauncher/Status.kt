@@ -72,9 +72,10 @@ import kotlin.math.sqrt
 fun StatusCluster(controls: DeviceControls, covered: Boolean, modifier: Modifier = Modifier) {
     val wifi = rememberWifiLevel()
     val battery = rememberBattery()
-    val now = controls.nowPlaying
+    // Read only where it shows, so the quick panel's seek-bar tick doesn't redraw the band under it.
+    val now = if (covered || !controls.playing) null else controls.nowPlaying
     // Title first, as players and the quick panel name a track; a part a player leaves out is skipped.
-    val track = now?.takeIf { controls.playing && !covered }?.let { n ->
+    val track = now?.let { n ->
         listOfNotNull(n.title, n.artist, n.album).filter { it.isNotBlank() }.distinct().joinToString(" · ").ifEmpty { null }
     }
     Box(modifier.fillMaxWidth().padding(top = Dimens.statusTop, start = Dimens.statusEdge, end = Dimens.statusEdge)) {

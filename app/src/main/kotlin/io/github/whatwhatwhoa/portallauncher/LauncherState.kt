@@ -346,6 +346,9 @@ class LauncherState(
     /** While the layer is open, the row previews the focused category instead. */
     private val shownCategory get() = if (categoriesOpen) layerCategories.getOrNull(categoryFocus) ?: category else category
 
+    /** The row's category, by id: Home keys its tiles by it, so two rows never share one. */
+    val shownCategoryId get() = shownCategory.id
+
     /** The layer's names: the ones Home shows, or in edit mode every one. */
     val layerCategories get() = if (editingCategories) categoryList else categories
 

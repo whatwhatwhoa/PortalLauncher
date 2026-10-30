@@ -57,6 +57,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -97,13 +98,16 @@ class ArtPicker(
     /** The game being downloaded, shown on its row. */
     var fetching by mutableStateOf<Int?>(null)
         private set
+    /** What went wrong on the rows (a search, a match's download), for their caption. */
     var failed by mutableStateOf<String?>(null)
         private set
     /** True while the search field has the keyboard; keys then go to the field, not to us. */
     var typing by mutableStateOf(false)
         private set
     private var index by mutableIntStateOf(0)
-    private var job: Job? = null
+    // Apart, so opening a grid never cancels the label's search under the rows.
+    private var searchJob: Job? = null
+    private var imagesJob: Job? = null
 
     /** The slot whose images are showing instead of the rows, or null. */
     var browsing by mutableStateOf<ArtKind?>(null)
@@ -111,6 +115,9 @@ class ArtPicker(
     var images by mutableStateOf<List<ArtImage>>(emptyList())
         private set
     var loadingImages by mutableStateOf(false)
+        private set
+    /** What went wrong in the grid (its images, a pick, the gallery), for its own caption. */
+    var gridFailed by mutableStateOf<String?>(null)
         private set
     /** The image being downloaded or saved, shown in the caption. */
     var picking by mutableStateOf<String?>(null)
@@ -211,7 +218,7 @@ class ArtPicker(
     fun stopBrowsing() {
         browsing = null
         images = emptyList()
-        job?.cancel()
+        imagesJob?.cancel()
         loadingImages = false
     }
 
@@ -248,16 +255,20 @@ class ArtPicker(
         browsing = kind
         images = emptyList()
         imageIndex = 0
-        failed = null
-        job?.cancel()
+        gridFailed = null
+        imagesJob?.cancel()
+        loadingImages = false
         // Without a game there are no images to look up: the grid is the gallery tile alone.
         if (matched == null) return
-        job = scope.launch {
+        imagesJob = scope.launch {
             loadingImages = true
             images = try {
                 art.images(pkg, kind)
+            } catch (e: CancellationException) {
+                // The other tab, or the grid closed: whatever replaced this load writes its own.
+                throw e
             } catch (e: Exception) {
-                failed = "Couldn't reach SteamGridDB"
+                gridFailed = "Couldn't reach SteamGridDB"
                 emptyList()
             }
             loadingImages = false
@@ -277,7 +288,7 @@ class ArtPicker(
         scope.launch {
             picking = image.url
             val ok = art.pick(pkg, kind, image)
-            failed = if (ok) null else "Couldn't fetch that image"
+            gridFailed = if (ok) null else "Couldn't fetch that image"
             if (ok && kind != ArtKind.Cover) art.useWide(pkg, kind)
             picking = null
         }
@@ -305,12 +316,15 @@ class ArtPicker(
 
     fun search() {
         typing = false
-        job?.cancel()
-        job = scope.launch {
+        searchJob?.cancel()
+        searchJob = scope.launch {
             searching = true
             failed = null
             results = try {
                 art.search(query)
+            } catch (e: CancellationException) {
+                // A newer search took over; the results stay until it has its own.
+                throw e
             } catch (e: Exception) {
                 failed = "Couldn't reach SteamGridDB"
                 emptyList()
@@ -334,8 +348,8 @@ class ArtPicker(
         if (uri != null) {
             scope.launch {
                 picking = uri.toString()
-                failed = art.useImage(pkg, kind, uri)
-                if (failed == null && kind == ArtKind.Scene) art.useWide(pkg, kind)
+                gridFailed = art.useImage(pkg, kind, uri)
+                if (gridFailed == null && kind == ArtKind.Scene) art.useWide(pkg, kind)
                 picking = null
             }
         }
@@ -343,7 +357,11 @@ class ArtPicker(
 
     private fun fetch(match: ArtMatch) = scope.launch {
         fetching = match.gameId
-        failed = if (art.use(pkg, match)) null else "No art for ${match.name}"
+        failed = when (art.use(pkg, match)) {
+            ArtFetch.Done -> null
+            ArtFetch.NoImages -> "No art for ${match.name}"
+            ArtFetch.Failed -> "Couldn't reach SteamGridDB"
+        }
         fetching = null
     }
 
@@ -462,7 +480,7 @@ private fun ColumnScope.ImageGrid(picker: ArtPicker, kind: ArtKind) {
         when {
             picker.loadingImages -> "Loading ${name.lowercase()}…"
             picker.picking != null -> if (gallery && focus == 0) "Saving…" else "Fetching…"
-            picker.failed != null -> picker.failed!!
+            picker.gridFailed != null -> picker.gridFailed!!
             !picker.hasMatch -> "No game matched: choose one below, or from the gallery"
             picker.images.isEmpty() -> "No ${if (kind == ArtKind.Scene) "Steam screenshots" else name.lowercase()} for this game"
             gallery && focus == 0 -> "$name · from the gallery"

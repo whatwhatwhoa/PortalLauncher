@@ -41,6 +41,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -78,6 +79,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.roundToInt
+import kotlin.math.sign
 
 /**
  * The hero band across the top (the focused app's art, its name at the top edge), the current
@@ -139,21 +141,36 @@ fun HomeScreen(state: LauncherState) {
             BottomRow(state)
         }
         CategoryLabel(
-            state.category.label,
+            state,
             Modifier.graphicsLayer { alpha = (1f - ghost) * (1f - DOCK_SCRIM * dock) }.endingAt(rowTop - Space.m),
         )
     }
 }
 
-/** The category on show, small, on the content margin just above the carousel (which B changes). */
+/**
+ * The category on show, small, on the content margin just above the carousel (which B changes);
+ * a new one crossfades in as the hero does. While L1 and R1 turn it, their bumpers are drawn
+ * either side as the quick panel and the Art… tabs draw them, muted like the name: not at an end,
+ * where the turn stops, nor while they skip tracks.
+ */
 @Composable
-private fun CategoryLabel(label: String, modifier: Modifier) {
-    BasicText(
-        label,
-        modifier = modifier.padding(start = Dimens.edge),
-        style = LocalType.current.title.copy(color = LocalPalette.current.muted),
-        maxLines = 1,
-    )
+private fun CategoryLabel(state: LauncherState, modifier: Modifier) {
+    val p = LocalPalette.current
+    val home = LocalHome.current
+    val categories = state.categories
+    val bumpers = home.hints && !home.playControls && categories.size > 1
+    Crossfade(state.category, modifier, animationSpec = if (LocalMotion.current) tween(HERO_FADE) else snap(), label = "category") { category ->
+        val at = categories.indexOf(category)
+        Row(
+            Modifier.padding(start = Dimens.edge),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Space.s),
+        ) {
+            if (bumpers && at > 0) Box(Modifier.graphicsLayer { alpha = p.muted.alpha }) { BumperGlyph(left = true) }
+            BasicText(category.label, style = LocalType.current.title.copy(color = p.muted), maxLines = 1)
+            if (bumpers && at in 0 until categories.lastIndex) Box(Modifier.graphicsLayer { alpha = p.muted.alpha }) { BumperGlyph(left = false) }
+        }
+    }
 }
 
 /** Places the content so its bottom edge is [y] from the top. */
@@ -517,22 +534,35 @@ private val NAME_SCROLL_SPEED = 90.dp
  * screen), and its x and size are worked out from that number in the layout phase: nothing
  * recomposes while the row moves, the gaps stay even mid-slide, and a moved tile slides too. A
  * LazyRow scrolling to the item while the tiles resized made the motion jump (owner's report).
- * The row is laid out for the grown tile, so focus leaving it doesn't shift it.
+ * The row is laid out for the grown tile, so focus leaving it doesn't shift it. Each category's
+ * row has tiles of its own: a new one glides in from the side it was turned to, from the right
+ * for a later category (R1, down in the layer), from the left for an earlier one.
  */
 @Composable
 private fun Carousel(state: LauncherState, modifier: Modifier) {
     val apps = state.row
     val focus = state.rowFocus
     val motion = LocalMotion.current
+    val shown = state.shownCategoryId
+    // The category shown when the row last drew; only the frame that turns it starts tiles aside,
+    // so a tile added to the same row (a new favorite) still starts in place.
+    val last = remember { ShownRow(shown) }
+    val enter = if (shown == last.id || !motion) {
+        0f
+    } else {
+        val order = state.categoryList
+        ENTER_SLOTS * (order.indexOfFirst { it.id == shown } - order.indexOfFirst { it.id == last.id }).sign
+    }
+    SideEffect { last.id = shown }
     // How grown the first slot is: 1 while the row has focus, 0 while the dock has it.
     val grow = animateFloatAsState(if (state.zone == Zone.Row) 1f else 0f, if (motion) SLIDE else snap(), label = "grow")
     // Picked up to move, the grown tile lifts a little more, by scale.
     val liftScale = Dimens.LIFT_SCALE / Dimens.FOCUS_SCALE
     Box(modifier.fillMaxWidth().height(Dimens.tileFocused).dragsAlong(state)) {
         apps.forEachIndexed { i, app ->
-            key(app.key) {
+            key(shown, app.key) {
                 val target = (i - focus).toFloat()
-                val slot = remember { Animatable(target) }
+                val slot = remember { Animatable(target + enter) }
                 // A new target mid-slide carries the current speed on, so holding a direction glides.
                 LaunchedEffect(target, motion) { if (motion) slot.animateTo(target, SLIDE) else slot.snapTo(target) }
                 val focused = state.zone == Zone.Row && i == focus
@@ -547,9 +577,13 @@ private fun Carousel(state: LauncherState, modifier: Modifier) {
                     if (motion) tween(HERO_FADE) else snap(),
                     label = "tileAlpha",
                 )
+                val art = state.art.takeIf { state.look.covers }
+                // A cover (or its placeholder) is one draw, so it fades without an offscreen pass
+                // of its own; an icon's two layers would show through each other, so it keeps one.
+                val oneDraw = art?.file(app.component.packageName, ArtKind.Cover) != null
                 // Art where it exists: a legacy icon like NTE's 192 px one can't fill a tile crisply.
                 CoverOrIcon(
-                    state.art.takeIf { state.look.covers },
+                    art,
                     app,
                     RoundedCornerShape(Dimens.tileRadius),
                     Dimens.tileFocused * liftScale,
@@ -564,7 +598,10 @@ private fun Carousel(state: LauncherState, modifier: Modifier) {
                         // The fade in a layer of its own, inside the shadow and the ring: a faded
                         // layer is drawn offscreen at the tile's size, which cut the light theme's
                         // shadow off square at the corners (B7.3).
-                        .graphicsLayer { this.alpha = alpha }
+                        .graphicsLayer {
+                            this.alpha = alpha
+                            compositingStrategy = if (oneDraw) CompositingStrategy.ModulateAlpha else CompositingStrategy.Auto
+                        }
                         .combinedClickable(
                             interactionSource = null,
                             indication = null,
@@ -580,6 +617,10 @@ private fun Carousel(state: LauncherState, modifier: Modifier) {
 private const val UNFOCUSED_ALPHA = 0.85f
 // No bounce: an overshoot reads as a jump when every tile does it at once.
 private val SLIDE = spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
+// How many slots aside a turned-to row starts, gliding into place on SLIDE.
+private const val ENTER_SLOTS = 1f
+
+private class ShownRow(var id: String)
 
 /**
  * Lays a carousel tile out at its fractional [slot]: x is interpolated between the slots either
