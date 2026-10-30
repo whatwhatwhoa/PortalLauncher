@@ -170,32 +170,55 @@ class DeviceControls(private val context: Context) {
         readMedia()
     }
 
-    /** The track and how far in: often, while the panel is open, as it plays on. */
+    // The followed player's last report, so the panel's tick counts on from it without a call.
+    private var lastState: PlaybackState? = null
+    private var lastDuration = 0L
+
+    /** The track and how far in: on opening, on returning, and whenever the player says it changed. */
     fun readMedia() {
         canSeeMedia = notifications.isNotificationListenerAccessGranted(listener)
         val player = player()
         follow(if (watching) player else null)
         val state = player?.playbackState
-        val duration = player?.metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
+        // Once: each read is a call to the player that copies all of it, album art included.
+        val metadata = player?.metadata
+        val duration = metadata?.getLong(MediaMetadata.METADATA_KEY_DURATION) ?: 0L
+        lastState = state
+        lastDuration = duration
         nowPlaying = state?.let {
-            // A player reports where it was at a moment, not where it is now.
-            val running = if (it.state == PlaybackState.STATE_PLAYING) {
-                ((SystemClock.elapsedRealtime() - it.lastPositionUpdateTime) * it.playbackSpeed).toLong()
-            } else {
-                0L
-            }
             NowPlaying(
-                title = player.metadata?.getString(MediaMetadata.METADATA_KEY_TITLE),
-                artist = player.metadata?.let { m ->
+                title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE),
+                artist = metadata?.let { m ->
                     m.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: m.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
                 },
-                album = player.metadata?.getString(MediaMetadata.METADATA_KEY_ALBUM),
-                positionMs = (it.position + running).coerceIn(0L, duration.coerceAtLeast(0L)),
+                album = metadata?.getString(MediaMetadata.METADATA_KEY_ALBUM),
+                positionMs = positionOf(it, duration),
                 durationMs = duration,
                 seekable = duration > 0 && it.actions and PlaybackState.ACTION_SEEK_TO != 0L,
             )
         }
         if (state != null) playing = state.state == PlaybackState.STATE_PLAYING
+    }
+
+    /**
+     * The seek bar's tick while something plays: the position counted on from the followed
+     * player's last report, which its callback keeps current, so the tick asks Android nothing.
+     * Without a followed player it reads again, as it always did.
+     */
+    fun tickMedia() {
+        if (watched == null) return readMedia()
+        val state = lastState ?: return
+        nowPlaying = nowPlaying?.copy(positionMs = positionOf(state, lastDuration))
+    }
+
+    // A player reports where it was at a moment, not where it is now.
+    private fun positionOf(state: PlaybackState, duration: Long): Long {
+        val running = if (state.state == PlaybackState.STATE_PLAYING) {
+            ((SystemClock.elapsedRealtime() - state.lastPositionUpdateTime) * state.playbackSpeed).toLong()
+        } else {
+            0L
+        }
+        return (state.position + running).coerceIn(0L, duration.coerceAtLeast(0L))
     }
 
     /** One step of the seek bar, [by] milliseconds; shown at once, the player catches up. */
@@ -347,10 +370,11 @@ fun AnimatedVisibilityScope.QuickPanel(state: LauncherState) {
     val t = LocalType.current
     val motion = LocalMotion.current
     val controls = state.controls
-    LaunchedEffect(Unit) {
-        while (true) {
-            controls.readMedia()
+    // Read on opening (LauncherState.openQuick); after that the time only moves while it plays.
+    LaunchedEffect(controls.playing) {
+        while (controls.playing) {
             delay(MEDIA_TICK)
+            controls.tickMedia()
         }
     }
     Box(

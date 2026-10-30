@@ -1,10 +1,14 @@
 package io.github.whatwhatwhoa.portallauncher
 
 import android.app.NotificationManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.media.AudioAttributes
 import android.media.SoundPool
 import android.os.SystemClock
+import androidx.core.content.ContextCompat
 import kotlin.math.pow
 
 /** The sound families, made by `tools/sounds/make_sounds.py`; Soft is the default (owner). */
@@ -51,7 +55,16 @@ enum class Sound(val file: String, val gap: Long = 0) {
  * while they're off or Do Not Disturb is on (owner).
  */
 class Sounds(context: Context) {
-    private val notifications = context.getSystemService(NotificationManager::class.java)
+    private val app = context.applicationContext
+    private val notifications = app.getSystemService(NotificationManager::class.java)
+    // Do Not Disturb as Android last announced it, rather than asked on every key: that was a
+    // call into the system ahead of each tick, which waited whenever the system was busy.
+    private var quiet = isQuiet()
+    private val quietChanged = object : BroadcastReceiver() {
+        override fun onReceive(c: Context, intent: Intent) {
+            quiet = isQuiet()
+        }
+    }
     private val pool = SoundPool.Builder()
         .setMaxStreams(4)
         .setAudioAttributes(
@@ -68,6 +81,15 @@ class Sounds(context: Context) {
     }
     private val lastAt = LongArray(Sound.entries.size)
 
+    init {
+        ContextCompat.registerReceiver(
+            app,
+            quietChanged,
+            IntentFilter(NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+    }
+
     var settings = SoundSettings()
 
     /** Counts the sounds asked for, so a caller can tell whether an action already made its own. */
@@ -77,7 +99,11 @@ class Sounds(context: Context) {
     /** Plays [sound]; [pitch] is a playback rate, 0.5 to 2. */
     fun play(sound: Sound, pitch: Float = 1f) {
         asked++
-        if (!settings.on || notifications.currentInterruptionFilter > NotificationManager.INTERRUPTION_FILTER_ALL) return
+        if (!settings.on) return
+        // A toggle may be the quick panel's Do not disturb, cued before Android announces it, so
+        // a flip asks once.
+        if (sound == Sound.ToggleOn || sound == Sound.ToggleOff) quiet = isQuiet()
+        if (quiet) return
         val now = SystemClock.uptimeMillis()
         if (now - lastAt[sound.ordinal] < sound.gap) return
         lastAt[sound.ordinal] = now
@@ -85,12 +111,15 @@ class Sounds(context: Context) {
         pool.play(ids[settings.family.ordinal][sound.ordinal], gain, gain, 1, 0, pitch.coerceIn(0.5f, 2f))
     }
 
+    private fun isQuiet() = notifications.currentInterruptionFilter > NotificationManager.INTERRUPTION_FILTER_ALL
+
     companion object {
         private var shared: Sounds? = null
 
         /**
          * One set for the whole process, Home's and standby's chime alike: the 36 load once and
-         * live as long as it does, from the application, so no activity is held by them.
+         * live as long as it does, from the application, so no activity is held by them (nor by
+         * the Do Not Disturb receiver, which lives as long too).
          */
         fun shared(context: Context): Sounds = shared ?: Sounds(context.applicationContext).also { shared = it }
     }

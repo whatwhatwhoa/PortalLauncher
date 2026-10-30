@@ -1,5 +1,9 @@
 package io.github.whatwhatwhoa.portallauncher
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.BlurMaskFilter
 import android.graphics.Paint
 import android.graphics.drawable.AdaptiveIconDrawable
@@ -32,10 +36,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -64,20 +70,25 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toAndroidRect
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.node.GlobalPositionAwareModifierNode
+import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.unit.roundToIntRect
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
-import kotlinx.coroutines.delay
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import kotlin.math.roundToInt
 
 /**
@@ -130,22 +141,49 @@ private const val LEGACY_INSET = 0.16f
 
 /**
  * The app's square cover where it has art, else its icon. The cover is decoded at [drawn], the
- * largest size it is ever shown at, so nothing upscales it.
+ * largest size it is ever shown at, so nothing upscales it. A cover not decoded yet holds its
+ * place in the surface color, so a tile never shows the icon and then the cover.
  */
 @Composable
 fun CoverOrIcon(art: Art?, app: AppEntry, shape: Shape, drawn: Dp, modifier: Modifier = Modifier) {
     val px = with(LocalDensity.current) { drawn.roundToPx() }
-    val cover = rememberArt(art, app.component.packageName, ArtKind.Cover, px)
-    if (cover != null) {
-        Image(cover, null, modifier.clip(shape), contentScale = ContentScale.Crop)
-    } else {
-        AppIcon(app, shape, modifier)
+    val pkg = app.component.packageName
+    val cover = rememberArt(art, pkg, ArtKind.Cover, px)
+    when {
+        cover != null -> Image(cover, null, modifier.clip(shape), contentScale = ContentScale.Crop)
+        art?.file(pkg, ArtKind.Cover) != null -> Box(modifier.clip(shape).background(LocalPalette.current.surface))
+        else -> AppIcon(app, shape, modifier)
     }
 }
 
-/** Reports where this tile sits, so opening its app can grow out of it (MainActivity.launch). */
-fun Modifier.launchesFrom(state: LauncherState, origin: Origin, entry: AppEntry): Modifier =
-    onGloballyPositioned { state.place(origin, entry, it.boundsInWindow().roundToIntRect().toAndroidRect()) }
+/**
+ * Reports where this tile sits, so opening its app can grow out of it (MainActivity.launch). A
+ * node whose element compares equal across recompositions, so it doesn't stop a tile skipping.
+ */
+fun Modifier.launchesFrom(state: LauncherState, origin: Origin, entry: AppEntry): Modifier = this then LaunchesFrom(state, origin, entry)
+
+private data class LaunchesFrom(val state: LauncherState, val origin: Origin, val entry: AppEntry) : ModifierNodeElement<LaunchesFromNode>() {
+    override fun create() = LaunchesFromNode(state, origin, entry)
+
+    override fun update(node: LaunchesFromNode) {
+        node.state = state
+        node.origin = origin
+        node.entry = entry
+    }
+
+    override fun InspectorInfo.inspectableProperties() {
+        name = "launchesFrom"
+        properties["origin"] = origin
+        properties["entry"] = entry.key
+    }
+}
+
+private class LaunchesFromNode(var state: LauncherState, var origin: Origin, var entry: AppEntry) :
+    Modifier.Node(), GlobalPositionAwareModifierNode {
+    override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
+        state.place(origin, entry, coordinates.boundsInWindow().roundToIntRect().toAndroidRect())
+    }
+}
 
 /**
  * Focus: the tile grows a little and an accent ring, a hair away from its edge, pulses slowly.
@@ -418,20 +456,45 @@ fun Hints(hints: List<Hint>, modifier: Modifier = Modifier, stacked: Boolean = f
 
 private const val HINT_ALPHA = 0.8f
 
-/** The time, ticking on the minute: in the system's 12/24-hour format unless Settings → Clock fixes one. */
+/**
+ * The time, ticking on the minute: in the system's 12/24-hour format unless Settings → Clock fixes
+ * one. The minute comes from Android's own tick, read again when the screen comes on and on every
+ * return: a timer stops while the Portal sleeps, and woke on the minute it went to sleep on.
+ */
 @Composable
 fun Clock(modifier: Modifier = Modifier, style: TextStyle = LocalType.current.body.copy(color = LocalPalette.current.text)) {
     val context = LocalContext.current
     val clock = LocalHome.current.clock
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            now = System.currentTimeMillis()
-            delay(MINUTE - now % MINUTE)
+    // A format keeps the zone and the 12/24-hour choice it was made with, so a change makes a new one.
+    var zone by remember { mutableStateOf(TimeZone.getDefault()) }
+    var settingsChanged by remember { mutableIntStateOf(0) }
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(c: Context, intent: Intent) {
+                now = System.currentTimeMillis()
+                when (intent.action) {
+                    // The new zone from the broadcast itself, in case the process's default lags it.
+                    Intent.ACTION_TIMEZONE_CHANGED ->
+                        zone = intent.getStringExtra(Intent.EXTRA_TIMEZONE)?.let(TimeZone::getTimeZone) ?: TimeZone.getDefault()
+                    Intent.ACTION_TIME_CHANGED -> settingsChanged++
+                }
+            }
         }
+        val filter = IntentFilter().apply {
+            listOf(Intent.ACTION_TIME_TICK, Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED, Intent.ACTION_SCREEN_ON)
+                .forEach(::addAction)
+        }
+        ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED)
+        now = System.currentTimeMillis()
+        onDispose { context.unregisterReceiver(receiver) }
     }
-    val format = remember(context, clock) {
-        clock.pattern?.let { SimpleDateFormat(it, Locale.getDefault()) } ?: DateFormat.getTimeFormat(context)
+    LifecycleResumeEffect(Unit) {
+        now = System.currentTimeMillis()
+        onPauseOrDispose {}
+    }
+    val format = remember(context, clock, zone, settingsChanged) {
+        (clock.pattern?.let { SimpleDateFormat(it, Locale.getDefault()) } ?: DateFormat.getTimeFormat(context)).apply { timeZone = zone }
     }
     BasicText(
         format.format(Date(now)),
@@ -439,8 +502,6 @@ fun Clock(modifier: Modifier = Modifier, style: TextStyle = LocalType.current.bo
         style = style,
     )
 }
-
-private const val MINUTE = 60_000L
 
 /** The All apps button's glyph: a 3×3 grid of dots, drawn rather than loaded. */
 @Composable
